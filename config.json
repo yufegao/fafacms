@@ -1,0 +1,30 @@
+{
+  "DefaultConfig": {
+    "WebPort": ":8080",
+    "StoragePath": "/home/hunterhug/data/data",
+    "LogPath": "/home/hunterhug/data/log/fafa.log",
+    "Debug": true
+  },
+  "DbConfig": {
+    "DriverName": "mysql",
+    "Name": "blog",
+    "Host": "127.0.0.1",
+    "User": "root",
+    "Pass": "123456789",
+    "Port": "3306",
+    "Prefix": "fafa_",
+    "MaxIdleConns": 20,
+    "MaxOpenConns": 20,
+    "DebugToFile": true,
+    "DebugToFileName": "/home/hunterhug/data/log/fafa_db.log",
+    "Debug": true
+  },
+  "SessionConfig": {
+    "RedisHost": "127.0.0.1:6379",
+    "RedisMaxIdle": 64,
+    "RedisMaxActive": 0,
+    "RedisIdleTimeout": 120,
+    "RedisDB": 0,
+    "RedisPass": "123456789"
+  }
+}
