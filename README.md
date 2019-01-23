@@ -116,7 +116,7 @@ cp docker_config.json $HOME/data/config.json
 启动容器:
 
 ```
-sudo docker run --name fafablog -p 8080:8080 -v $HOME/data:/root/data hunterhug/fafa fafa -config=/root/data/config.json
+sudo docker run -d --name fafablog -p 8080:8080 -v $HOME/data:/root/data hunterhug/fafa fafa -config=/root/data/config.json
 
 sudo docker logs -f --tail 10 fafablog
 ```
