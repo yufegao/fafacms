@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	. "github.com/hunterhug/fafa/core/config"
+	. "github.com/hunterhug/fafacms/core/config"
 	"github.com/gin-gonic/gin"
 )
 

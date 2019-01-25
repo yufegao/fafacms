@@ -2,7 +2,7 @@
   "DefaultConfig": {
     "WebPort": ":8080",
     "StoragePath": "/root/data/data",
-    "LogPath": "/root/data/log/fafa.log",
+    "LogPath": "/root/data/log/fafacms.log",
     "Debug": true
   },
   "DbConfig": {
@@ -12,11 +12,11 @@
     "User": "root",
     "Pass": "123456789",
     "Port": "3306",
-    "Prefix": "fafa_",
+    "Prefix": "fafacms_",
     "MaxIdleConns": 20,
     "MaxOpenConns": 20,
     "DebugToFile": true,
-    "DebugToFileName": "/root/data/log/fafa_db.log",
+    "DebugToFileName": "/root/data/log/fafacms_db.log",
     "Debug": true
   },
   "SessionConfig": {

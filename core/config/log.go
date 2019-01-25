@@ -2,7 +2,7 @@ package config
 
 import (
 	"fmt"
-	"github.com/hunterhug/fafa/core/util/log"
+	"github.com/hunterhug/fafacms/core/util/log"
 	"path/filepath"
 )
 

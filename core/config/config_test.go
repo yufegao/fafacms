@@ -2,7 +2,7 @@ package config
 
 import (
 	"fmt"
-	"github.com/hunterhug/fafa/core/util/rdb"
+	"github.com/hunterhug/fafacms/core/util/rdb"
 	"testing"
 )
 
@@ -22,7 +22,7 @@ func TestJsonOutConfig(t *testing.T) {
 	c.DbConfig.Pass = "123456789"
 	c.DbConfig.Debug = true
 	c.DbConfig.DebugToFile = true
-	c.DbConfig.DebugToFileName = "/root/data/fafa.log"
+	c.DbConfig.DebugToFileName = "/root/data/fafacms.log"
 	c.DbConfig.MaxIdleConns = 20
 	c.DbConfig.MaxOpenConns = 20
 	c.DbConfig.DriverName = rdb.MYSQL

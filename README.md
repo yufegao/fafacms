@@ -1,21 +1,21 @@
-# FaFa Blog
+# 花花CMS(FaFa CMS)
 
 开发中...
 
-[![GitHub forks](https://img.shields.io/github/forks/hunterhug/fafa.svg?style=social&label=Forks)](https://github.com/hunterhug/fafa/network)
-[![GitHub stars](https://img.shields.io/github/stars/hunterhug/fafa.svg?style=social&label=Stars)](https://github.com/hunterhug/fafa/stargazers)
-[![GitHub last commit](https://img.shields.io/github/last-commit/hunterhug/fafa.svg)](https://github.com/hunterhug/fafa)
-[![Go Report Card](https://goreportcard.com/badge/github.com/hunterhug/fafa)](https://goreportcard.com/report/github.com/hunterhug/fafa)
-[![GitHub issues](https://img.shields.io/github/issues/hunterhug/fafa.svg)](https://github.com/hunterhug/fafa/issues)
+[![GitHub forks](https://img.shields.io/github/forks/hunterhug/fafacms.svg?style=social&label=Forks)](https://github.com/hunterhug/fafacms/network)
+[![GitHub stars](https://img.shields.io/github/stars/hunterhug/fafacms.svg?style=social&label=Stars)](https://github.com/hunterhug/fafacms/stargazers)
+[![GitHub last commit](https://img.shields.io/github/last-commit/hunterhug/fafacms.svg)](https://github.com/hunterhug/fafacms)
+[![Go Report Card](https://goreportcard.com/badge/github.com/hunterhug/fafacms)](https://goreportcard.com/report/github.com/hunterhug/fafacms)
+[![GitHub issues](https://img.shields.io/github/issues/hunterhug/fafacms.svg)](https://github.com/hunterhug/fafacms/issues)
 
 
 ## 项目说明
 
-花花拼音 `fafa` , 名称来源于广东话发发, 花花的谐音, 听起来有诙谐, 娱乐等感觉, 所以此项目代号为 `fafa` .
+此项目代号为 `fafacms`。花花拼音 `fafa`，名称来源于广东话发发，花花的谐音，听起来有诙谐，娱乐等感觉。
 
-是一个使用 `Golang` 开发的前后端分离-->多用户简易博客系统, 支持不同用户登录, 并且可以发布文章, 在首页可以看到不同用户的文章. 很多从事Web或API开发的Golang IT初学者都是从博客系统做起, 本项目愿景是希望使用较简洁较规范的企业开发模式, 可以给初学者一个示例. 你可以把它当作弱化的博客园或简书. 
+是一个使用 `Golang` 开发的前后端分离 --> 内容管理系统(CMS)，支持不同用户登录，并且可以发布文章，在首页可以看到不同用户的文章。本项目愿景是希望使用较简洁较规范的企业开发模式，可以给初学者一个示例。你可以把它当作弱化的博客园或简书。
 
-后端主要返回JSON API, 前端可用任意框架开发界面. 该项目架构可扩展为不同业务的Web项目. 
+后端主要返回JSON API，前端可用任意框架开发界面。 该项目架构可扩展为不同业务的Web项目。
 
 依赖以下项目:
 
@@ -24,7 +24,7 @@
 3. [Session management for Go 1.7+](https://github.com/alexedwards/scs)
 4. ...
 
-使用`Gin`是因为框架比较简洁, 主要使用到路由功能. 使用 `Markdown` 编辑器是因为程序员朋友和很多媒体工作者也开始尝鲜...
+使用`Gin`是因为框架比较简洁， 主要使用到路由功能。使用 `Markdown` 编辑器是因为程序员朋友和很多媒体工作者也开始尝鲜...
 
 代码结构:
 
@@ -48,7 +48,7 @@
 获取代码:
 
 ```
-go get -v github.com/hunterhug/fafa
+go get -v github.com/hunterhug/fafacms
 ```
 
 代码就会保存在`Golang GOPATH`目录下.
@@ -56,7 +56,7 @@ go get -v github.com/hunterhug/fafa
 运行:
 
 ```
-fafa -config=/root/config.json
+fafacms -config=/root/config.json
 ```
 
 其中`config.json`说明如下:
@@ -66,11 +66,11 @@ fafa -config=/root/config.json
   "DefaultConfig": {
     "WebPort": ":8080", 				# 程序运行端口(可改)
     "StoragePath": "/home/hunterhug/data",  		# 本地文件保存地址(可改)
-    "LogPath": "/home/hunterhug/data/log/fafa.log", 	# 日志保存地址(可改)
+    "LogPath": "/home/hunterhug/data/log/fafacms.log", 	# 日志保存地址(可改)
     "Debug": true   					# 打开调试(默认保持)
   },
   "DbConfig": {
-    "DriverName": "mysql",  				# 关系型数据库驱动(默认保持)
+    "DriverName": "mysql",  			# 关系型数据库驱动(默认保持)
     "Name": "blog", 					# 关系型数据库名字(可改)
     "Host": "127.0.0.1", 				# 关系型数据库地址(可改)
     "User": "root", 					# 关系型数据库用户(可改)
@@ -80,7 +80,7 @@ fafa -config=/root/config.json
     "MaxIdleConns": 20, 				# 关系型数据库池闲置连接数(默认保持)
     "MaxOpenConns": 20, 				# 关系型数据库池打开连接数(默认保持)
     "DebugToFile": true, 				# SQL调试是否输出到文件(默认保持)
-    "DebugToFileName": "/home/hunterhug/data/log/fafa_db.log", # SQL调试输出文件路径(默认保持)
+    "DebugToFileName": "/home/hunterhug/data/log/fafacms_db.log", # SQL调试输出文件路径(默认保持)
     "Debug": true 					# SQL调试(默认保持)
   },
   "SessionConfig": {
@@ -129,9 +129,9 @@ cp docker_config.json $HOME/data/config.json
 启动容器:
 
 ```
-sudo docker run -d --name fafablog -p 8080:8080 -v $HOME/data:/root/data hunterhug/fafa fafa -config=/root/data/config.json
+sudo docker run -d --name fafacms -p 8080:8080 -v $HOME/data:/root/data hunterhug/fafacms fafacms -config=/root/data/config.json
 
-sudo docker logs -f --tail 10 fafablog
+sudo docker logs -f --tail 10 fafacms
 ```
 
 其中`/root/data`是挂载的持久化卷, 配置`config.json`放置在该文件夹下.

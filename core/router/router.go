@@ -2,7 +2,7 @@ package router
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/hunterhug/fafa/core/controllers"
+	"github.com/hunterhug/fafacms/core/controllers"
 )
 
 type HttpHandle struct {

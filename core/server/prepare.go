@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"github.com/alexedwards/scs"
 	"github.com/alexedwards/scs/stores/redisstore"
-	"github.com/hunterhug/fafa/core/config"
-	"github.com/hunterhug/fafa/core/util/rdb"
-	"github.com/hunterhug/fafa/core/util/session"
+	"github.com/hunterhug/fafacms/core/config"
+	"github.com/hunterhug/fafacms/core/util/rdb"
+	"github.com/hunterhug/fafacms/core/util/session"
 	"io/ioutil"
 )
 

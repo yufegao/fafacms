@@ -2,10 +2,10 @@ package main
 
 import (
 	"flag"
-	"github.com/hunterhug/fafa/core/config"
-	"github.com/hunterhug/fafa/core/model"
-	"github.com/hunterhug/fafa/core/router"
-	"github.com/hunterhug/fafa/core/server"
+	"github.com/hunterhug/fafacms/core/config"
+	"github.com/hunterhug/fafacms/core/model"
+	"github.com/hunterhug/fafacms/core/router"
+	"github.com/hunterhug/fafacms/core/server"
 )
 
 var (

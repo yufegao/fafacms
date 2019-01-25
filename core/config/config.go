@@ -2,8 +2,8 @@ package config
 
 import (
 	"encoding/json"
-	"github.com/hunterhug/fafa/core/util/rdb"
-	"github.com/hunterhug/fafa/core/util/session"
+	"github.com/hunterhug/fafacms/core/util/rdb"
+	"github.com/hunterhug/fafacms/core/util/session"
 	"github.com/alexedwards/scs"
 )
 

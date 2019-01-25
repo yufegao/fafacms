@@ -2,7 +2,7 @@
   "DefaultConfig": {
     "WebPort": ":8080",
     "StoragePath": "/home/hunterhug/data/data",
-    "LogPath": "/home/hunterhug/data/log/fafa.log",
+    "LogPath": "/home/hunterhug/data/log/fafacms.log",
     "Debug": true
   },
   "DbConfig": {
@@ -12,11 +12,11 @@
     "User": "root",
     "Pass": "123456789",
     "Port": "3306",
-    "Prefix": "fafa_",
+    "Prefix": "fafacms_",
     "MaxIdleConns": 20,
     "MaxOpenConns": 20,
     "DebugToFile": true,
-    "DebugToFileName": "/home/hunterhug/data/log/fafa_db.log",
+    "DebugToFileName": "/home/hunterhug/data/log/fafacms_db.log",
     "Debug": true
   },
   "SessionConfig": {
