@@ -43,7 +43,7 @@
 
 ## 如何使用
 
-### 常规使用
+### 后端部署(常规)
 
 获取代码:
 
@@ -110,7 +110,7 @@ sudo docker exec -it GoSpider-redis redis-cli -a 123456789
 > KEYS *
 ```
 
-### Docker部署
+### 后端部署(Docker)
 
 你也可以使用`docker`进行部署, 构建镜像(Docker版本必须大于17.06):
 
@@ -136,6 +136,7 @@ sudo docker logs -f --tail 10 fafacms
 
 其中`/root/data`是挂载的持久化卷, 配置`config.json`放置在该文件夹下.
 
+### 前端部署(常规)
 
 ## 支持
 
@@ -150,4 +151,4 @@ sudo docker logs -f --tail 10 fafacms
 
 ## 界面
 
-前端待开发
+待开发
