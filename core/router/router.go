@@ -20,11 +20,16 @@ var (
 	HomeRouter = map[string]HttpHandle{
 		//首页
 		"/": {controllers.Home, GP},
+
+		//登陆相关
+		"/login": {controllers.Login, GP},
 	}
 
 	V1Router = map[string]HttpHandle{
-		//登陆相关
-		"/login": {controllers.Login, GP},
+		"/user/create": {controllers.CreateUser, POST},
+		"/user/update": {controllers.UpdateUser, POST},
+		"/user/delete": {controllers.DeleteUser, POST},
+		"/user/take":   {controllers.TakeUser, GP},
 	}
 )
 

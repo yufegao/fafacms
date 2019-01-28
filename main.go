@@ -53,6 +53,12 @@ func main() {
 	if createTable {
 		server.CreateTable([]interface{}{
 			model.User{},
+			model.Group{},
+			model.Resource{},
+			model.GroupResource{},
+			model.Content{},
+			model.ContentNode{},
+			model.Comment{},
 		})
 	}
 
@@ -65,9 +71,12 @@ func main() {
 	// Web welcome home!
 	router.SetRouter(engine)
 
+	// Auth API load
+	controllers.InitAuthResource()
+
 	// V1 API
 	v1 := engine.Group("/v1")
-	v1.Use(controllers.AuthManager)
+	v1.Use(controllers.AuthFilter)
 	router.SetAPIRouter(v1)
 
 	config.Log.Noticef("Run in %s", config.FafaConfig.DefaultConfig.WebPort)
