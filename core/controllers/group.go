@@ -4,35 +4,35 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func CreateUser(c *gin.Context) {
+func CreateGroup(c *gin.Context) {
 	resp := new(Resp)
 	defer func() {
 		JSONL(c, 200, nil, resp)
 	}()
 }
 
-func UpdateUser(c *gin.Context) {
+func UpdateGroup(c *gin.Context) {
 	resp := new(Resp)
 	defer func() {
 		JSONL(c, 200, nil, resp)
 	}()
 }
 
-func DeleteUser(c *gin.Context) {
+func DeleteGroup(c *gin.Context) {
 	resp := new(Resp)
 	defer func() {
 		JSONL(c, 200, nil, resp)
 	}()
 }
 
-func TakeUser(c *gin.Context) {
+func TakeGroup(c *gin.Context) {
 	resp := new(Resp)
 	defer func() {
 		JSONL(c, 200, nil, resp)
 	}()
 }
 
-func ListUser(c *gin.Context) {
+func ListGroup(c *gin.Context) {
 	resp := new(Resp)
 	defer func() {
 		JSONL(c, 200, nil, resp)

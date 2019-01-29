@@ -77,7 +77,7 @@ func main() {
 	// Auth API load
 	controllers.InitAuthResource()
 
-	// V1 API, will be change to V2...
+	// V1 API, will may be change to V2...
 	v1 := engine.Group("/v1")
 	v1.Use(controllers.AuthFilter)
 
