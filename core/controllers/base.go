@@ -7,6 +7,10 @@ var (
 	ParseJsonError  = 10001
 	UploadFileError = 10002
 	LoginWrong      = 10003
+	DBError         = 10004
+	ParasError      = 10005
+
+	Unknown = 99999
 )
 
 var ErrorMap = map[int]string{
@@ -14,6 +18,19 @@ var ErrorMap = map[int]string{
 	ParseJsonError:  "json parse err",
 	UploadFileError: "upload file err",
 	LoginWrong:      "username or password wrong",
+	DBError:         "db operation err",
+	ParasError:      "paras not right",
+}
+
+func Error(code int, detail string) *ErrorResp {
+	_, ok := ErrorMap[code]
+	if !ok {
+		code = Unknown
+	}
+	return &ErrorResp{
+		ErrorID:  code,
+		ErrorMsg: fmt.Sprintf("%s:%s", ErrorMap[code], detail),
+	}
 }
 
 type Resp struct {
