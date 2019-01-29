@@ -1,13 +1,12 @@
 # 花花CMS(FaFa CMS)
 
-开发中...
-
 [![GitHub forks](https://img.shields.io/github/forks/hunterhug/fafacms.svg?style=social&label=Forks)](https://github.com/hunterhug/fafacms/network)
 [![GitHub stars](https://img.shields.io/github/stars/hunterhug/fafacms.svg?style=social&label=Stars)](https://github.com/hunterhug/fafacms/stargazers)
 [![GitHub last commit](https://img.shields.io/github/last-commit/hunterhug/fafacms.svg)](https://github.com/hunterhug/fafacms)
 [![Go Report Card](https://goreportcard.com/badge/github.com/hunterhug/fafacms)](https://goreportcard.com/report/github.com/hunterhug/fafacms)
 [![GitHub issues](https://img.shields.io/github/issues/hunterhug/fafacms.svg)](https://github.com/hunterhug/fafacms/issues)
 
+开发中...
 
 ## 项目说明
 
@@ -42,6 +41,8 @@
 └── web 前端代码(可用vue等开发)
 ```
 
+后端API调试见: [/doc/README.md], 使用[insomnia](https://insomnia.rest/)
+
 ## 如何使用
 
 ### 后端部署(常规)
@@ -65,14 +66,14 @@ fafacms -config=/root/config.json
 ```
 {
   "DefaultConfig": {
-    "WebPort": ":8080", 				# 程序运行端口(可改)
+    "WebPort": ":8080", 				    # 程序运行端口(可改)
     "StoragePath": "/root/data/data",  		# 本地文件保存地址(可改)
     "LogPath": "/root/data/log/fafacms.log", 	# 日志保存地址(可改)
-    "Debug": true   					# 打开调试(默认保持)
+    "Debug": true   					        # 打开调试(默认保持)
   },
   "DbConfig": {
     "DriverName": "mysql",  			# 关系型数据库驱动(默认保持)
-    "Name": "blog", 					# 关系型数据库名字(可改)
+    "Name": "fafa", 					# 关系型数据库名字(可改)
     "Host": "127.0.0.1", 				# 关系型数据库地址(可改)
     "User": "root", 					# 关系型数据库用户(可改)
     "Pass": "123456789", 				# 关系型数据库密码(可改)
@@ -104,7 +105,7 @@ chomd 777 build.sh
 
 sudo docker exec -it  GoSpider-mysqldb mysql -uroot -p123456789
 
-> create database blog default character set utf8mb4 collate utf8mb4_unicode_ci;
+> create database fafa default character set utf8mb4 collate utf8mb4_unicode_ci;
 
 sudo docker exec -it GoSpider-redis redis-cli -a 123456789
 

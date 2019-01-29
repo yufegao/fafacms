@@ -26,12 +26,13 @@ type Content struct {
 }
 
 type ContentNode struct {
-	Id         int    `json:"id" xorm:"bigint pk autoincr"`
-	Name       string `json:"name,omitempty" xorm:"varchar(100) notnull"`
-	Describe   string `json:"describe" xorm:"TEXT`
-	CreateTime int    `json:"create_time,omitempty"`
-	UpdateTime int    `json:"update_time,omitempty"`
-	ImagePath  string `json:"image_path" xorm:"TEXT`
+	Id           int    `json:"id" xorm:"bigint pk autoincr"`
+	Name         string `json:"name,omitempty" xorm:"varchar(100) notnull"`
+	Describe     string `json:"describe" xorm:"TEXT`
+	CreateTime   int    `json:"create_time,omitempty"`
+	UpdateTime   int    `json:"update_time,omitempty"`
+	ImagePath    string `json:"image_path" xorm:"TEXT`
+	ParentNodeId int    `json:"parent_node_id"`
 
 	// Future...
 	Aa string `json:"aa,omitempty"`

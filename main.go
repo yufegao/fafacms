@@ -89,7 +89,7 @@ func main() {
 	router.SetAPIRouter(v1, router.V1Router)
 	router.SetAPIRouter(base, router.BaseRouter)
 
-	config.Log.Noticef("Server run in %s", config.FafaConfig.DefaultConfig.WebPort)
+	flog.Log.Noticef("Server run in %s", config.FafaConfig.DefaultConfig.WebPort)
 	err = engine.Run(config.FafaConfig.DefaultConfig.WebPort)
 	if err != nil {
 		panic(err)

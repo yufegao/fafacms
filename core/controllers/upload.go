@@ -1,10 +1,14 @@
 package controllers
 
 import (
-	"bytes"
+	"fmt"
 	"github.com/gin-gonic/gin"
-	"io/ioutil"
+	"github.com/hunterhug/fafacms/core/config"
 	. "github.com/hunterhug/fafacms/core/flog"
+	"github.com/hunterhug/fafacms/core/model"
+	"github.com/hunterhug/parrot/util"
+	"path/filepath"
+	"time"
 )
 
 var FileAllow = map[string][]string{
@@ -23,28 +27,27 @@ var FileAllow = map[string][]string{
 
 var FileBytes = 1 << 25 // (1<<25)/1000.0/1000.0 33.54 不能超出33M
 
-type Sizer interface {
-	Size() int64
-}
-
 type UploadResponse struct {
 	FileName string `json:"file_name"`
-	Size     int    `json:"size"`
+	Size     int64  `json:"size"`
 	Url      string `json:"url"`
 }
 
 /*
 	file: 文件form名称
 	type: 上传类型，分别为image、flash、media、file、other
+	describe: 备注
 */
 func Upload(c *gin.Context) {
+	uid := c.GetInt("uid")
 	resp := new(Resp)
-
+	data := UploadResponse{}
 	defer func() {
 		JSONL(c, 200, nil, resp)
 	}()
 
 	fileType := c.DefaultPostForm("type", "other")
+	describe := c.DefaultPostForm("describe", "")
 
 	h, err := c.FormFile("file")
 	if err != nil {
@@ -53,94 +56,100 @@ func Upload(c *gin.Context) {
 			ErrorID:  UploadFileError,
 			ErrorMsg: ErrorMap[UploadFileError] + " " + err.Error(),
 		}
+		return
 	}
 
-	//判断文件是否允许被添加
-	//dir类型正确
-	fileallowarray, ok := FileAllow[fileType]
-	if !ok{
-
-	}
-	if ok {
-		//得到文件后缀
-		filesuffix := GetFileSuffix(h.Filename)
-		//是否后缀正确
-		if InArray(fileallowarray, filesuffix) {
-			//获取大小
-			if fileSizer, ok := f.(Sizer); ok {
-				fileSize := fileSizer.Size()
-				// fmt.Printf("上传%v文件的大小为: %v", fileSize, h.Filename)
-				if fileSize > int64(FileBytes) {
-					message = "获取上传文件错误:文件大小超出33M"
-					goto END
-				}
-			} else {
-				message = "获取上传文件错误:无法读取文件大小"
-			}
-			//读取二进制
-			temp, err := ioutil.ReadAll(f)
-			if err != nil {
-				message = "读取文件错误：" + err.Error()
-				goto END
-			}
-			filemd5 := Md5FS(bytes.NewReader(temp))
-			if filemd5 == "" {
-				message = "filemd5 empty"
-				goto END
-			}
-			//创建文件夹
-			subdir := Hashcode(filemd5)
-			dirpath, err = MakeFileDir(filetype + "/" + subdir)
-			if err != nil {
-				message = "创建文件夹失败：" + err.Error()
-				goto END
-			} else {
-				//新建文件名
-				filename = filemd5 + "." + filesuffix
-				// 重名没关系，因为文件相同,可以忽略
-				if HasFile(dirpath + "/" + filename) {
-					message = "文件重名"
-					fileerror = 0
-					goto END
-				}
-				//复制文件
-				err = ioutil.WriteFile(dirpath+"/"+filename, temp, 0777)
-				if err != nil {
-					message = err.Error()
-					goto END
-				} else {
-					fileerror = 0
-					goto END
-				}
-			}
-		} else {
-			message = "文件后缀不被允许"
+	fileAllowArray, ok := FileAllow[fileType]
+	if !ok {
+		Log.Errorf("upload err: type not permit")
+		resp.Error = &ErrorResp{
+			ErrorID:  UploadFileError,
+			ErrorMsg: ErrorMap[UploadFileError] + " type not permit",
 		}
-	} else {
-		message = "dir参数不允许"
+		return
 	}
 
-END:
-	if mark == 1 {
-		this.Data["json"] = &map[string]interface{}{"error": fileerror, "message": message}
-	} else {
-		name := dirpath + "/" + filename
-		//http://lulijuan505.blog.163.com/blog/static/308369112015322102455860/
-		//Base64产生的/ + =出现在url会有问题
-		/*
-			base64
-			1、包含A-Z a-z 0-9 和加号“+”，斜杠“/” 用来作为开始的64个数字. 等号“=”用来作为后缀用途。
-			2、2进制的.
-			3、要比源数据多33%。
-			4、常用于邮件。
-			urlencode
-			除了 -_. 之外的所有非字母数字字符都将被替换成百分号（%）后跟两位十六进制数，空格则编码为加号（+）
-			  在神马情况下用
-		*/
-		token := Base64E(UrlE(name))
-		//urlstring := "/public/file/getfile?token=" + token
-		//fmt.Println(name)
-		this.Data["json"] = &map[string]interface{}{"error": fileerror, "url": "/" + name, "token": token}
+	fileSuffix := util.GetFileSuffix(h.Filename)
+
+	if !util.InArray(fileAllowArray, fileSuffix) {
+		Log.Errorf("upload err: file suffix: %s not permit", fileSuffix)
+		resp.Error = &ErrorResp{
+			ErrorID:  UploadFileError,
+			ErrorMsg: ErrorMap[UploadFileError] + fmt.Sprintf(" file suffix: %s not permit", fileSuffix),
+		}
+		return
 	}
-	this.ServeJSON()
+
+	if h.Size > int64(FileBytes) {
+		Log.Errorf("upload err: file size too big: %d", h.Size)
+		resp.Error = &ErrorResp{
+			ErrorID:  UploadFileError,
+			ErrorMsg: ErrorMap[UploadFileError] + fmt.Sprintf(" file size too big: %d", h.Size),
+		}
+		return
+	}
+
+	f, err := h.Open()
+	if err != nil {
+		Log.Errorf("upload err:%s", err.Error())
+		resp.Error = &ErrorResp{
+			ErrorID:  UploadFileError,
+			ErrorMsg: ErrorMap[UploadFileError] + fmt.Sprintf(":%s", err.Error()),
+		}
+		return
+	}
+	defer f.Close()
+	fileMd5 := util.Md5FS(f)
+	if fileMd5 == "" {
+		Log.Errorf("upload err: file md5 down")
+		resp.Error = &ErrorResp{
+			ErrorID:  UploadFileError,
+			ErrorMsg: ErrorMap[UploadFileError] + fmt.Sprintf(":file md5 down"),
+		}
+		return
+	}
+
+	fileDir := filepath.Join(config.FafaConfig.DefaultConfig.StoragePath, fileType, util.IS(uid))
+	util.MakeDir(fileDir)
+
+	fileName := fileMd5 + "." + fileSuffix
+	fileAbName := filepath.Join(fileDir, fileName)
+	if !util.HasFile(fileAbName) {
+		err = util.CopyFS(f, fileAbName)
+		if err != nil {
+			Log.Errorf("upload err:%s", err.Error())
+			resp.Error = &ErrorResp{
+				ErrorID:  UploadFileError,
+				ErrorMsg: ErrorMap[UploadFileError] + fmt.Sprintf(":%s", err.Error()),
+			}
+			return
+		}
+
+		p := new(model.Picture)
+		p.Md = fileMd5
+		p.Type = fileType
+		p.FileName = fileName
+		p.ReallyFileName = h.Filename
+		p.CreateTime = time.Now().Unix()
+		p.Status = 1
+		p.Describe = describe
+		p.Url = fmt.Sprintf("/storage/%s/%d/%s", fileType, uid, fileName)
+
+		_, err = config.FafaRdb.InsertOne(p)
+		if err != nil {
+			Log.Errorf("upload err:%s", err.Error())
+			resp.Error = &ErrorResp{
+				ErrorID:  UploadFileError,
+				ErrorMsg: ErrorMap[UploadFileError] + fmt.Sprintf(":%s", err.Error()),
+			}
+			return
+		}
+	}
+
+	resp.Flag = true
+	data.FileName = h.Filename
+	data.Size = h.Size
+	data.Url = fmt.Sprintf("/storage/%s/%d/%s", fileType, uid, fileName)
+	resp.Data = data
+	return
 }

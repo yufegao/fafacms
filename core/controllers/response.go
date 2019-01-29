@@ -43,8 +43,9 @@ func JSONL(c *gin.Context, code int, req interface{}, obj *Resp) {
 	record.Url = c.Request.URL.Path
 	record.LogTime = time.Now().Unix()
 	record.Ua = c.Request.UserAgent()
+	record.UserId = c.GetInt("uid")
 	flag := obj.Flag
-	if !flag {
+	if !flag && obj.Error != nil {
 		errstr := obj.Error.Error()
 		errstrr := strings.Split(errstr, "|")
 		if len(errstrr) >= 2 {

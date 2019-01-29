@@ -7,7 +7,7 @@
   },
   "DbConfig": {
     "DriverName": "mysql",
-    "Name": "blog",
+    "Name": "fafa",
     "Host": "172.17.0.1",
     "User": "root",
     "Pass": "123456789",

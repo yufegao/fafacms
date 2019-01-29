@@ -7,6 +7,7 @@ type Log struct {
 	Url          string `json:"url"`
 	LogTime      int64  `json:"log_time"`
 	Ua           string `json:"ua"`
+	UserId       int    `json:"user_id"`
 	Flag         bool   `json:"flag"`
 	In           string `json:"in"`
 	Out          string `json:"out"`
