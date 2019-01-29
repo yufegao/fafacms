@@ -47,8 +47,29 @@ func CreateGroup(c *gin.Context) {
 		return
 	}
 
-	g.Describe = req.Describe
 	g.ImagePath = req.ImagePath
+
+	if g.ImagePath != "" {
+		p := new(model.Picture)
+		p.Url = g.ImagePath
+
+		ok, err := config.FafaRdb.Client.Exist(p)
+		if err != nil {
+			flog.Log.Errorf("CreateGroup err:%s", err.Error())
+			resp.Error = Error(DBError, "")
+			return
+		}
+
+		if !ok {
+			flog.Log.Errorf("CreateGroup err: image not exist")
+			resp.Error = Error(ParasError, "image not exist")
+			return
+		}
+
+	}
+
+	g.Describe = req.Describe
+
 	g.CreateTime = time.Now().Unix()
 	_, err = config.FafaRdb.InsertOne(g)
 	if err != nil {
