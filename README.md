@@ -41,7 +41,7 @@
 └── web 前端代码(可用vue等开发)
 ```
 
-后端API调试见: [/doc/README.md], 使用[insomnia](https://insomnia.rest/)
+后端API调试见: [/doc/README.md](/doc/README.md), 使用[insomnia](https://insomnia.rest/)
 
 ## 如何使用
 
