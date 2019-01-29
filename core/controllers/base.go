@@ -3,15 +3,17 @@ package controllers
 import "fmt"
 
 var (
-	LoginPermit     = 10000
+	AuthPermit      = 10000
 	ParseJsonError  = 10001
 	UploadFileError = 10002
+	LoginWrong      = 10003
 )
 
 var ErrorMap = map[int]string{
-	LoginPermit:     "login permit",
+	AuthPermit:      "auth permit",
 	ParseJsonError:  "json parse err",
 	UploadFileError: "upload file err",
+	LoginWrong:      "username or password wrong",
 }
 
 type Resp struct {

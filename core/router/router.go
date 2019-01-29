@@ -18,8 +18,9 @@ var (
 
 var (
 	HomeRouter = map[string]HttpHandle{
-		"/":      {controllers.Home, GP},
-		"/login": {controllers.Login, GP},
+		"/":       {controllers.Home, GP},
+		"/login":  {controllers.Login, GP},
+		"/logout": {controllers.Logout, GP},
 	}
 
 	// /v1/user/create

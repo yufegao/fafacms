@@ -1,5 +1,10 @@
 package model
 
+import (
+	"fmt"
+	"github.com/hunterhug/fafacms/core/config"
+)
+
 // User --> Group
 type User struct {
 	Id         int    `json:"id" xorm:"bigint pk autoincr"`
@@ -24,4 +29,18 @@ type User struct {
 	Ab string `json:"ab,omitempty"`
 	Ac string `json:"ac,omitempty"`
 	Ad string `json:"ad,omitempty"`
+}
+
+func (m *User) Get(userId int) (err error) {
+	var exist bool
+	m.Status = 1
+	m.Id = userId
+	exist, err = config.FafaRdb.Client.Get(m)
+	if err != nil {
+		return
+	}
+	if !exist {
+		return fmt.Errorf("user not found")
+	}
+	return
 }

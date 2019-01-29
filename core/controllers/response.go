@@ -79,3 +79,7 @@ func JSONL(c *gin.Context, code int, req interface{}, obj *Resp) {
 	obj.Cid = cid
 	c.Render(code, render.JSON{Data: obj})
 }
+
+func JSON(c *gin.Context, code int, obj *Resp) {
+	c.Render(code, render.JSON{Data: obj})
+}
