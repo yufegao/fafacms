@@ -1,5 +1,6 @@
 package model
 
+// Content --> Node
 type Content struct {
 	Id         int    `json:"id" xorm:"bigint pk autoincr"`
 	Title      string `json:"name,omitempty" xorm:"varchar(200) notnull"`
@@ -16,6 +17,12 @@ type Content struct {
 	Good       int    `json:"good"`
 	Bad        int    `json:"bad"`
 	IsPhoto    int    `json:"status,omitempty xorm:"not null comment('1 paper，2 album') TINYINT(1)"`
+
+	// Future...
+	Aa string `json:"aa,omitempty"`
+	Ab string `json:"ab,omitempty"`
+	Ac string `json:"ac,omitempty"`
+	Ad string `json:"ad,omitempty"`
 }
 
 type ContentNode struct {
@@ -25,4 +32,10 @@ type ContentNode struct {
 	CreateTime int    `json:"create_time,omitempty"`
 	UpdateTime int    `json:"update_time,omitempty"`
 	ImagePath  string `json:"image_path" xorm:"TEXT`
+
+	// Future...
+	Aa string `json:"aa,omitempty"`
+	Ab string `json:"ab,omitempty"`
+	Ac string `json:"ac,omitempty"`
+	Ad string `json:"ad,omitempty"`
 }

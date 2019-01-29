@@ -4,6 +4,7 @@ import (
 	"flag"
 	"github.com/hunterhug/fafacms/core/config"
 	"github.com/hunterhug/fafacms/core/controllers"
+	"github.com/hunterhug/fafacms/core/flog"
 	"github.com/hunterhug/fafacms/core/model"
 	"github.com/hunterhug/fafacms/core/router"
 	"github.com/hunterhug/fafacms/core/server"
@@ -30,13 +31,13 @@ func main() {
 	}
 
 	// Init Log
-	config.InitLog(config.FafaConfig.DefaultConfig.LogPath)
+	flog.InitLog(config.FafaConfig.DefaultConfig.LogPath)
 	if config.FafaConfig.DefaultConfig.Debug {
-		config.SetLogLevel("DEBUG")
+		flog.SetLogLevel("DEBUG")
 	}
 
-	config.Log.Notice("Hi! FaFa CMS!")
-	config.Log.Debugf("Hi! Config is %#v", config.FafaConfig)
+	flog.Log.Notice("Hi! FaFa CMS!")
+	flog.Log.Debugf("Hi! Config is %#v", config.FafaConfig)
 
 	// Init Db
 	err = server.InitRdb(config.FafaConfig.DbConfig)
@@ -59,6 +60,8 @@ func main() {
 			model.Content{},
 			model.ContentNode{},
 			model.Comment{},
+			model.Log{},
+			model.Picture{},
 		})
 	}
 
@@ -74,12 +77,19 @@ func main() {
 	// Auth API load
 	controllers.InitAuthResource()
 
-	// V1 API
+	// V1 API, will be change to V2...
 	v1 := engine.Group("/v1")
 	v1.Use(controllers.AuthFilter)
-	router.SetAPIRouter(v1)
 
-	config.Log.Noticef("Run in %s", config.FafaConfig.DefaultConfig.WebPort)
+	// Base API no version
+	base := engine.Group("/b")
+	base.Use(controllers.AuthFilter)
+
+	// Router Set
+	router.SetAPIRouter(v1, router.V1Router)
+	router.SetAPIRouter(base, router.BaseRouter)
+
+	config.Log.Noticef("Server run in %s", config.FafaConfig.DefaultConfig.WebPort)
 	err = engine.Run(config.FafaConfig.DefaultConfig.WebPort)
 	if err != nil {
 		panic(err)

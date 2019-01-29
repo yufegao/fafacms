@@ -32,6 +32,7 @@
 ├── config.json 配置文件
 ├── core    后端代码
 │   ├── config      配置
+│   ├── flog        日志
 │   ├── controllers 控制器
 │   ├── model       模型
 │   ├── router      路由
@@ -65,8 +66,8 @@ fafacms -config=/root/config.json
 {
   "DefaultConfig": {
     "WebPort": ":8080", 				# 程序运行端口(可改)
-    "StoragePath": "/home/hunterhug/data",  		# 本地文件保存地址(可改)
-    "LogPath": "/home/hunterhug/data/log/fafacms.log", 	# 日志保存地址(可改)
+    "StoragePath": "/root/data/data",  		# 本地文件保存地址(可改)
+    "LogPath": "/root/data/log/fafacms.log", 	# 日志保存地址(可改)
     "Debug": true   					# 打开调试(默认保持)
   },
   "DbConfig": {
@@ -80,7 +81,7 @@ fafacms -config=/root/config.json
     "MaxIdleConns": 20, 				# 关系型数据库池闲置连接数(默认保持)
     "MaxOpenConns": 20, 				# 关系型数据库池打开连接数(默认保持)
     "DebugToFile": true, 				# SQL调试是否输出到文件(默认保持)
-    "DebugToFileName": "/home/hunterhug/data/log/fafacms_db.log", # SQL调试输出文件路径(默认保持)
+    "DebugToFileName": "/root/data/log/fafacms_db.log", # SQL调试输出文件路径(默认保持)
     "Debug": true 					# SQL调试(默认保持)
   },
   "SessionConfig": {

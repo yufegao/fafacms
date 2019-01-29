@@ -1,5 +1,6 @@
 package model
 
+// User --> Group
 type User struct {
 	Id         int    `json:"id" xorm:"bigint pk autoincr"`
 	Name       string `json:"name,omitempty" xorm:"varchar(100) notnull"`
@@ -17,4 +18,10 @@ type User struct {
 	DeleteTime int    `json:"delete_time,omitempty"`
 	Status     int    `json:"status,omitempty xorm:"not null comment('1 normal，2 deleted') TINYINT(1)"`
 	GroupId    int    `json:"group_id,omitempty"`
+
+	// Future...
+	Aa string `json:"aa,omitempty"`
+	Ab string `json:"ab,omitempty"`
+	Ac string `json:"ac,omitempty"`
+	Ad string `json:"ad,omitempty"`
 }

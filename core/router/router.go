@@ -18,21 +18,25 @@ var (
 
 var (
 	HomeRouter = map[string]HttpHandle{
-		//首页
-		"/": {controllers.Home, GP},
-
-		//登陆相关
+		"/":      {controllers.Home, GP},
 		"/login": {controllers.Login, GP},
 	}
 
+	// /v1/user/create
 	V1Router = map[string]HttpHandle{
 		"/user/create": {controllers.CreateUser, POST},
 		"/user/update": {controllers.UpdateUser, POST},
 		"/user/delete": {controllers.DeleteUser, POST},
 		"/user/take":   {controllers.TakeUser, GP},
 	}
+
+	// /b/upload
+	BaseRouter = map[string]HttpHandle{
+		"/upload": {controllers.Upload, POST},
+	}
 )
 
+// home end.
 func SetRouter(router *gin.Engine) {
 	for url, app := range HomeRouter {
 		for _, method := range app.Method {
@@ -41,8 +45,8 @@ func SetRouter(router *gin.Engine) {
 	}
 }
 
-func SetAPIRouter(router *gin.RouterGroup) {
-	for url, app := range V1Router {
+func SetAPIRouter(router *gin.RouterGroup, handles map[string]HttpHandle) {
+	for url, app := range handles {
 		for _, method := range app.Method {
 			router.Handle(method, url, app.Func)
 		}

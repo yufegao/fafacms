@@ -1,13 +1,11 @@
 package model
 
-type Group struct {
+type Picture struct {
 	Id         int    `json:"id" xorm:"bigint pk autoincr"`
-	Name       string `json:"name,omitempty" xorm:"varchar(100) notnull"`
-	Describe   string `json:"describe,omitempty" xorm:"TEXT`
+	Url        string `json:"url"`
 	CreateTime int    `json:"create_time,omitempty"`
-	UpdateTime int    `json:"update_time,omitempty"`
-	ImagePath  string `json:"image_path" xorm:"TEXT`
-
+	Status     int    `json:"status,omitempty xorm:"not null comment('1 normal，2 deleted') TINYINT(1)"`
+	
 	// Future...
 	Aa string `json:"aa,omitempty"`
 	Ab string `json:"ab,omitempty"`
