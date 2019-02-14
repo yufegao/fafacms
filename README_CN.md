@@ -140,6 +140,66 @@ sudo docker logs -f --tail 10 fafacms
 
 ### 前端部署(常规)
 
+路由:
+
+```
+var (
+	HomeRouter = map[string]HttpHandle{
+		"/":       {controllers.Home, GP},
+		"/login":  {controllers.Login, GP},
+		"/logout": {controllers.Logout, GP},
+	}
+
+	// /v1/user/create
+	// need login group auth
+	V1Router = map[string]HttpHandle{
+		"/user/create": {controllers.CreateUser, POST},
+		"/user/update": {controllers.UpdateUser, POST},
+		"/user/delete": {controllers.DeleteUser, POST},
+		"/user/take":   {controllers.TakeUser, GP},
+		"/user/list":   {controllers.ListUser, GP},
+
+		"/group/create": {controllers.CreateGroup, POST},
+		"/group/update": {controllers.UpdateGroup, POST},
+		"/group/delete": {controllers.DeleteGroup, POST},
+		"/group/take":   {controllers.TakeGroup, GP},
+		"/group/list":   {controllers.ListGroup, GP},
+
+		"/resource/create": {controllers.CreateResource, POST},
+		"/resource/update": {controllers.UpdateResource, POST},
+		"/resource/delete": {controllers.DeleteResource, POST},
+		"/resource/take":   {controllers.TakeResource, GP},
+		"/resource/list":   {controllers.ListResource, GP},
+
+		"/auth/update": {controllers.UpdateAuth, GP},
+
+		"/node/create": {controllers.CreateNode, POST},
+		"/node/update": {controllers.UpdateNode, POST},
+		"/node/delete": {controllers.DeleteNode, POST},
+		"/node/take":   {controllers.TakeNode, GP},
+		"/node/list":   {controllers.ListNode, GP},
+
+		"/content/create": {controllers.CreateContent, POST},
+		"/content/update": {controllers.UpdateContent, POST},
+		"/content/delete": {controllers.DeleteContent, POST},
+		"/content/take":   {controllers.TakeContent, GP},
+		"/content/list":   {controllers.ListContent, GP},
+
+		"/comment/create": {controllers.CreateComment, POST},
+		"/comment/update": {controllers.UpdateComment, POST},
+		"/comment/delete": {controllers.DeleteComment, POST},
+		"/comment/take":   {controllers.TakeComment, GP},
+		"/comment/list":   {controllers.ListComment, GP},
+	}
+
+	// /b/upload
+	// need login group auth
+	BaseRouter = map[string]HttpHandle{
+		"/upload": {controllers.Upload, POST},
+	}
+)
+```
+
 ## 支持
 
 微信支持:

@@ -47,7 +47,7 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	// super user login
+	// super root user login
 	if req.UserName == "hunterhug" && req.PassWd == "fafa" {
 		u := new(model.User)
 		u.Id = -1

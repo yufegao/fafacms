@@ -1,5 +1,10 @@
 package model
 
+import (
+	"fmt"
+	"github.com/hunterhug/fafacms/core/config"
+)
+
 type Resource struct {
 	Id       int    `json:"id" xorm:"bigint pk autoincr"`
 	Name     string `json:"name,omitempty"`
@@ -18,4 +23,16 @@ type GroupResource struct {
 	Id         int `json:"id" xorm:"bigint pk autoincr"`
 	GroupId    int `json:"group_id"`
 	ResourceId int `json:"resource_id"`
+}
+
+func (r *Resource) Get() (err error) {
+	var exist bool
+	exist, err = config.FafaRdb.Client.Get(r)
+	if err != nil {
+		return
+	}
+	if !exist {
+		return fmt.Errorf("resource not found")
+	}
+	return
 }

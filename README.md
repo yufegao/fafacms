@@ -53,8 +53,6 @@ get codes:
 go get -v github.com/hunterhug/fafacms
 ```
 
-
-
 run:
 
 ```
@@ -66,19 +64,19 @@ description of`config.json`:
 ```
 {
   "DefaultConfig": {
-    "WebPort": ":8080", 				    	# port for project(changeable)
-    "StoragePath": "/root/data/data",  			# Path for file saving(changeable)
-    "LogPath": "/root/data/log/fafacms.log", 	# flog saving path(changeable)
+    "WebPort": ":8080", 				    	# port for project(optional)
+    "StoragePath": "/root/data/data",  			# Path for file saving(optional)
+    "LogPath": "/root/data/log/fafacms.log", 	# flog saving path(optional)
     "Debug": true   					        # Debug(default)
   },
   "DbConfig": {
     "DriverName": "mysql",  			# Relational DB driver(default)
-    "Name": "fafa", 					# DB name(changeable)
-    "Host": "127.0.0.1", 				# DB host(changeable)
-    "User": "root", 					# DB user(changeable)
-    "Pass": "123456789", 				# DB password(changeable)
-    "Port": "3306", 					# DB port(changeable)
-    "Prefix": "fafa_", 					# DB prefix(changeable)
+    "Name": "fafa", 					# DB name(optional)
+    "Host": "127.0.0.1", 				# DB host(optional)
+    "User": "root", 					# DB user(optional)
+    "Pass": "123456789", 				# DB password(optional)
+    "Port": "3306", 					# DB port(optional)
+    "Prefix": "fafa_", 					# DB prefix(optional)
     "MaxIdleConns": 20, 				# Max Idle connections(default)
     "MaxOpenConns": 20, 				# Max Idle connections(default)
     "DebugToFile": true, 				# Debug output files(default)
@@ -86,12 +84,12 @@ description of`config.json`:
     "Debug": true 										# sql Debug(default)
   },
   "SessionConfig": {
-    "RedisHost": "127.0.0.1:6379", 						# RedisHost(changeable)
+    "RedisHost": "127.0.0.1:6379", 						# RedisHost(optional)
     "RedisMaxIdle": 64, 								# (default)
     "RedisMaxActive": 0, 								# (default)
     "RedisIdleTimeout": 120, 							# (default)
     "RedisDB": 0, 										# Redis connect database(default)
-    "RedisPass": "123456789"   							# Redis password(optional, changeable)
+    "RedisPass": "123456789"   							# Redis password(optional, optional)
   }
 }
 ```
@@ -114,7 +112,7 @@ sudo docker exec -it GoSpider-redis redis-cli -a 123456789
 
 ### Backend deployment(Docker)
 
-We can also use `docker` to deploy, construct the mirror(Docker version must later than 17.06):
+We can also use `docker` to deploy, construct the image(Docker version must later than 17.06):
 
 ```
 sudo chmod 777 ./docker_build.sh
@@ -139,6 +137,66 @@ sudo docker logs -f --tail 10 fafacms
 `/root/data` is durable volume, please put `config.json` under the folder.
 
 ### Frontend deployment(Developing)
+
+router:
+
+```
+var (
+	HomeRouter = map[string]HttpHandle{
+		"/":       {controllers.Home, GP},
+		"/login":  {controllers.Login, GP},
+		"/logout": {controllers.Logout, GP},
+	}
+
+	// /v1/user/create
+	// need login group auth
+	V1Router = map[string]HttpHandle{
+		"/user/create": {controllers.CreateUser, POST},
+		"/user/update": {controllers.UpdateUser, POST},
+		"/user/delete": {controllers.DeleteUser, POST},
+		"/user/take":   {controllers.TakeUser, GP},
+		"/user/list":   {controllers.ListUser, GP},
+
+		"/group/create": {controllers.CreateGroup, POST},
+		"/group/update": {controllers.UpdateGroup, POST},
+		"/group/delete": {controllers.DeleteGroup, POST},
+		"/group/take":   {controllers.TakeGroup, GP},
+		"/group/list":   {controllers.ListGroup, GP},
+
+		"/resource/create": {controllers.CreateResource, POST},
+		"/resource/update": {controllers.UpdateResource, POST},
+		"/resource/delete": {controllers.DeleteResource, POST},
+		"/resource/take":   {controllers.TakeResource, GP},
+		"/resource/list":   {controllers.ListResource, GP},
+
+		"/auth/update": {controllers.UpdateAuth, GP},
+
+		"/node/create": {controllers.CreateNode, POST},
+		"/node/update": {controllers.UpdateNode, POST},
+		"/node/delete": {controllers.DeleteNode, POST},
+		"/node/take":   {controllers.TakeNode, GP},
+		"/node/list":   {controllers.ListNode, GP},
+
+		"/content/create": {controllers.CreateContent, POST},
+		"/content/update": {controllers.UpdateContent, POST},
+		"/content/delete": {controllers.DeleteContent, POST},
+		"/content/take":   {controllers.TakeContent, GP},
+		"/content/list":   {controllers.ListContent, GP},
+
+		"/comment/create": {controllers.CreateComment, POST},
+		"/comment/update": {controllers.UpdateComment, POST},
+		"/comment/delete": {controllers.DeleteComment, POST},
+		"/comment/take":   {controllers.TakeComment, GP},
+		"/comment/list":   {controllers.ListComment, GP},
+	}
+
+	// /b/upload
+	// need login group auth
+	BaseRouter = map[string]HttpHandle{
+		"/upload": {controllers.Upload, POST},
+	}
+)
+```
 
 ## Sponser
 

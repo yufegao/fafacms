@@ -9,25 +9,7 @@ import (
 	"github.com/hunterhug/fafacms/core/model"
 	"strconv"
 	"strings"
-	"sync"
 )
-
-var (
-	AuthResource = sync.Map{}
-)
-
-// url===>resource_id
-func InitAuthResource() {
-	r := make([]model.Resource, 0)
-	err := config.FafaRdb.Client.Find(r)
-	if err != nil {
-		flog.Log.Errorf("InitAuthResource err:%ss", err.Error())
-	}
-	for _, v := range r {
-		flog.Log.Debugf("InitAuthResource load %s=%s", v.Url, v.Id)
-		AuthResource.Store(v.Url, v.Id)
-	}
-}
 
 // filter
 var AuthFilter = func(c *gin.Context) {
@@ -55,7 +37,7 @@ var AuthFilter = func(c *gin.Context) {
 			}
 			u = userInfo
 		} else {
-			flog.Log.Errorf("filter err:%s", "no cookie")
+			flog.Log.Errorf("filter err: %s", "no cookie")
 			resp.Error = &ErrorResp{
 				ErrorID:  AuthPermit,
 				ErrorMsg: ErrorMap[AuthPermit],
@@ -66,15 +48,24 @@ var AuthFilter = func(c *gin.Context) {
 
 	c.Set("uid", u.Id)
 
-	v, ok := AuthResource.Load(c.Request.URL.Path)
-	if !ok {
+	// root will ignore auth
+	if u.Id == -1 {
 		return
 	}
 
-	resourceId, ok := v.(int)
-	if !ok {
+	r := new(model.Resource)
+	url := c.Request.URL.Path
+	r.Url = url
+	if err := r.Get(); err != nil {
+		flog.Log.Errorf("resource found url:%s, auth err:%s", url, err.Error())
 		return
 	}
+
+	if r.Id == 0 {
+		return
+	}
+
+	resourceId := r.Id
 
 	nowUser := new(model.User)
 	err := nowUser.Get(u.Id)

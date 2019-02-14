@@ -24,18 +24,21 @@ var (
 	}
 
 	// /v1/user/create
+	// need login group auth
 	V1Router = map[string]HttpHandle{
-		"/user/create": {controllers.CreateUser, POST},
-		"/user/update": {controllers.UpdateUser, POST},
-		"/user/delete": {controllers.DeleteUser, POST},
-		"/user/take":   {controllers.TakeUser, GP},
-		"/user/list":   {controllers.ListUser, GP},
 
+		// Doing todo CURD example
 		"/group/create": {controllers.CreateGroup, POST},
 		"/group/update": {controllers.UpdateGroup, POST},
 		"/group/delete": {controllers.DeleteGroup, POST},
 		"/group/take":   {controllers.TakeGroup, GP},
 		"/group/list":   {controllers.ListGroup, GP},
+
+		"/user/create": {controllers.CreateUser, POST},
+		"/user/update": {controllers.UpdateUser, POST},
+		"/user/delete": {controllers.DeleteUser, POST},
+		"/user/take":   {controllers.TakeUser, GP},
+		"/user/list":   {controllers.ListUser, GP},
 
 		"/resource/create": {controllers.CreateResource, POST},
 		"/resource/update": {controllers.UpdateResource, POST},
@@ -65,6 +68,7 @@ var (
 	}
 
 	// /b/upload
+	// need login group auth
 	BaseRouter = map[string]HttpHandle{
 		"/upload": {controllers.Upload, POST},
 	}

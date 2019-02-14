@@ -74,9 +74,6 @@ func main() {
 	// Web welcome home!
 	router.SetRouter(engine)
 
-	// Auth API load
-	controllers.InitAuthResource()
-
 	// V1 API, will may be change to V2...
 	v1 := engine.Group("/v1")
 	v1.Use(controllers.AuthFilter)
