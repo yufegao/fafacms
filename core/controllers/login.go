@@ -26,6 +26,15 @@ func Login(c *gin.Context) {
 		return
 	}
 
+	// paras not empty
+	if req.UserName == "" || req.PassWd == "" {
+		flog.Log.Errorf("login err:%s", "paras wrong")
+		resp.Error = &ErrorResp{
+			ErrorID:  ParasError,
+			ErrorMsg: ErrorMap[ParasError],
+		}
+		return
+	}
 	// check session
 	userInfo, _ := GetUserSession(c)
 	if userInfo != nil {
@@ -65,9 +74,18 @@ func Login(c *gin.Context) {
 	uu := new(model.User)
 	uu.Name = req.UserName
 	uu.Password = req.PassWd
-	_, err := config.FafaRdb.Client.Get(uu)
+	ok, err := config.FafaRdb.Client.Get(uu)
 	if err != nil {
-		flog.Log.Errorf("login err:%s", err.Error())
+		flog.Log.Errorf("login inner err:%s", err.Error())
+		resp.Error = &ErrorResp{
+			ErrorID:  LoginWrong,
+			ErrorMsg: ErrorMap[LoginWrong],
+		}
+		return
+	}
+
+	if !ok {
+		flog.Log.Errorf("login err:%s", "user or password wrong")
 		resp.Error = &ErrorResp{
 			ErrorID:  LoginWrong,
 			ErrorMsg: ErrorMap[LoginWrong],

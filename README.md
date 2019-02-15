@@ -6,7 +6,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/hunterhug/fafacms)](https://goreportcard.com/report/github.com/hunterhug/fafacms)
 [![GitHub issues](https://img.shields.io/github/issues/hunterhug/fafacms.svg)](https://github.com/hunterhug/fafacms/issues)
 
-Developing--[中文](/README_CN.md)
+Developing--[中文](/README_CN.md), Stable Branch is master!
 
 ## Project description
 
