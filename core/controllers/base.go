@@ -9,6 +9,7 @@ var (
 	LoginWrong      = 10003
 	DBError         = 10004
 	ParasError      = 10005
+	NoLogin         = 10006
 
 	Unknown = 99999
 )
@@ -20,6 +21,7 @@ var ErrorMap = map[int]string{
 	LoginWrong:      "username or password wrong",
 	DBError:         "db operation err",
 	ParasError:      "paras not right",
+	NoLogin:         "no login",
 }
 
 func Error(code int, detail string) *ErrorResp {

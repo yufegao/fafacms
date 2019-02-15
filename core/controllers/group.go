@@ -28,7 +28,7 @@ func CreateGroup(c *gin.Context) {
 
 	if req.Name == "" {
 		flog.Log.Errorf("CreateGroup err: name can not empty")
-		resp.Error = Error(ParasError, "name can not empty")
+		resp.Error = Error(ParasError, "group name can not empty")
 		return
 	}
 
@@ -62,7 +62,7 @@ func CreateGroup(c *gin.Context) {
 
 		if !ok {
 			flog.Log.Errorf("CreateGroup err: image not exist")
-			resp.Error = Error(ParasError, "image not exist")
+			resp.Error = Error(ParasError, "image url not exist")
 			return
 		}
 

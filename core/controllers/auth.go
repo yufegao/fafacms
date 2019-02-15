@@ -39,8 +39,8 @@ var AuthFilter = func(c *gin.Context) {
 		} else {
 			flog.Log.Errorf("filter err: %s", "no cookie")
 			resp.Error = &ErrorResp{
-				ErrorID:  AuthPermit,
-				ErrorMsg: ErrorMap[AuthPermit],
+				ErrorID:  NoLogin,
+				ErrorMsg: ErrorMap[NoLogin],
 			}
 			return
 		}

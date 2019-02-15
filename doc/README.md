@@ -21,10 +21,10 @@ POST /login
 Meaning:
 
 | Field   |      Type      | Must |  Description |
-|----------|:-------------:|-----|------|
+|----------|-------------|-----|------|
 | user_name |  string | Y |your register unique user name |
 | pass_wd |    string   | Y |  your password you set |
-| remember | bool | N |   true will save cookie and 7 days login without login |
+| remember | bool | N |   true will save cookie and 7 days skip login |
 
 ## Response
 
@@ -40,7 +40,7 @@ Normal:
 Meaning:
 
 | Field   |      Type      |  Description |
-|----------|:-------------:|------|
+|----------|-------------|------|
 | flag |  bool | API request success will return true |
 | cid |    string   |   unique id to debug API log |
 
@@ -60,7 +60,7 @@ Something wrong:
 Meaning:
 
 | Field   |      Type      |  Description |
-|----------|:-------------:|------|
+|----------|-------------|------|
 | flag |  bool | API request wrong will return false |
 | cid |    string   |   unique id to debug API log |
 | error | bool |    flag is false will return error: id and msg point the meaning |
@@ -85,14 +85,14 @@ will be always return:
 
 ## /b/upload
 
-Base API will prefix `/b`.
+Base API will prefix `/b`, will be check auth every request.
 
 ### Request
 
 This API can request by HTML form `multipart/form-data`:
 
 | Field   |      Type      | Must |  Description |
-----------|:-------------:|-----|------|
+----------|-------------|-----|------|
 | type |  string | N |limit type of file, can see below. "media" mean can only upload jpg, png... optional |
 | describe |    string  | N |   upload describe can be empty |
 | file | bin | Y |  file is file, max size 33.54MB |
@@ -118,8 +118,6 @@ type can be:
 
 ### Response
 
-All result will include in `data`:
-
 Normal:
 
 ```
@@ -135,10 +133,12 @@ Normal:
 }
 ```
 
+All result will include in `data`.
+
 Meaning:
 
 | Field   |      Type      |  Description |
-|----------|:-------------:|------|
+|----------|-------------|------|
 | file_name |  string | upload filename |
 | size |  int | byte size of file |
 | url |  string | inner url of this file, every file will has a unique md5, here is `68756e746572687567510102e985d0f2f311ad3295534dc435` |
@@ -153,6 +153,30 @@ Wrong:
   "error": {
     "id": 10002,
     "msg": "upload file err http: no such file"
+  }
+}
+```
+
+No login:
+
+```
+{
+  "flag": false,
+  "error": {
+    "id": 10006,
+    "msg": "no login"
+  }
+}
+```
+
+auth permit:
+
+```
+{
+  "flag": false,
+  "error": {
+    "id": 10000,
+    "msg": "auth permit"
   }
 }
 ```
@@ -174,10 +198,10 @@ Admin API will has prefix `/v1`, and will be check auth every request.
 Meaning:
 
 | Field   |      Type      | Must |  Description |
-|----------|:-------------:|-----|------|
+|----------|-------------|-----|------|
 | name |  string | Y |group name, can not repeat |
 | describe |    string   | N|  group describe, optional |
-| image_path | bool | N |   image url of group, optional, if not empty must be the url return by /upload |
+| image_path | bool | N |   image url of group, optional, if not empty must be the url return by API of `/upload` |
 
 ### Response
 
@@ -200,9 +224,12 @@ Normal:
 Meaning:
 
 | Field   |      Type      |  Description |
-|----------|:-------------:|------|
+|----------|-------------|------|
 | id |  string | group Id |
 | create_time |  int | Unix timestamp of group create |
+| name |  string |group name|
+| describe |    string  |  group describe |
+| image_path | bool |   image url of group|
 
 Wrong:
 
@@ -215,7 +242,9 @@ Wrong:
     "msg": "paras not right:group name exist"
   }
 }
+```
 
+```
 {
   "flag": false,
   "cid": "c26b18e8a9d3492090a14dcc9894e181",
@@ -224,13 +253,15 @@ Wrong:
     "msg": "paras not right:name can not empty"
   }
 }
+```
 
+```
 {
   "flag": false,
   "cid": "2523072261974fd8a07a655e68b94ab5",
   "error": {
     "id": 10005,
-    "msg": "paras not right:image not exist"
+    "msg": "paras not right:image url not exist"
   }
 }
 ```
