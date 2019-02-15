@@ -14,7 +14,7 @@ import (
 // 自定义日志
 var jsconf = `
 {
-  "UseShortFile": true,
+  "UseShortFile": false,
   "Appenders": {
     "console": {
       "Type": "console"

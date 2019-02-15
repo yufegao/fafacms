@@ -115,7 +115,7 @@ func Logout(c *gin.Context) {
 	user, _ := GetUserSession(c)
 	if user != nil {
 		DeleteUserSession(c)
-		c.SetCookie("auth", "", 0, "", "", false, false)
 	}
+	c.SetCookie("auth", "", 0, "", "", false, false)
 	resp.Flag = true
 }

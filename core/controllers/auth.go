@@ -46,6 +46,7 @@ var AuthFilter = func(c *gin.Context) {
 		}
 	}
 
+	// record log will need uid
 	c.Set("uid", u.Id)
 
 	// root will ignore auth
@@ -56,17 +57,15 @@ var AuthFilter = func(c *gin.Context) {
 	r := new(model.Resource)
 	url := c.Request.URL.Path
 	r.Url = url
+
+	// resource not found can skip auth
 	if err := r.Get(); err != nil {
-		flog.Log.Errorf("resource found url:%s, auth err:%s", url, err.Error())
+		flog.Log.Warnf("resource found url:%s, auth err:%s", url, err.Error())
 		return
 	}
 
-	if r.Id == 0 {
-		return
-	}
 
-	resourceId := r.Id
-
+	//  get group id by user
 	nowUser := new(model.User)
 	err := nowUser.Get(u.Id)
 	if err != nil {
@@ -77,6 +76,7 @@ var AuthFilter = func(c *gin.Context) {
 		}
 		return
 	}
+
 	group := new(model.Group)
 	err = group.Get(nowUser.GroupId)
 	if err != nil {
@@ -88,9 +88,10 @@ var AuthFilter = func(c *gin.Context) {
 		return
 	}
 
+	// auth
 	gr := new(model.GroupResource)
 	gr.GroupId = group.Id
-	gr.ResourceId = resourceId
+	gr.ResourceId = r.Id
 	exist, err := config.FafaRdb.Client.Exist(gr)
 	if err != nil {
 		flog.Log.Errorf("filter err:%s", err.Error())

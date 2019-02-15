@@ -24,7 +24,8 @@ func ParseJSON(c *gin.Context, req interface{}) *ErrorResp {
 	Log.Debugf("%s ParseJSON [%v,line:%v]:%s", ip, f.Name(), line, string(requestBody))
 	if err := json.Unmarshal(requestBody, req); err != nil {
 		Log.Errorf("%s ParseJSON Unmarshal err:%s", ip, err.Error())
-		c.Set("notlog", true)
+		// if parse wrong will not record log
+		c.Set("skipLog", true)
 		return &ErrorResp{
 			ErrorID:  ParseJsonError,
 			ErrorMsg: ErrorMap[ParseJsonError],
@@ -34,10 +35,12 @@ func ParseJSON(c *gin.Context, req interface{}) *ErrorResp {
 }
 
 func JSONL(c *gin.Context, code int, req interface{}, obj *Resp) {
-	if c.GetBool("notlog") {
+	if c.GetBool("skipLog") {
 		c.Render(code, render.JSON{Data: obj})
 		return
 	}
+
+	// log will record
 	record := new(model.Log)
 	record.Ip = c.ClientIP()
 	record.Url = c.Request.URL.Path

@@ -31,6 +31,7 @@ type UploadResponse struct {
 	FileName string `json:"file_name"`
 	Size     int64  `json:"size"`
 	Url      string `json:"url"`
+	Addon    string `json:"addon"`
 }
 
 /*
@@ -144,6 +145,8 @@ func Upload(c *gin.Context) {
 			}
 			return
 		}
+	} else {
+		data.Addon = "file the same in server"
 	}
 
 	resp.Flag = true
