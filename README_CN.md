@@ -58,7 +58,7 @@ go get -v github.com/hunterhug/fafacms
 运行:
 
 ```
-fafacms -config=/root/config.json
+fafacms -config=./config.json
 ```
 
 其中`config.json`说明如下:
@@ -67,8 +67,8 @@ fafacms -config=/root/config.json
 {
   "DefaultConfig": {
     "WebPort": ":8080", 				    # 程序运行端口(可改)
-    "StoragePath": "/root/data/data",  		# 本地文件保存地址(可改)
-    "LogPath": "/root/data/log/fafacms.log", 	# 日志保存地址(可改)
+    "StoragePath": "./data/storage",  		# 本地文件保存地址(可改)
+    "LogPath": "./data/log/fafacms_log.log", 	# 日志保存地址(可改)
     "Debug": true   					        # 打开调试(默认保持)
   },
   "DbConfig": {
@@ -82,7 +82,7 @@ fafacms -config=/root/config.json
     "MaxIdleConns": 20, 				# 关系型数据库池闲置连接数(默认保持)
     "MaxOpenConns": 20, 				# 关系型数据库池打开连接数(默认保持)
     "DebugToFile": true, 				# SQL调试是否输出到文件(默认保持)
-    "DebugToFileName": "/root/data/log/fafacms_db.log", # SQL调试输出文件路径(默认保持)
+    "DebugToFileName": "./data/log/fafacms_db.log", # SQL调试输出文件路径(默认保持)
     "Debug": true 					# SQL调试(默认保持)
   },
   "SessionConfig": {
@@ -100,6 +100,7 @@ fafacms -config=/root/config.json
 
 ```
 git clone https://github.com/hunterhug/GoSpider-docker
+cd GoSpider-docker
 chomd 777 build.sh
 ./build
 
@@ -124,19 +125,19 @@ sudo ./docker_build.sh
 先新建数据卷, 并且移动配置并修改:
 
 ```
-mkdir $HOME/data
-cp docker_config.json $HOME/data/config.json
+mkdir $HOME/fafacms
+cp docker_config.json $HOME/fafacms/config.json
 ```
 
 启动容器:
 
 ```
-sudo docker run -d --name fafacms -p 8080:8080 -v $HOME/data:/root/data hunterhug/fafacms fafacms -config=/root/data/config.json
+sudo docker run -d --name fafacms --net=host -p 8080:8080 -v $HOME/fafacms:/root/fafacms --env RUN_OPTS="-config=/root/fafacms/config.json" hunterhug/fafacms
 
 sudo docker logs -f --tail 10 fafacms
 ```
 
-其中`/root/data`是挂载的持久化卷, 配置`config.json`放置在该文件夹下.
+其中`$HOME/fafacms`是挂载的持久化卷, 配置`config.json`放置在该文件夹下.
 
 ### 前端部署(常规)
 

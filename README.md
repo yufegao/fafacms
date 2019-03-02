@@ -56,7 +56,7 @@ go get -v github.com/hunterhug/fafacms
 run:
 
 ```
-fafacms -config=/root/config.json
+fafacms -config=./config.json
 ```
 
 description of`config.json`:
@@ -64,9 +64,9 @@ description of`config.json`:
 ```
 {
   "DefaultConfig": {
-    "WebPort": ":8080", 				    	# port for project(optional)
-    "StoragePath": "/root/data/data",  			# Path for file saving(optional)
-    "LogPath": "/root/data/log/fafacms.log", 	# flog saving path(optional)
+    "WebPort": ":8080", 				    	# Port for project(optional)
+    "StoragePath": "./data/storage",  			# Path for file saving(optional)
+    "LogPath": "./data/log/fafacms_log.log", 	# Log saving path(optional)
     "Debug": true   					        # Debug(default)
   },
   "DbConfig": {
@@ -80,7 +80,7 @@ description of`config.json`:
     "MaxIdleConns": 20, 				# Max Idle connections(default)
     "MaxOpenConns": 20, 				# Max Idle connections(default)
     "DebugToFile": true, 				# Debug output files(default)
-    "DebugToFileName": "/root/data/log/fafacms_db.log", # SQL output file path(default)
+    "DebugToFileName": "./data/log/fafacms_db.log", # SQL output file path(default)
     "Debug": true 										# sql Debug(default)
   },
   "SessionConfig": {
@@ -98,6 +98,7 @@ The project use`Mysql`,`Redis` and local storage, to deploy database, please ref
 
 ```
 git clone https://github.com/hunterhug/GoSpider-docker
+cd GoSpider-docker
 chomd 777 build.sh
 ./build
 
@@ -119,22 +120,22 @@ sudo chmod 777 ./docker_build.sh
 sudo ./docker_build.sh
 ````
 
-Build data volume and config:
+Make Dir and add config file:
 
 ```
-mkdir $HOME/data
-cp docker_config.json $HOME/data/config.json
+mkdir $HOME/fafacms
+cp docker_config.json $HOME/fafacms/config.json
 ```
 
 Initialize container:
 
 ```
-sudo docker run -d --name fafacms -p 8080:8080 -v $HOME/data:/root/data hunterhug/fafacms fafacms -config=/root/data/config.json
+sudo docker run -d --name fafacms --net=host -p 8080:8080 -v $HOME/fafacms:/root/fafacms --env RUN_OPTS="-config=/root/fafacms/config.json" hunterhug/fafacms
 
 sudo docker logs -f --tail 10 fafacms
 ```
 
-`/root/data` is durable volume, please put `config.json` under the folder.
+`$HOME/fafacms` is persistent volume, please put `config.json` under the folder.
 
 ### Frontend deployment(Developing)
 

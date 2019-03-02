@@ -1,4 +1,4 @@
-FROM golang:latest AS go-build
+FROM golang:1.12-alpine AS go-build
 
 WORKDIR /go/src/github.com/hunterhug/fafacms
 
@@ -8,9 +8,10 @@ COPY main.go /go/src/github.com/hunterhug/fafacms/main.go
 
 RUN go build -ldflags "-s -w" -o fafacms main.go
 
-FROM ubuntu:16.04 AS prod
+FROM alpine:3.9 AS prod
 
 WORKDIR /root/
 
 COPY --from=go-build /go/src/github.com/hunterhug/fafacms/fafacms /bin/fafacms
 RUN chmod 777 /bin/fafacms
+CMD /bin/fafacms $RUN_OPTS

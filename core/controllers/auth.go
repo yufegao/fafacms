@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"convoice/core/utils"
+	"github.com/hunterhug/parrot/util"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/hunterhug/fafacms/core/config"

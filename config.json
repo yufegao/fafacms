@@ -1,8 +1,8 @@
 {
   "DefaultConfig": {
     "WebPort": ":8080",
-    "StoragePath": "/home/hunterhug/data/data",
-    "LogPath": "/home/hunterhug/data/log/fafacms.log",
+    "StoragePath": "./data/storage",
+    "LogPath": "./data/log/fafacms_log.log",
     "Debug": true
   },
   "DbConfig": {
@@ -16,7 +16,7 @@
     "MaxIdleConns": 20,
     "MaxOpenConns": 20,
     "DebugToFile": true,
-    "DebugToFileName": "/home/hunterhug/data/log/fafacms_db.log",
+    "DebugToFileName": "./data/log/fafacms_db.log",
     "Debug": true
   },
   "SessionConfig": {

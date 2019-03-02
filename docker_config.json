@@ -1,14 +1,14 @@
 {
   "DefaultConfig": {
     "WebPort": ":8080",
-    "StoragePath": "/root/data/data",
-    "LogPath": "/root/data/log/fafacms.log",
+    "StoragePath": "/root/fafacms/storage",
+    "LogPath": "/root/fafacms/log/fafacms_log.log",
     "Debug": true
   },
   "DbConfig": {
     "DriverName": "mysql",
     "Name": "fafa",
-    "Host": "172.17.0.1",
+    "Host": "127.0.0.1",
     "User": "root",
     "Pass": "123456789",
     "Port": "3306",
@@ -16,11 +16,11 @@
     "MaxIdleConns": 20,
     "MaxOpenConns": 20,
     "DebugToFile": true,
-    "DebugToFileName": "/root/data/log/fafacms_db.log",
+    "DebugToFileName": "/root/fafacms/log/fafacms_db.log",
     "Debug": true
   },
   "SessionConfig": {
-    "RedisHost": "172.17.0.1:6379",
+    "RedisHost": "127.0.0.1:6379",
     "RedisMaxIdle": 64,
     "RedisMaxActive": 0,
     "RedisIdleTimeout": 120,
