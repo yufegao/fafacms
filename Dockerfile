@@ -6,7 +6,7 @@ COPY core /go/src/github.com/hunterhug/fafacms/core
 COPY vendor /go/src/github.com/hunterhug/fafacms/vendor
 COPY main.go /go/src/github.com/hunterhug/fafacms/main.go
 
-RUN go build -ldflags "-s -w" -o fafacms main.go
+RUN go build -ldflags "-s -w" -v -o fafacms main.go
 
 FROM alpine:3.9 AS prod
 
