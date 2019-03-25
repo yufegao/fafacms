@@ -136,7 +136,7 @@ func CheckCookie(c *gin.Context) (success bool, user *model.User, err error) {
 		return
 	}
 
-	if password == utils.Md5(c.ClientIP()+"|"+user.Password) {
+	if password == util.Md5(c.ClientIP()+"|"+user.Password) {
 		success = true
 		return
 	} else {

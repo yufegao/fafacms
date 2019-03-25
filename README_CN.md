@@ -132,7 +132,7 @@ cp docker_config.json $HOME/fafacms/config.json
 启动容器:
 
 ```
-sudo docker run -d --name fafacms --net=host -p 8080:8080 -v $HOME/fafacms:/root/fafacms --env RUN_OPTS="-config=/root/fafacms/config.json" hunterhug/fafacms
+sudo docker run -d --name fafacms --net=host -v $HOME/fafacms:/root/fafacms --env RUN_OPTS="-config=/root/fafacms/config.json" hunterhug/fafacms
 
 sudo docker logs -f --tail 10 fafacms
 ```
