@@ -1,6 +1,7 @@
 package model
 
 import (
+	"errors"
 	"fmt"
 	"github.com/hunterhug/fafacms/core/config"
 )
@@ -8,8 +9,8 @@ import (
 type Resource struct {
 	Id       int    `json:"id" xorm:"bigint pk autoincr"`
 	Name     string `json:"name,omitempty"`
-	Url      string `json:"url" xorm:"TEXT`
-	Describe string `json:"describe,omitempty" xorm:"TEXT`
+	Url      string `json:"url" xorm:"varchar(1000)"`
+	Describe string `json:"describe,omitempty" xorm:"TEXT"`
 
 	// Future...
 	Aa string `json:"aa,omitempty"`
@@ -21,8 +22,8 @@ type Resource struct {
 // extern: Group --> Resource
 type GroupResource struct {
 	Id         int `json:"id" xorm:"bigint pk autoincr"`
-	GroupId    int `json:"group_id"`
-	ResourceId int `json:"resource_id"`
+	GroupId    int `json:"group_id index"`
+	ResourceId int `json:"resource_id index"`
 }
 
 func (r *Resource) Get() (err error) {
@@ -35,4 +36,17 @@ func (r *Resource) Get() (err error) {
 		return fmt.Errorf("resource not found")
 	}
 	return
+}
+
+func (gr *GroupResource) Exist() (bool, error) {
+	if gr.Id == 0 && gr.GroupId == 0 && gr.ResourceId == 0 {
+		return false, errors.New("where is empty")
+	}
+	c, err := config.FafaRdb.Client.Count(gr)
+
+	if c >= 1 {
+		return true, nil
+	}
+
+	return false, err
 }

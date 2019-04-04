@@ -15,7 +15,7 @@
     "Prefix": "fafacms_",
     "MaxIdleConns": 20,
     "MaxOpenConns": 20,
-    "DebugToFile": true,
+    "DebugToFile": false,
     "DebugToFileName": "./data/log/fafacms_db.log",
     "Debug": true
   },

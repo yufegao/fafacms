@@ -4,10 +4,10 @@ package model
 type Comment struct {
 	Id         int    `json:"id" xorm:"bigint pk autoincr"`
 	UserId     string `json:"user_id"`
-	Describe   string `json:"describe" xorm:"TEXT`
+	Describe   string `json:"describe" xorm:"TEXT"`
 	CreateTime int    `json:"create_time,omitempty"`
 	DeleteTime int    `json:"delete_time,omitempty"`
-	Status     int    `json:"status,omitempty xorm:"not null comment('1 normal，2 deleted') TINYINT(1)"`
+	Status     int    `json:"status,omitempty" xorm:"not null comment('1 normal，2 deleted') TINYINT(1)"`
 	ContentId  int    `json:"content_id"`
 	CommentId  int    `json:"comment_id,omitempty"`
 	Good       int    `json:"good"`

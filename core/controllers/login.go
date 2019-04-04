@@ -38,17 +38,23 @@ func Login(c *gin.Context) {
 	// check session
 	userInfo, _ := GetUserSession(c)
 	if userInfo != nil {
+		//c.Set("skipLog", true)
 		c.Set("uid", userInfo.Id)
 		resp.Flag = true
 		return
 	}
 
 	// check cookie
-	success, userInfo, _ := CheckCookie(c)
+	success, userInfo := CheckCookie(c)
 	if success {
 		err := SetUserSession(c, userInfo)
 		if err != nil {
 			flog.Log.Errorf("login err:%s", err.Error())
+			resp.Error = &ErrorResp{
+				ErrorID:  I500,
+				ErrorMsg: ErrorMap[I500],
+			}
+			return
 		}
 
 		c.Set("uid", userInfo.Id)
@@ -57,7 +63,7 @@ func Login(c *gin.Context) {
 	}
 
 	// super root user login
-	if req.UserName == "hunterhug" && req.PassWd == "fafa" {
+	if req.UserName == "hunterhug" && req.PassWd == "hunterhug" {
 		u := new(model.User)
 		u.Id = -1
 		err := SetUserSession(c, u)
@@ -76,10 +82,10 @@ func Login(c *gin.Context) {
 	uu.Password = req.PassWd
 	ok, err := config.FafaRdb.Client.Get(uu)
 	if err != nil {
-		flog.Log.Errorf("login inner err:%s", err.Error())
+		flog.Log.Errorf("login err:%s", err.Error())
 		resp.Error = &ErrorResp{
-			ErrorID:  LoginWrong,
-			ErrorMsg: ErrorMap[LoginWrong],
+			ErrorID:  I500,
+			ErrorMsg: ErrorMap[I500],
 		}
 		return
 	}
@@ -94,13 +100,21 @@ func Login(c *gin.Context) {
 	}
 
 	c.Set("uid", uu.Id)
-	resp.Flag = true
 
 	err = SetUserSession(c, uu)
 	if err != nil {
 		flog.Log.Errorf("login err:%s", err.Error())
+		resp.Error = &ErrorResp{
+			ErrorID:  I500,
+			ErrorMsg: ErrorMap[I500],
+		}
+		return
 
-	} else if req.Remember {
+	}
+
+	resp.Flag = true
+	
+	if req.Remember {
 		authKey := util.Md5(c.ClientIP() + "|" + uu.Password)
 		secretKey := util.IS(uu.Id) + "|" + authKey
 		c.SetCookie("auth", secretKey, 3600*24*7, "/", "", false, true)

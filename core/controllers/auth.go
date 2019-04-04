@@ -24,14 +24,14 @@ var AuthFilter = func(c *gin.Context) {
 	u, _ := GetUserSession(c)
 	if u == nil {
 		// check cookie
-		success, userInfo, _ := CheckCookie(c)
+		success, userInfo:= CheckCookie(c)
 		if success {
 			err := SetUserSession(c, userInfo)
 			if err != nil {
 				flog.Log.Errorf("filter err:%s", err.Error())
 				resp.Error = &ErrorResp{
-					ErrorID:  AuthPermit,
-					ErrorMsg: ErrorMap[AuthPermit],
+					ErrorID:  I500,
+					ErrorMsg: ErrorMap[I500],
 				}
 				return
 			}
@@ -112,14 +112,14 @@ var AuthFilter = func(c *gin.Context) {
 	}
 }
 
-func CheckCookie(c *gin.Context) (success bool, user *model.User, err error) {
+func CheckCookie(c *gin.Context) (success bool, user *model.User) {
 	cookieString, err := c.Cookie("auth")
 	if err != nil {
-		return false, nil, err
+		return false, nil
 	}
 	arr := strings.Split(cookieString, "|")
 	if len(arr) < 2 {
-		err = errors.New("paras less than 2")
+		c.SetCookie("auth", "", -1, "/", "", false, true)
 		return
 	}
 

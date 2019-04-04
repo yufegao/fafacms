@@ -63,7 +63,14 @@ func CreateTable(tables []interface{}) {
 			err = config.FafaRdb.CreateTables(table)
 			if err != nil {
 				fmt.Println(err.Error())
+				continue
 			}
+		}
+
+		err = config.FafaRdb.Client.CreateIndexes(table)
+		if err != nil {
+			fmt.Println(err.Error())
+			continue
 		}
 	}
 }

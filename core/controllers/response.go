@@ -5,13 +5,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
 	"github.com/hunterhug/fafacms/core/config"
+	. "github.com/hunterhug/fafacms/core/flog"
 	"github.com/hunterhug/fafacms/core/model"
 	"github.com/hunterhug/fafacms/core/util"
 	"io/ioutil"
 	"runtime"
 	"strings"
 	"time"
-	. "github.com/hunterhug/fafacms/core/flog"
 )
 
 func ParseJSON(c *gin.Context, req interface{}) *ErrorResp {
@@ -21,9 +21,9 @@ func ParseJSON(c *gin.Context, req interface{}) *ErrorResp {
 
 	ip := c.ClientIP()
 
-	Log.Debugf("%s ParseJSON [%v,line:%v]:%s", ip, f.Name(), line, string(requestBody))
+	//Log.Debugf("%s ParseJSON [%v,line:%v]:%s", ip, f.Name(), line, string(requestBody))
 	if err := json.Unmarshal(requestBody, req); err != nil {
-		Log.Errorf("%s ParseJSON Unmarshal err:%s", ip, err.Error())
+		Log.Debugf("%s ParseJSONErr [%v,line:%v]:%s", ip, f.Name(), line,err.Error())
 		// if parse wrong will not record log
 		c.Set("skipLog", true)
 		return &ErrorResp{
@@ -73,6 +73,8 @@ func JSONL(c *gin.Context, code int, req interface{}, obj *Resp) {
 	}
 	cid := util.GetGUID()
 	record.Cid = cid
+
+	Log.Debugf("Monitor:%#v",record)
 
 	_, err := config.FafaRdb.InsertOne(record)
 	if err != nil {
