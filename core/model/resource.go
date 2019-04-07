@@ -8,9 +8,9 @@ import (
 
 type Resource struct {
 	Id       int    `json:"id" xorm:"bigint pk autoincr"`
-	Name     string `json:"name,omitempty"`
-	Url      string `json:"url" xorm:"varchar(1000)"`
-	Describe string `json:"describe,omitempty" xorm:"TEXT"`
+	Name     string `json:"name"`
+	Url      string `json:"url" xorm:"varchar(1000) index"`
+	Describe string `json:"describe" xorm:"TEXT"`
 
 	// Future...
 	Aa string `json:"aa,omitempty"`

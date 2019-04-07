@@ -1,16 +1,15 @@
 package model
 
-// Content --> Node
+// Content --> ContentNode
 type Content struct {
-	Id     int    `json:"id" xorm:"bigint pk autoincr"`
-	Title  string `json:"name,omitempty" xorm:"varchar(200) notnull"`
-	UserId string `json:"user_id"`
-	NodeId int    `json:"node_id"`
-	Type   int    `json:"type,omitempty" xorm:"not null comment('1 paper，2 photo') TINYINT(1)"`
-	Status int    `json:"status,omitempty" xorm:"not null comment('1 normal，2 deleted') TINYINT(1)"`
-
+	Id         int    `json:"id" xorm:"bigint pk autoincr"`
+	Title      string `json:"name" xorm:"varchar(200) notnull"`
+	UserId     string `json:"user_id" xorm:"index"`
+	NodeId     int    `json:"node_id" xorm:"index"`
+	Status     int    `json:"status" xorm:"not null comment('0 normal, 1 hide，2 deleted') TINYINT(1) index"`
+	Type       int    `json:"type" xorm:"not null comment('0 paper，1 photo') TINYINT(1) index"`
 	Describe   string `json:"describe" xorm:"TEXT"`
-	CreateTime int    `json:"create_time,omitempty"`
+	CreateTime int    `json:"create_time"`
 	UpdateTime int    `json:"update_time,omitempty"`
 	DeleteTime int    `json:"delete_time,omitempty"`
 	ImagePath  string `json:"image_path" xorm:"varchar(1000)"`
@@ -28,9 +27,12 @@ type Content struct {
 
 type ContentNode struct {
 	Id           int    `json:"id" xorm:"bigint pk autoincr"`
-	Name         string `json:"name,omitempty" xorm:"varchar(100) notnull"`
+	UserId       string `json:"user_id" xorm:"index"`
+	Type         int    `json:"type" xorm:"not null comment('0 paper，1 photo') TINYINT(1) index"`
+	Status       int    `json:"status" xorm:"not null comment('0 normal, 1 hide，2 deleted') TINYINT(1) index"`
+	Name         string `json:"name" xorm:"varchar(100) notnull"`
 	Describe     string `json:"describe" xorm:"TEXT"`
-	CreateTime   int    `json:"create_time,omitempty"`
+	CreateTime   int    `json:"create_time"`
 	UpdateTime   int    `json:"update_time,omitempty"`
 	ImagePath    string `json:"image_path" xorm:"varchar(1000)"`
 	ParentNodeId int    `json:"parent_node_id"`

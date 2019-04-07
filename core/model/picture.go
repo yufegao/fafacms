@@ -7,15 +7,17 @@ import (
 
 type Picture struct {
 	Id             int    `json:"id" xorm:"bigint pk autoincr"`
-	Type           string `json:"type"`
+	Type           string `json:"type" xorm:"index"`
+	UserId         int    `json:"user_id" xorm:"index"`
 	FileName       string `json:"file_name"`
 	ReallyFileName string `json:"really_file_name"`
-	Md             string `json:"md"`
+	Md5            string `json:"md5"`
 	Url            string `json:"url" xorm:"varchar(1000) index"`
 	Describe       string `json:"describe" xorm:"TEXT"`
-	CreateTime     int64  `json:"create_time,omitempty"`
-	DeleteTime     int    `json:"delete_time,omitempty"`
-	Status         int    `json:"status,omitempty" xorm:"not null comment('1 normal，2 deleted') TINYINT(1)"`
+	CreateTime     int64  `json:"create_time"`
+	UpdateTime     int    `json:"update_time,omitempty"`
+	Status         int    `json:"status" xorm:"not null comment('0 normal，1 hidebutcanuse') TINYINT(1)"`
+	StoreType      int    `json:"store_type" xorm:"not null comment('0 local，1 oss') TINYINT(1)"`
 
 	// Future...
 	Aa string `json:"aa,omitempty"`

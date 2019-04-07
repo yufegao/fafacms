@@ -1,12 +1,12 @@
 package controllers
 
 import (
-	"github.com/hunterhug/parrot/util"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/hunterhug/fafacms/core/config"
 	"github.com/hunterhug/fafacms/core/flog"
 	"github.com/hunterhug/fafacms/core/model"
+	"github.com/hunterhug/parrot/util"
 	"strconv"
 	"strings"
 )
@@ -25,7 +25,7 @@ var AuthFilter = func(c *gin.Context) {
 	u, _ := GetUserSession(c)
 	if u == nil {
 		// if not exist session check cookie
-		success, userInfo:= CheckCookie(c)
+		success, userInfo := CheckCookie(c)
 		if success {
 			// set session
 			err := SetUserSession(c, userInfo)

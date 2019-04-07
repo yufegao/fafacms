@@ -8,22 +8,23 @@ import (
 
 // User --> Group
 type User struct {
-	Id         int    `json:"id" xorm:"bigint pk autoincr"`
-	Name       string `json:"name,omitempty" xorm:"varchar(100) notnull index"`
-	NickName   string `json:"nick_name,omitempty" xorm:"varchar(100) notnull"`
-	Email      string `json:"email,omitempty" xorm:"varchar(100)"`
-	WeChat     string `json:"wechat,omitempty" xorm:"varchar(100)"`
-	WeiBo      string `json:"weibo,omitempty" xorm:"TEXT"`
-	QQ         string `json:"qq,omitempty" xorm:"varchar(100)"`
-	Password   string `json:"password,omitempty" xorm:"varchar(100)"`
-	Gender     int    `json:"gender,omitempty" xorm:"not null comment('1 boy，2 girl') TINYINT(1)"`
-	Describe   string `json:"describe,omitempty" xorm:"TEXT"`
-	ImagePath  string `json:"image_path" xorm:"varchar(1000)"`
-	CreateTime int    `json:"create_time,omitempty"`
-	UpdateTime int    `json:"update_time,omitempty"`
-	DeleteTime int    `json:"delete_time,omitempty"`
-	Status     int    `json:"status,omitempty" xorm:"not null comment('1 normal，2 deleted') TINYINT(1) index"`
-	GroupId    int    `json:"group_id,omitempty" xorm:"index"`
+	Id          int    `json:"id" xorm:"bigint pk autoincr"`
+	Name        string `json:"name" xorm:"varchar(100) notnull index"`
+	NickName    string `json:"nick_name" xorm:"varchar(100) notnull"`
+	Email       string `json:"email" xorm:"varchar(100)"`
+	WeChat      string `json:"wechat" xorm:"varchar(100)"`
+	WeiBo       string `json:"weibo" xorm:"TEXT"`
+	QQ          string `json:"qq" xorm:"varchar(100)"`
+	Password    string `json:"password,omitempty" xorm:"varchar(100)"`
+	Gender      int    `json:"gender" xorm:"not null comment('0 unknow, 1 boy，2 girl') TINYINT(1)"`
+	Describe    string `json:"describe" xorm:"TEXT"`
+	ImagePath   string `json:"image_path" xorm:"varchar(1000)"`
+	CreateTime  int    `json:"create_time"`
+	UpdateTime  int    `json:"update_time,omitempty"`
+	DeleteTime  int    `json:"delete_time,omitempty"`
+	ActivateMd5 int    `json:"activate_md5,omitempty"`
+	Status      int    `json:"status" xorm:"not null comment('0 unactive, 1 normal，2 reset, 3 deleted') TINYINT(1) index"`
+	GroupId     int    `json:"group_id,omitempty" xorm:"index"`
 
 	// Future...
 	Aa string `json:"aa,omitempty"`

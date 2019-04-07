@@ -8,9 +8,9 @@ import (
 
 type Group struct {
 	Id         int    `json:"id" xorm:"bigint pk autoincr"`
-	Name       string `json:"name,omitempty" xorm:"varchar(100) notnull index"`
-	Describe   string `json:"describe,omitempty" xorm:"TEXT"`
-	CreateTime int64  `json:"create_time,omitempty"`
+	Name       string `json:"name" xorm:"varchar(100) notnull index"`
+	Describe   string `json:"describe" xorm:"TEXT"`
+	CreateTime int64  `json:"create_time"`
 	UpdateTime int64  `json:"update_time,omitempty"`
 	ImagePath  string `json:"image_path" xorm:"varchar(1000)"`
 

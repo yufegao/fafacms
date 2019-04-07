@@ -127,14 +127,14 @@ func Upload(c *gin.Context) {
 		}
 
 		p := new(model.Picture)
-		p.Md = fileMd5
+		p.Md5 = fileMd5
 		p.Type = fileType
 		p.FileName = fileName
 		p.ReallyFileName = h.Filename
 		p.CreateTime = time.Now().Unix()
-		p.Status = 1
 		p.Describe = describe
-		p.Url = fmt.Sprintf("/storage/%s/%d/%s", fileType, uid, fileName)
+		p.UserId = uid
+		p.Url = fmt.Sprintf("/%s/%d/%s", fileType, uid, fileName)
 
 		_, err = config.FafaRdb.InsertOne(p)
 		if err != nil {
@@ -152,7 +152,7 @@ func Upload(c *gin.Context) {
 	resp.Flag = true
 	data.FileName = h.Filename
 	data.Size = h.Size
-	data.Url = fmt.Sprintf("/storage/%s/%d/%s", fileType, uid, fileName)
+	data.Url = fmt.Sprintf("/%s/%d/%s", fileType, uid, fileName)
 	resp.Data = data
 	return
 }
