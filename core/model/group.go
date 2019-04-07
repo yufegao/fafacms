@@ -21,12 +21,7 @@ type Group struct {
 	Ad string `json:"ad,omitempty"`
 }
 
-var GroupSortName = map[string]string{
-	"id":          "",
-	"name":        "",
-	"create_time": "-",
-	"update_time": "",
-}
+var GroupSortName = []string{"=id", "=name", "-create_time", "=update_time"}
 
 func (g *Group) Get(groupId int) (err error) {
 	var exist bool

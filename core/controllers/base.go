@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// error code
 var (
 	LazyError       = 11111
 	AuthPermit      = 10000
@@ -22,6 +23,7 @@ var (
 	Unknown         = 99999
 )
 
+// error code message map
 var ErrorMap = map[int]string{
 	DbNotFound:      "db not found",
 	DbRepeat:        "db repeat data",
@@ -38,6 +40,24 @@ var ErrorMap = map[int]string{
 	LazyError: "db not found or err",
 }
 
+// common response
+type Resp struct {
+	Flag  bool        `json:"flag"`
+	Cid   string      `json:"cid,omitempty"`
+	Error *ErrorResp  `json:"error,omitempty"`
+	Data  interface{} `json:"data,omitempty"`
+}
+
+// inner error response
+type ErrorResp struct {
+	ErrorID  int    `json:"id"`
+	ErrorMsg string `json:"msg"`
+}
+
+func (e ErrorResp) Error() string {
+	return fmt.Sprintf("%d|%s", e.ErrorID, e.ErrorMsg)
+}
+
 func Error(code int, detail string) *ErrorResp {
 	_, ok := ErrorMap[code]
 	if !ok {
@@ -49,56 +69,43 @@ func Error(code int, detail string) *ErrorResp {
 	}
 }
 
-type Resp struct {
-	Flag  bool        `json:"flag"`
-	Cid   string      `json:"cid,omitempty"`
-	Error *ErrorResp  `json:"error,omitempty"`
-	Data  interface{} `json:"data,omitempty"`
-}
-
-type ErrorResp struct {
-	ErrorID  int    `json:"id"`
-	ErrorMsg string `json:"msg"`
-}
-
-func (e ErrorResp) Error() string {
-	return fmt.Sprintf("%d|%s", e.ErrorID, e.ErrorMsg)
-}
-
+// list api page helper
 type PageHelp struct {
 	Limit int `json:"limit"`
 	Page  int `json:"page"`
-	Pages int `json:"total_pages"` // set by yourself
+	Pages int `json:"total_pages"` // set by yourself outside
 }
 
-func (page *PageHelp) build(s *xorm.Session, sort []string, mapp map[string]string) {
+func (page *PageHelp) build(s *xorm.Session, sort []string, base []string) {
+	for _, v := range base {
+		a := v[1:]
 
-	sortMapp := make(map[string]string)
+		// if default use base sort field
+		useBase := true
+		for _, vv := range sort {
+			b := vv[1:]
 
-	for _, v := range sort {
-		if strings.HasPrefix(v, "+") {
-			a := v[1:]
-			if _, ok := mapp[a]; ok {
-				sortMapp[a] = "+"
+			// diy then change
+			if a == b {
+				useBase = false
+				if strings.HasPrefix(vv, "+") {
+					s.Asc(b)
+				} else if strings.HasPrefix(vv, "-") {
+					s.Desc(b)
+
+				}
+			}
+		}
+
+		if useBase {
+			if strings.HasPrefix(v, "+") {
 				s.Asc(a)
-			}
-		} else if strings.HasPrefix(v, "-") {
-			a := v[1:]
-			if _, ok := mapp[a]; ok {
-				sortMapp[a] = "-"
+			} else if strings.HasPrefix(v, "-") {
 				s.Desc(a)
-			}
-		}
-	}
 
-	for k, v := range mapp {
-		if _, ok := sortMapp[k]; !ok {
-			if v == "+" {
-				s.Asc(k)
-			} else if v == "-" {
-				s.Desc(k)
 			}
 		}
+
 	}
 
 	if page.Page == 0 {
@@ -109,5 +116,4 @@ func (page *PageHelp) build(s *xorm.Session, sort []string, mapp map[string]stri
 		page.Limit = 20
 	}
 	s.Limit(page.Limit, (page.Page-1)*page.Limit)
-
 }

@@ -27,39 +27,47 @@ func CreateGroup(c *gin.Context) {
 		return
 	}
 
+	// validate
 	if req.Name == "" {
 		flog.Log.Errorf("CreateGroup err: name can not empty")
 		resp.Error = Error(ParasError, "group name can not empty")
 		return
 	}
 
+	// if exist group
 	g := new(model.Group)
 	g.Name = req.Name
 	ok, err := g.Exist()
 	if err != nil {
+		// db err
 		flog.Log.Errorf("CreateGroup err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
 	}
 
 	if ok {
+		// found
 		flog.Log.Errorf("CreateGroup err: group name exist")
 		resp.Error = Error(ParasError, "group name exist")
 		return
 	}
 
+	// if image not empty
 	if req.ImagePath != "" {
+		// picture table exist
 		g.ImagePath = req.ImagePath
 		p := new(model.Picture)
 		p.Url = g.ImagePath
 		ok, err = p.Exist()
 		if err != nil {
+			// db err
 			flog.Log.Errorf("CreateGroup err:%s", err.Error())
 			resp.Error = Error(DBError, err.Error())
 			return
 		}
 
 		if !ok {
+			// not found
 			flog.Log.Errorf("CreateGroup err: image not exist")
 			resp.Error = Error(ParasError, "image url not exist")
 			return
@@ -67,10 +75,12 @@ func CreateGroup(c *gin.Context) {
 
 	}
 
+	// insert now
 	g.Describe = req.Describe
 	g.CreateTime = time.Now().Unix()
 	_, err = config.FafaRdb.InsertOne(g)
 	if err != nil {
+		// db err
 		flog.Log.Errorf("CreateGroup err:%s", err.Error())
 		resp.Error = Error(DBError, "")
 		return
@@ -98,68 +108,81 @@ func UpdateGroup(c *gin.Context) {
 		return
 	}
 
+	// validate
 	if req.Id == 0 {
 		flog.Log.Errorf("UpdateGroup err: id can not empty")
 		resp.Error = Error(ParasError, "group id can not empty")
 		return
 	}
 
+	// if group exist
 	g := new(model.Group)
 	g.Id = req.Id
 	ok, err := g.Exist()
-
 	if err != nil {
+		// db err
 		flog.Log.Errorf("UpdateGroup err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
 	}
 
 	if !ok {
+		// not found
 		resp.Error = Error(DbNotFound, "")
 		return
 	}
 
+	// if image not empty
 	if req.ImagePath != "" {
 		g.ImagePath = req.ImagePath
-
 		p := new(model.Picture)
 		p.Url = g.ImagePath
+		// find picture table
 		ok, err := p.Exist()
 		if err != nil {
+			// db err
 			flog.Log.Errorf("UpdateGroup err:%s", err.Error())
 			resp.Error = Error(DBError, "")
 			return
 		}
 
 		if !ok {
+			// not found
 			flog.Log.Errorf("UpdateGroup err: image not exist")
 			resp.Error = Error(ParasError, "image url not exist")
 			return
 		}
 	}
 
+	// if group name change repeat
 	if req.Name != "" {
 		temp := new(model.Group)
 		temp.Name = req.Name
+		// exist the same name
 		ok, err := temp.Exist()
 		if err != nil {
+			// db err
 			flog.Log.Errorf("UpdateGroup err:%s", err.Error())
 			resp.Error = Error(DBError, "")
 			return
 		}
 		if ok {
+			// found
 			resp.Error = Error(DbRepeat, "group name")
 			return
 		}
 		g.Name = req.Name
 	}
+
 	if req.Describe != "" {
 		g.Describe = req.Describe
 	}
 
+	// update db
 	g.UpdateTime = time.Now().Unix()
 	_, err = config.FafaRdb.Update(g)
 	if err != nil {
+		// db err
 		flog.Log.Errorf("UpdateGroup err:%s", err.Error())
 		resp.Error = Error(DBError, "")
 		return
@@ -186,51 +209,60 @@ func DeleteGroup(c *gin.Context) {
 		return
 	}
 
-	//
+	// take group info
 	temp := new(model.Group)
 	temp.Id = req.Id
 	temp.Name = req.Name
 	ok, err := temp.Take()
 	if err != nil {
+		// db err
 		resp.Error = Error(DBError, err.Error())
 		return
 	}
 	if !ok {
+		// not found
 		resp.Error = Error(DbNotFound, "")
 		return
 	}
 
+	// resource exist under group
 	gr := new(model.GroupResource)
 	gr.GroupId = temp.Id
 	ok, err = gr.Exist()
 	if err != nil {
+		// db err
 		resp.Error = Error(DBError, err.Error())
 		return
 	}
 	if ok {
+		// found can not delete
 		resp.Error = Error(DbHookIn, "exist resource")
 		return
 	}
 
-	//
+	// user exist under group
 	u := new(model.User)
 	u.GroupId = temp.Id
 	ok, err = u.Exist()
 	if err != nil {
+		// db err
 		resp.Error = Error(DBError, err.Error())
 		return
 	}
 	if ok {
+		// found can not delete
 		resp.Error = Error(DbHookIn, "exist user")
 		return
 	}
 
+	// delete group
 	g := new(model.Group)
 	g.Id = temp.Id
 	err = g.Delete()
 	if err != nil {
+		// db err
 		flog.Log.Errorf("DeleteGroup err:%s", err.Error())
-		resp.Error = Error(LazyError, err.Error())
+		resp.Error = Error(DBError, err.Error())
 		return
 	}
 
@@ -254,6 +286,7 @@ func TakeGroup(c *gin.Context) {
 		return
 	}
 
+	// take group info
 	g := new(model.Group)
 	g.Id = req.Id
 	g.Name = req.Name
@@ -301,9 +334,14 @@ func ListGroup(c *gin.Context) {
 		return
 	}
 
+	// new query list session
 	session := config.FafaRdb.Client.NewSession()
 	defer session.Close()
+
+	// group list where prepare
 	session.Table(new(model.Group)).Where("1=1")
+
+	// query prepare
 	if req.Id != 0 {
 		session.And("id=?", req.Id)
 	}
@@ -327,30 +365,36 @@ func ListGroup(c *gin.Context) {
 		session.And("update_time<?", req.UpdateTimeEnd)
 	}
 
+	// count num
 	countSession := session.Clone()
 	defer countSession.Close()
 	total, err := countSession.Count()
 	if err != nil {
+		// db err
 		flog.Log.Errorf("ListGroup err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
 	}
 
+	// if count>0 start list
 	groups := make([]model.Group, 0)
 	p := &req.PageHelp
 	if total == 0 {
 	} else {
+		// sql build
 		p.build(session, req.Sort, model.GroupSortName)
+		// do query
 		err = session.Find(&groups)
 		if err != nil {
+			// db err
 			flog.Log.Errorf("ListGroup err:%s", err.Error())
 			resp.Error = Error(DBError, err.Error())
 			return
 		}
 	}
 
+	// result
 	respResult.Groups = groups
-
 	p.Pages = int(math.Ceil(float64(total) / float64(p.Limit)))
 	respResult.PageHelp = *p
 	resp.Data = respResult

@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-// filter
+// auth filter
 var AuthFilter = func(c *gin.Context) {
 	resp := new(Resp)
 	defer func() {
@@ -21,11 +21,13 @@ var AuthFilter = func(c *gin.Context) {
 		c.AbortWithStatusJSON(403, resp)
 	}()
 
+	// get session
 	u, _ := GetUserSession(c)
 	if u == nil {
-		// check cookie
+		// if not exist session check cookie
 		success, userInfo:= CheckCookie(c)
 		if success {
+			// set session
 			err := SetUserSession(c, userInfo)
 			if err != nil {
 				flog.Log.Errorf("filter err:%s", err.Error())
@@ -37,6 +39,7 @@ var AuthFilter = func(c *gin.Context) {
 			}
 			u = userInfo
 		} else {
+			// cookie and seesion not exist, nologin
 			flog.Log.Errorf("filter err: %s", "no cookie")
 			resp.Error = &ErrorResp{
 				ErrorID:  NoLogin,
@@ -46,14 +49,15 @@ var AuthFilter = func(c *gin.Context) {
 		}
 	}
 
-	// record log will need uid
+	// record log will need uid, monitor who op
 	c.Set("uid", u.Id)
 
-	// root will ignore auth
+	// root user can ignore auth
 	if u.Id == -1 {
 		return
 	}
 
+	// resource is exist
 	r := new(model.Resource)
 	url := c.Request.URL.Path
 	r.Url = url
@@ -64,8 +68,7 @@ var AuthFilter = func(c *gin.Context) {
 		return
 	}
 
-
-	//  get group id by user
+	//  get groupId by user
 	nowUser := new(model.User)
 	err := nowUser.Get(u.Id)
 	if err != nil {
@@ -77,23 +80,24 @@ var AuthFilter = func(c *gin.Context) {
 		return
 	}
 
-	group := new(model.Group)
-	err = group.Get(nowUser.GroupId)
-	if err != nil {
-		flog.Log.Errorf("filter err:%s", err.Error())
-		resp.Error = &ErrorResp{
-			ErrorID:  AuthPermit,
-			ErrorMsg: ErrorMap[AuthPermit],
-		}
-		return
-	}
+	// group := new(model.Group)
+	// err = group.Get(nowUser.GroupId)
+	// if err != nil {
+	// 	flog.Log.Errorf("filter err:%s", err.Error())
+	// 	resp.Error = &ErrorResp{
+	// 		ErrorID:  AuthPermit,
+	// 		ErrorMsg: ErrorMap[AuthPermit],
+	// 	}
+	// 	return
+	// }
 
-	// auth
+	// if group has this resource
 	gr := new(model.GroupResource)
-	gr.GroupId = group.Id
+	gr.GroupId = nowUser.GroupId
 	gr.ResourceId = r.Id
 	exist, err := config.FafaRdb.Client.Exist(gr)
 	if err != nil {
+		// db err
 		flog.Log.Errorf("filter err:%s", err.Error())
 		resp.Error = &ErrorResp{
 			ErrorID:  AuthPermit,
@@ -103,6 +107,7 @@ var AuthFilter = func(c *gin.Context) {
 	}
 
 	if !exist {
+		// not found
 		flog.Log.Errorf("filter err:%s", "resource not allow")
 		resp.Error = &ErrorResp{
 			ErrorID:  AuthPermit,
@@ -113,16 +118,21 @@ var AuthFilter = func(c *gin.Context) {
 }
 
 func CheckCookie(c *gin.Context) (success bool, user *model.User) {
+	// cookie store a string
 	cookieString, err := c.Cookie("auth")
 	if err != nil {
 		return false, nil
 	}
+
+	// cookie string split
 	arr := strings.Split(cookieString, "|")
 	if len(arr) < 2 {
+		// cookie clean
 		c.SetCookie("auth", "", -1, "/", "", false, true)
 		return
 	}
 
+	// userId and md5(ip+password) get
 	var userId int64
 	str, password := arr[0], arr[1]
 	userId, err = strconv.ParseInt(str, 10, 0)
@@ -130,16 +140,19 @@ func CheckCookie(c *gin.Context) (success bool, user *model.User) {
 		return
 	}
 
+	// get user password
 	user = &model.User{}
 	err = user.Get(int(userId))
 	if err != nil {
 		return
 	}
 
+	// if the same
 	if password == util.Md5(c.ClientIP()+"|"+user.Password) {
 		success = true
 		return
 	} else {
+		// cookie clean
 		c.SetCookie("auth", "", -1, "/", "", false, true)
 		return
 	}
@@ -148,11 +161,14 @@ func CheckCookie(c *gin.Context) (success bool, user *model.User) {
 func GetUserSession(c *gin.Context) (*model.User, error) {
 	u := new(model.User)
 	s := config.FafaSessionMgr.Load(c.Request)
+
+	// get session from redis..
 	err := s.GetObject("user", u)
 	if err != nil {
 		return nil, err
 	}
 
+	// not found
 	if u.Id == 0 {
 		return nil, errors.New("no session")
 	}
