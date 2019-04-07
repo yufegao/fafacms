@@ -6,7 +6,7 @@ type Content struct {
 	Title      string `json:"name" xorm:"varchar(200) notnull"`
 	UserId     string `json:"user_id" xorm:"index"` // who's
 	NodeId     int    `json:"node_id" xorm:"index"`
-	Status     int    `json:"status" xorm:"not null comment('0 normal, 1 hide，2 deleted') TINYINT(1) index"` // delete is hide
+	Status     int    `json:"status" xorm:"not null comment('0 normal, 1 hide，2 deleted') TINYINT(1) index"`
 	Type       int    `json:"type" xorm:"not null comment('0 paper，1 photo') TINYINT(1) index"`
 	Describe   string `json:"describe" xorm:"TEXT"`
 	CreateTime int    `json:"create_time"`
