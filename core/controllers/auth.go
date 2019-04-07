@@ -57,17 +57,6 @@ var AuthFilter = func(c *gin.Context) {
 		return
 	}
 
-	// resource is exist
-	r := new(model.Resource)
-	url := c.Request.URL.Path
-	r.Url = url
-
-	// resource not found can skip auth
-	if err := r.Get(); err != nil {
-		flog.Log.Warnf("resource found url:%s, auth err:%s", url, err.Error())
-		return
-	}
-
 	//  get groupId by user
 	nowUser := new(model.User)
 	err := nowUser.Get(u.Id)
@@ -77,6 +66,26 @@ var AuthFilter = func(c *gin.Context) {
 			ErrorID:  AuthPermit,
 			ErrorMsg: ErrorMap[AuthPermit],
 		}
+		return
+	}
+
+	if nowUser.Status == 0 {
+		flog.Log.Errorf("filter err: notactive")
+		resp.Error = &ErrorResp{
+			ErrorID:  AuthPermit,
+			ErrorMsg: "not active",
+		}
+		return
+	}
+
+	// resource is exist
+	r := new(model.Resource)
+	url := c.Request.URL.Path
+	r.Url = url
+
+	// resource not found can skip auth
+	if err := r.Get(); err != nil {
+		flog.Log.Warnf("resource found url:%s, auth err:%s", url, err.Error())
 		return
 	}
 
