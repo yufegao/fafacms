@@ -11,13 +11,13 @@ import (
 	"github.com/gin-gonic/gin/binding"
 )
 
-// ENV_GIN_MODE indicates environment name for gin mode.
-const ENV_GIN_MODE = "GIN_MODE"
+// EnvGinMode indicates environment name for gin mode.
+const EnvGinMode = "GIN_MODE"
 
 const (
 	// DebugMode indicates gin mode is debug.
 	DebugMode = "debug"
-	// ReleaseMode indicates gin mode is relase.
+	// ReleaseMode indicates gin mode is release.
 	ReleaseMode = "release"
 	// TestMode indicates gin mode is test.
 	TestMode = "test"
@@ -44,7 +44,7 @@ var ginMode = debugCode
 var modeName = DebugMode
 
 func init() {
-	mode := os.Getenv(ENV_GIN_MODE)
+	mode := os.Getenv(EnvGinMode)
 	SetMode(mode)
 }
 

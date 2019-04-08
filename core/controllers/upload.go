@@ -71,7 +71,6 @@ func Upload(c *gin.Context) {
 	}
 
 	fileSuffix := util.GetFileSuffix(h.Filename)
-
 	if !util.InArray(fileAllowArray, fileSuffix) {
 		Log.Errorf("upload err: file suffix: %s not permit", fileSuffix)
 		resp.Error = &ErrorResp{
@@ -109,13 +108,20 @@ func Upload(c *gin.Context) {
 		}
 		return
 	}
-
-	fileDir := filepath.Join(config.FafaConfig.DefaultConfig.StoragePath, fileType, util.IS(uid))
-	util.MakeDir(fileDir)
-
 	fileName := fileMd5 + "." + fileSuffix
-	fileAbName := filepath.Join(fileDir, fileName)
-	if !util.HasFile(fileAbName) {
+
+	p := new(model.Picture)
+	p.Md5 = fileMd5
+	exist, err := p.Exist()
+	if err != nil {
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+	if !exist {
+		fileDir := filepath.Join(config.FafaConfig.DefaultConfig.StoragePath, fileType, util.IS(uid))
+		util.MakeDir(fileDir)
+		fileAbName := filepath.Join(fileDir, fileName)
+
 		err = util.CopyFS(f, fileAbName)
 		if err != nil {
 			Log.Errorf("upload err:%s", err.Error())
@@ -126,15 +132,13 @@ func Upload(c *gin.Context) {
 			return
 		}
 
-		p := new(model.Picture)
-		p.Md5 = fileMd5
 		p.Type = fileType
 		p.FileName = fileName
 		p.ReallyFileName = h.Filename
 		p.CreateTime = time.Now().Unix()
 		p.Describe = describe
 		p.UserId = uid
-		p.Url = fmt.Sprintf("/%s/%d/%s", fileType, uid, fileName)
+		p.Url = fmt.Sprintf("%s/%d/%s", fileType, uid, fileName)
 
 		_, err = config.FafaRdb.InsertOne(p)
 		if err != nil {
@@ -152,7 +156,7 @@ func Upload(c *gin.Context) {
 	resp.Flag = true
 	data.FileName = h.Filename
 	data.Size = h.Size
-	data.Url = fmt.Sprintf("/%s/%d/%s", fileType, uid, fileName)
+	data.Url = fmt.Sprintf("%s/%d/%s", fileType, uid, fileName)
 	resp.Data = data
 	return
 }

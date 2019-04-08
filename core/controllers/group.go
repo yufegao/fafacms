@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator"
 	"github.com/hunterhug/fafacms/core/config"
 	"github.com/hunterhug/fafacms/core/flog"
 	"github.com/hunterhug/fafacms/core/model"
@@ -9,10 +10,12 @@ import (
 	"time"
 )
 
+var validate = validator.New()
+
 type CreateGroupRequest struct {
-	Name      string `json:"name"`
-	Describe  string `json:"describe"`
-	ImagePath string `json:"image_path"`
+	Name      string `json:"name" validate:"required,gt=1,lt=100"`
+	Describe  string `json:"describe" validate:"lt=365"`
+	ImagePath string `json:"image_path" validate:"lt=365"`
 }
 
 func CreateGroup(c *gin.Context) {
@@ -28,9 +31,10 @@ func CreateGroup(c *gin.Context) {
 	}
 
 	// validate
-	if req.Name == "" {
-		flog.Log.Errorf("CreateGroup err: name can not empty")
-		resp.Error = Error(ParasError, "group name can not empty")
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("CreateGroup err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
 		return
 	}
 
@@ -90,10 +94,10 @@ func CreateGroup(c *gin.Context) {
 }
 
 type UpdateGroupRequest struct {
-	Id        int    `json:"id"`
-	Name      string `json:"name"`
-	Describe  string `json:"describe"`
-	ImagePath string `json:"image_path"`
+	Id        int    `json:"id" validate:"required,gt=0"`
+	Name      string `json:"name" validate:"lt=100"`
+	Describe  string `json:"describe" validate:"lt=365"`
+	ImagePath string `json:"image_path" validate:"lt=365"`
 }
 
 func UpdateGroup(c *gin.Context) {
@@ -109,9 +113,10 @@ func UpdateGroup(c *gin.Context) {
 	}
 
 	// validate
-	if req.Id == 0 {
-		flog.Log.Errorf("UpdateGroup err: id can not empty")
-		resp.Error = Error(ParasError, "group id can not empty")
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("UpdateGroup err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
 		return
 	}
 
@@ -193,8 +198,8 @@ func UpdateGroup(c *gin.Context) {
 }
 
 type DeleteGroupRequest struct {
-	Id   int    `json:"id"`
-	Name string `json:"name"`
+	Id   int    `json:"id" `
+	Name string `json:"name" validate:"lt=100"`
 }
 
 func DeleteGroup(c *gin.Context) {
@@ -206,6 +211,14 @@ func DeleteGroup(c *gin.Context) {
 
 	if errResp := ParseJSON(c, req); errResp != nil {
 		resp.Error = errResp
+		return
+	}
+
+	// validate
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("DeleteGroup err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
 		return
 	}
 
@@ -271,7 +284,7 @@ func DeleteGroup(c *gin.Context) {
 
 type TakeGroupRequest struct {
 	Id   int    `json:"id"`
-	Name string `json:"name"`
+	Name string `json:"name" validate:"lt=100"`
 }
 
 func TakeGroup(c *gin.Context) {
@@ -283,6 +296,14 @@ func TakeGroup(c *gin.Context) {
 
 	if errResp := ParseJSON(c, req); errResp != nil {
 		resp.Error = errResp
+		return
+	}
+
+	// validate
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("TakeGroup err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
 		return
 	}
 
@@ -307,12 +328,12 @@ func TakeGroup(c *gin.Context) {
 
 type ListGroupRequest struct {
 	Id              int      `json:"id"`
-	Name            string   `json:"name"`
+	Name            string   `json:"name" validate:"lt=100"`
 	CreateTimeBegin int64    `json:"create_time_begin"`
 	CreateTimeEnd   int64    `json:"create_time_end"`
 	UpdateTimeBegin int64    `json:"update_time_begin"`
 	UpdateTimeEnd   int64    `json:"update_time_end"`
-	Sort            []string `json:"sort"`
+	Sort            []string `json:"sort" validate:"dive,lt=100"`
 	PageHelp
 }
 
@@ -329,8 +350,17 @@ func ListGroup(c *gin.Context) {
 	defer func() {
 		JSONL(c, 200, nil, resp)
 	}()
+
 	if errResp := ParseJSON(c, req); errResp != nil {
 		resp.Error = errResp
+		return
+	}
+
+	// validate
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("ListGroup err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
 		return
 	}
 

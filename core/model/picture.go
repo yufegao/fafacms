@@ -12,7 +12,7 @@ type Picture struct {
 	UserId         int    `json:"user_id" xorm:"index"`
 	FileName       string `json:"file_name"`
 	ReallyFileName string `json:"really_file_name"`
-	Md5            string `json:"md5"`
+	Md5            string `json:"md5" xorm:"index"`
 	Url            string `json:"url" xorm:"varchar(1000) index"`
 	Describe       string `json:"describe" xorm:"TEXT"`
 	CreateTime     int64  `json:"create_time"`
@@ -28,7 +28,7 @@ type Picture struct {
 }
 
 func (p *Picture) Exist() (bool, error) {
-	if p.Id == 0 && p.Url == "" {
+	if p.Id == 0 && p.Url == "" && p.Md5 == "" {
 		return false, errors.New("where is empty")
 	}
 	c, err := config.FafaRdb.Client.Count(p)

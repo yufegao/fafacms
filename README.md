@@ -21,7 +21,9 @@ Dependencies:
 1. [Gin is a HTTP web framework written in Go (Golang)](https://github.com/gin-gonic/gin)
 2. [The open source embeddable online markdown editor (component).](https://github.com/pandao/editor.md)
 3. [Session management for Go 1.7+](https://github.com/alexedwards/scs)
-4. ...
+4. [Go Struct and Field validation, including Cross Field, Cross Struct, Map, Slice and Array diving](https://github.com/go-playground/validator)
+
+...
 
 `Gin` is mainly used for server functions.
 
