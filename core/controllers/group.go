@@ -14,8 +14,8 @@ var validate = validator.New()
 
 type CreateGroupRequest struct {
 	Name      string `json:"name" validate:"required,gt=1,lt=100"`
-	Describe  string `json:"describe" validate:"lt=365"`
-	ImagePath string `json:"image_path" validate:"lt=365"`
+	Describe  string `json:"describe" validate:"lt=100"`
+	ImagePath string `json:"image_path" validate:"lt=100"`
 }
 
 func CreateGroup(c *gin.Context) {
@@ -96,8 +96,8 @@ func CreateGroup(c *gin.Context) {
 type UpdateGroupRequest struct {
 	Id        int    `json:"id" validate:"required,gt=0"`
 	Name      string `json:"name" validate:"lt=100"`
-	Describe  string `json:"describe" validate:"lt=365"`
-	ImagePath string `json:"image_path" validate:"lt=365"`
+	Describe  string `json:"describe" validate:"lt=100"`
+	ImagePath string `json:"image_path" validate:"lt=100"`
 }
 
 func UpdateGroup(c *gin.Context) {

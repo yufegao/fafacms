@@ -22,12 +22,12 @@ type User struct {
 	Describe        string `json:"describe" xorm:"TEXT"`
 	HeadPhoto       string `json:"head_photo" xorm:"varchar(1000)"`
 	HomeType        int    `json:"home_type" xorm:"not null comment('0 normal，2...') TINYINT(1)"` // looks what home page
-	CreateTime      int    `json:"create_time"`
-	UpdateTime      int    `json:"update_time,omitempty"`
-	DeleteTime      int    `json:"delete_time,omitempty"`
-	ActivateMd5     int    `json:"activate_md5,omitempty"`     // register and reset md5 to email
-	ActivateExpired int    `json:"activate_expired,omitempty"` // md5 expired time
-	Status          int    `json:"status" xorm:"not null comment('0 unactive, 1 normal，2 reset) TINYINT(1) index"`
+	CreateTime      int64    `json:"create_time"`
+	UpdateTime      int64    `json:"update_time,omitempty"`
+	DeleteTime      int64    `json:"delete_time,omitempty"`
+	ActivateMd5     string `json:"activate_md5,omitempty"`     // register and reset md5 to email
+	ActivateExpired int64    `json:"activate_expired,omitempty"` // md5 expired time
+	Status          int    `json:"status" xorm:"not null comment('0 unactive, 1 normal, 2 black') TINYINT(1) index"`
 	GroupId         int    `json:"group_id,omitempty" xorm:"index"`
 
 	// Future...
@@ -61,4 +61,35 @@ func (m *User) Exist() (bool, error) {
 	}
 
 	return false, err
+}
+
+func (m *User) IsNameRepeat() (bool, error) {
+	if m.Name == "" {
+		return false, errors.New("where is empty")
+	}
+	c, err := config.FafaRdb.Client.Table(m).Where("name=?", m.Name).Count()
+
+	if c >= 1 {
+		return true, nil
+	}
+
+	return false, err
+}
+
+func (m *User) IsEmailRepeat() (bool, error) {
+	if m.Email == "" {
+		return false, errors.New("where is empty")
+	}
+	c, err := config.FafaRdb.Client.Table(m).Where("email=?", m.Email).Count()
+
+	if c >= 1 {
+		return true, nil
+	}
+
+	return false, err
+}
+
+func (m *User) InsertOne() error{
+	_, err := config.FafaRdb.Insert(m)
+	return err
 }

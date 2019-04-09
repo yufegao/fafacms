@@ -75,6 +75,7 @@ type Resource struct {
 	Name     string `json:"name"`
 	Url      string `json:"url" xorm:"varchar(1000) index"`
 	Describe string `json:"describe" xorm:"TEXT"`
+	Admin    bool   `json:"admin"`
 
 	// Future...
 	Aa string `json:"aa,omitempty"`

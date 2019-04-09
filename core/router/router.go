@@ -6,8 +6,10 @@ import (
 )
 
 type HttpHandle struct {
+	Name   string
 	Func   gin.HandlerFunc
 	Method []string
+	Admin  bool
 }
 
 var (
@@ -18,59 +20,57 @@ var (
 
 var (
 	HomeRouter = map[string]HttpHandle{
-		"/":       {controllers.Home, GP},
-		"/login":  {controllers.Login, GP},
-		"/logout": {controllers.Logout, GP},
+		"/":       {"Home", controllers.Home, GP, false},
+		"/login":  {"User Login", controllers.Login, GP, false},
+		"/logout": {"User Logout", controllers.Logout, GP, false},
 	}
 
 	// /v1/user/create
 	// need login group auth
 	V1Router = map[string]HttpHandle{
 
-		// Doing todo CURD example
-		"/group/create": {controllers.CreateGroup, POST},
-		"/group/update": {controllers.UpdateGroup, POST},
-		"/group/delete": {controllers.DeleteGroup, POST},
-		"/group/take":   {controllers.TakeGroup, GP},
-		"/group/list":   {controllers.ListGroup, GP},
+		"/group/create": {"Create Group", controllers.CreateGroup, POST, true},
+		"/group/update": {"Update Group", controllers.UpdateGroup, POST, true},
+		"/group/delete": {"Delete Group", controllers.DeleteGroup, POST, true},
+		"/group/take":   {"Take Group", controllers.TakeGroup, GP, true},
+		"/group/list":   {"List Group", controllers.ListGroup, GP, true},
 
-		"/user/create": {controllers.CreateUser, POST},
-		"/user/update": {controllers.UpdateUser, POST},
-		"/user/delete": {controllers.DeleteUser, POST},
-		"/user/take":   {controllers.TakeUser, GP},
-		"/user/list":   {controllers.ListUser, GP},
+		"/user/register": {"User Register", controllers.RegisterUser, POST, false},
+		"/user/verify":   {"User Verify Email", controllers.VerifyUser, POST, false},
+		"/user/update":   {"User Update info", controllers.UpdateUser, GP, false},
+		"/user/list":     {"User List", controllers.ListUser, GP, true},
 
-		"/resource/create": {controllers.CreateResource, POST},
-		"/resource/update": {controllers.UpdateResource, POST},
-		"/resource/delete": {controllers.DeleteResource, POST},
-		"/resource/take":   {controllers.TakeResource, GP},
-		"/resource/list":   {controllers.ListResource, GP},
-
-		"/auth/update": {controllers.UpdateAuth, GP},
-
-		"/node/create": {controllers.CreateNode, POST},
-		"/node/update": {controllers.UpdateNode, POST},
-		"/node/delete": {controllers.DeleteNode, POST},
-		"/node/take":   {controllers.TakeNode, GP},
-		"/node/list":   {controllers.ListNode, GP},
-
-		"/content/create": {controllers.CreateContent, POST},
-		"/content/update": {controllers.UpdateContent, POST},
-		"/content/delete": {controllers.DeleteContent, POST},
-		"/content/take":   {controllers.TakeContent, GP},
-		"/content/list":   {controllers.ListContent, GP},
-
-		"/comment/create": {controllers.CreateComment, POST},
-		"/comment/update": {controllers.UpdateComment, POST},
-		"/comment/delete": {controllers.DeleteComment, POST},
-		"/comment/take":   {controllers.TakeComment, GP},
-		"/comment/list":   {controllers.ListComment, GP},
+		//"/resource/create": {controllers.CreateResource, POST},
+		//"/resource/update": {controllers.UpdateResource, POST},
+		//"/resource/delete": {controllers.DeleteResource, POST},
+		//"/resource/take":   {controllers.TakeResource, GP},
+		//"/resource/list":   {controllers.ListResource, GP},
+		//
+		//"/auth/update": {controllers.UpdateAuth, GP},
+		//
+		//"/node/create": {controllers.CreateNode, POST},
+		//"/node/update": {controllers.UpdateNode, POST},
+		//"/node/delete": {controllers.DeleteNode, POST},
+		//"/node/take":   {controllers.TakeNode, GP},
+		//"/node/list":   {controllers.ListNode, GP},
+		//
+		//"/content/create": {controllers.CreateContent, POST},
+		//"/content/update": {controllers.UpdateContent, POST},
+		//"/content/delete": {controllers.DeleteContent, POST},
+		//"/content/take":   {controllers.TakeContent, GP},
+		//"/content/list":   {controllers.ListContent, GP},
+		//
+		//"/comment/create": {controllers.CreateComment, POST},
+		//"/comment/update": {controllers.UpdateComment, POST},
+		//"/comment/delete": {controllers.DeleteComment, POST},
+		//"/comment/take":   {controllers.TakeComment, GP},
+		//"/comment/list":   {controllers.ListComment, GP},
 	}
 
 	// /b/upload
 	// need login group auth
 	BaseRouter = map[string]HttpHandle{
-		"/upload": {controllers.Upload, POST},
+		"/upload": {"File Upload", controllers.Upload, POST, false},
 	}
 )
 

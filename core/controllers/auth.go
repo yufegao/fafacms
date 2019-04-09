@@ -82,6 +82,7 @@ var AuthFilter = func(c *gin.Context) {
 	r := new(model.Resource)
 	url := c.Request.URL.Path
 	r.Url = url
+	r.Admin = true
 
 	// resource not found can skip auth
 	if err := r.Get(); err != nil {
