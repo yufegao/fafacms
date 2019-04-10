@@ -8,20 +8,25 @@ import (
 	"github.com/hunterhug/fafacms/core/model"
 	"github.com/hunterhug/fafacms/core/router"
 	"github.com/hunterhug/fafacms/core/server"
+	"github.com/hunterhug/fafacms/core/util/mail"
 )
 
 var (
 	configFile  string
 	createTable bool
+	mailDebug   bool
 )
 
 func init() {
 	flag.StringVar(&configFile, "config", "./config.json", "config file")
 	flag.BoolVar(&createTable, "db", true, "create db table")
+	flag.BoolVar(&mailDebug, "mdebug", true, "Email debug")
 	flag.Parse()
 }
 
 func main() {
+	mail.Debug = mailDebug
+
 	var err error
 
 	// Init Config

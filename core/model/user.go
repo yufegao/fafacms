@@ -14,7 +14,7 @@ type User struct {
 	Id              int    `json:"id" xorm:"bigint pk autoincr"`
 	Name            string `json:"name" xorm:"varchar(100) notnull index"` // id and name index
 	NickName        string `json:"nick_name" xorm:"varchar(100) notnull"`
-	Email           string `json:"email" xorm:"varchar(100)"`
+	Email           string `json:"email" xorm:"varchar(100) notnull index"`
 	WeChat          string `json:"wechat" xorm:"varchar(100)"`
 	WeiBo           string `json:"weibo" xorm:"TEXT"`
 	Github          string `json:"github" xorm:"TEXT"`
@@ -31,6 +31,8 @@ type User struct {
 	ActivateExpired int64  `json:"activate_expired,omitempty"` // md5 expired time
 	Status          int    `json:"status" xorm:"not null comment('0 unactive, 1 normal, 2 black') TINYINT(1) index"`
 	GroupId         int    `json:"group_id,omitempty" xorm:"index"`
+	Code            string `json:"code,omitempty"`         // forget password code
+	CodeExpired     int64  `json:"code_expired,omitempty"` // forget password code expired
 
 	// Future...
 	Aa string `json:"aa,omitempty"`
@@ -96,7 +98,7 @@ func (m *User) InsertOne() error {
 	return err
 }
 
-func (m *User) IsCodeExist() (bool, error) {
+func (m *User) IsActivateCodeExist() (bool, error) {
 	if m.ActivateMd5 == "" {
 		return false, errors.New("where is empty")
 	}
@@ -113,7 +115,7 @@ func (m *User) UpdateStatus() error {
 	return err
 }
 
-func (m *User) UpdateCode() error {
+func (m *User) UpdateActivateCode() error {
 	if m.Id == 0 {
 		return errors.New("where is empty")
 	}
@@ -121,5 +123,35 @@ func (m *User) UpdateCode() error {
 	m.ActivateMd5 = util.GetGUID()
 	m.ActivateExpired = time.Now().Add(48 * time.Hour).Unix()
 	_, err := config.FafaRdb.Client.Where("id=?", m.Id).Cols("activate_md5", "activate_expired", "update_time").Update(m)
+	return err
+}
+
+func (m *User) GetUserByEmail() (bool, error) {
+	if m.Email == "" {
+		return false, errors.New("where is empty")
+	}
+	c, err := config.FafaRdb.Client.Where("email=?", m.Email).Get(m)
+	return c, err
+}
+
+func (m *User) UpdateCode() error {
+	if m.Id == 0 {
+		return errors.New("where is empty")
+	}
+	m.UpdateTime = time.Now().Unix()
+	m.Code = util.GetGUID()[0:6]
+	m.CodeExpired = time.Now().Unix() + 60
+	_, err := config.FafaRdb.Client.Where("id=?", m.Id).Cols("code", "code_expired", "update_time").Update(m)
+	return err
+}
+
+func (m *User) UpdatePassword() error {
+	if m.Id == 0 {
+		return errors.New("where is empty")
+	}
+	m.UpdateTime = time.Now().Unix()
+	m.Code = ""
+	m.CodeExpired = 0
+	_, err := config.FafaRdb.Client.Where("id=?", m.Id).Cols("code", "code_expired", "update_time", "password").Update(m)
 	return err
 }

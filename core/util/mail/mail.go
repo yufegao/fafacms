@@ -5,6 +5,8 @@ import (
 	"github.com/go-gomail/gomail"
 )
 
+var Debug = true
+
 type Sender struct {
 	//Bcc      string
 	//BccName  string
@@ -23,6 +25,9 @@ type Message struct {
 }
 
 func (mm *Message) Sent() error {
+	if Debug {
+		return nil
+	}
 	m := gomail.NewMessage()
 	m.SetAddressHeader("From", mm.Email, "FaFaCMS")
 	m.SetAddressHeader("To", mm.To, mm.ToName)

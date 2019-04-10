@@ -138,7 +138,7 @@ func Upload(c *gin.Context) {
 		p.CreateTime = time.Now().Unix()
 		p.Describe = describe
 		p.UserId = uid
-		p.Url = fmt.Sprintf("%s/%d/%s", fileType, uid, fileName)
+		p.Url = fmt.Sprintf("/storage/%s/%d/%s", fileType, uid, fileName)
 
 		_, err = config.FafaRdb.InsertOne(p)
 		if err != nil {
@@ -156,7 +156,7 @@ func Upload(c *gin.Context) {
 	resp.Flag = true
 	data.FileName = h.Filename
 	data.Size = h.Size
-	data.Url = fmt.Sprintf("%s/%d/%s", fileType, uid, fileName)
+	data.Url = fmt.Sprintf("/storage/%s/%d/%s", fileType, uid, fileName)
 	resp.Data = data
 	return
 }

@@ -8,36 +8,40 @@ import (
 
 // error code
 var (
-	LazyError       = 11111
-	AuthPermit      = 10000
-	ParseJsonError  = 10001
-	UploadFileError = 10002
-	LoginWrong      = 10003
-	DBError         = 10004
-	ParasError      = 10005
-	NoLogin         = 10006
-	DbNotFound      = 10007
-	DbRepeat        = 10008
-	DbHookIn        = 10009
-	EmailError      = 100010
-	I500            = 99998
-	Unknown         = 99999
+	LazyError         = 11111
+	AuthPermit        = 10000
+	ParseJsonError    = 10001
+	UploadFileError   = 10002
+	LoginWrong        = 10003
+	DBError           = 10004
+	ParasError        = 10005
+	NoLogin           = 10006
+	DbNotFound        = 10007
+	DbRepeat          = 10008
+	DbHookIn          = 10009
+	EmailError        = 10010
+	TimeNotReachError = 10011
+	CodeWrong         = 10012
+	I500              = 99998
+	Unknown           = 99999
 )
 
 // error code message map
 var ErrorMap = map[int]string{
-	EmailError:      "email error",
-	DbNotFound:      "db not found",
-	DbRepeat:        "db repeat data",
-	DbHookIn:        "db hook in",
-	I500:            "500 error",
-	AuthPermit:      "auth permit",
-	ParseJsonError:  "json parse err",
-	UploadFileError: "upload file err",
-	LoginWrong:      "username or password wrong",
-	DBError:         "db operation err",
-	ParasError:      "paras not right",
-	NoLogin:         "no login",
+	CodeWrong:         "code wrong",
+	TimeNotReachError: "time not reach",
+	EmailError:        "email error",
+	DbNotFound:        "db not found",
+	DbRepeat:          "db repeat data",
+	DbHookIn:          "db hook in",
+	I500:              "500 error",
+	AuthPermit:        "auth permit",
+	ParseJsonError:    "json parse err",
+	UploadFileError:   "upload file err",
+	LoginWrong:        "username or password wrong",
+	DBError:           "db operation err",
+	ParasError:        "paras not right",
+	NoLogin:           "no login",
 
 	LazyError: "db not found or err",
 }

@@ -133,7 +133,7 @@ func RegisterUser(c *gin.Context) {
 	resp.Data = u
 }
 
-func VerifyUser(c *gin.Context) {
+func ActivateUser(c *gin.Context) {
 	resp := new(Resp)
 	code := c.Query("code")
 	defer func() {
@@ -141,7 +141,7 @@ func VerifyUser(c *gin.Context) {
 	}()
 
 	if code == "" {
-		flog.Log.Errorf("VerifyUser err:%s", "code empty")
+		flog.Log.Errorf("ActivateUser err:%s", "code empty")
 		resp.Error = Error(ParasError, "code empty")
 		c.String(200, "code empty")
 		return
@@ -150,16 +150,16 @@ func VerifyUser(c *gin.Context) {
 	u := new(model.User)
 	u.ActivateMd5 = code
 
-	exist, err := u.IsCodeExist()
+	exist, err := u.IsActivateCodeExist()
 	if err != nil {
-		flog.Log.Errorf("VerifyUser err:%s", err.Error())
+		flog.Log.Errorf("ActivateUser err:%s", err.Error())
 		resp.Error = Error(ParasError, "db err")
 		c.String(200, "db err")
 		return
 	}
 
 	if !exist {
-		flog.Log.Errorf("VerifyUser err:%s", "not exist code")
+		flog.Log.Errorf("ActivateUser err:%s", "not exist code")
 		resp.Error = Error(LazyError, "code not found")
 		c.String(200, "code not found")
 		return
@@ -171,22 +171,22 @@ func VerifyUser(c *gin.Context) {
 	}
 
 	if u.ActivateExpired < time.Now().Unix() {
-		flog.Log.Errorf("VerifyUser err:%s", "code expired")
+		flog.Log.Errorf("ActivateUser err:%s", "code expired")
 		resp.Error = Error(LazyError, "code expired")
-		c.String(200, "code expired, resent email:<a href='%s/resent?code=%s'>Here</a>", config.FafaConfig.Domain, code)
+		c.String(200, "code expired, resent email:<a href='%s/activate/code?code=%s'>Here</a>", config.FafaConfig.Domain, code)
 		return
 	} else {
 		u.Status = 1
 		err = u.UpdateStatus()
 		if err != nil {
-			flog.Log.Errorf("VerifyUser err:%s", err.Error())
+			flog.Log.Errorf("ActivateUser err:%s", err.Error())
 			resp.Error = Error(ParasError, "db err")
 			c.String(200, "db err")
 			return
 		}
 		err = SetUserSession(c, u)
 		if err != nil {
-			flog.Log.Errorf("VerifyUser err:%s", err.Error())
+			flog.Log.Errorf("ActivateUser err:%s", err.Error())
 			resp.Error = Error(I500, ErrorMap[I500])
 			c.String(200, ErrorMap[I500])
 			return
@@ -197,7 +197,7 @@ func VerifyUser(c *gin.Context) {
 
 }
 
-func ResentUser(c *gin.Context) {
+func ResendActivateCodeToUser(c *gin.Context) {
 	resp := new(Resp)
 	code := c.Query("code")
 	defer func() {
@@ -213,15 +213,15 @@ func ResentUser(c *gin.Context) {
 	u := new(model.User)
 	u.ActivateMd5 = code
 
-	exist, err := u.IsCodeExist()
+	exist, err := u.IsActivateCodeExist()
 	if err != nil {
-		flog.Log.Errorf("ResentUser err:%s", err.Error())
+		flog.Log.Errorf("ResendUser err:%s", err.Error())
 		resp.Error = Error(ParasError, "db err")
 		c.String(200, "db err")
 		return
 	}
 	if !exist {
-		flog.Log.Errorf("ResentUser err:%s", "not exist code")
+		flog.Log.Errorf("ResendUser err:%s", "not exist code")
 		resp.Error = Error(LazyError, "code not found")
 		c.String(200, "code not found")
 		return
@@ -229,15 +229,15 @@ func ResentUser(c *gin.Context) {
 
 	if u.Status != 0 {
 	} else if u.ActivateExpired > time.Now().Unix() {
-		flog.Log.Errorf("ResentUser err:%s", "code not expired")
+		flog.Log.Errorf("ResendUser err:%s", "code not expired")
 		resp.Error = Error(LazyError, "code not expired")
 		c.String(200, "code not expired")
 		return
 	}
 
-	err = u.UpdateCode()
+	err = u.UpdateActivateCode()
 	if err != nil {
-		flog.Log.Errorf("ResentUser err:%s", err.Error())
+		flog.Log.Errorf("ResendUser err:%s", err.Error())
 		resp.Error = Error(ParasError, "db err")
 		c.String(200, "db err")
 		return
@@ -248,10 +248,10 @@ func ResentUser(c *gin.Context) {
 	mm.Sender = config.FafaConfig.MailConfig
 	mm.To = u.Email
 	mm.ToName = u.NickName
-	mm.Body = fmt.Sprintf(mm.Body, config.FafaConfig.Domain+"/verify?code="+u.ActivateMd5)
+	mm.Body = fmt.Sprintf(mm.Body, config.FafaConfig.Domain+"/activate?code="+u.ActivateMd5)
 	err = mm.Sent()
 	if err != nil {
-		flog.Log.Errorf("ResentUser err:%s", err.Error())
+		flog.Log.Errorf("ResendUser err:%s", err.Error())
 		resp.Error = Error(EmailError, err.Error())
 		return
 	}
@@ -259,11 +259,188 @@ func ResentUser(c *gin.Context) {
 	c.String(200, "email code reset")
 }
 
+type ForgetPasswordRequest struct {
+	Email string `json:"email" validate:"required,email"`
+}
+
+func ForgetPassword(c *gin.Context) {
+	resp := new(Resp)
+	req := new(ForgetPasswordRequest)
+	defer func() {
+		JSONL(c, 200, req, resp)
+	}()
+
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	// validate
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("RegisterUser err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
+		return
+	}
+
+	u := new(model.User)
+	u.Email = req.Email
+	ok, err := u.GetUserByEmail()
+	if err != nil {
+		flog.Log.Errorf("ForgetPassword err:%s", err.Error())
+		resp.Error = Error(DBError, ErrorMap[DBError])
+		return
+	}
+	if !ok {
+		flog.Log.Errorf("ForgetPassword err:%s", "not found")
+		resp.Error = Error(DbNotFound, ErrorMap[DbNotFound])
+		return
+	}
+
+	if u.CodeExpired < time.Now().Unix() {
+		err = u.UpdateCode()
+		if err != nil {
+			flog.Log.Errorf("ForgetPassword err:%s", err.Error())
+			resp.Error = Error(DBError, ErrorMap[DBError])
+			return
+		}
+
+		// send email
+		mm := new(mail.Message)
+		mm.Sender = config.FafaConfig.MailConfig
+		mm.To = u.Email
+		mm.ToName = u.NickName
+		mm.Body = "code is: " + u.Code
+		err = mm.Sent()
+		if err != nil {
+			flog.Log.Errorf("ForgetPassword err:%s", err.Error())
+			resp.Error = Error(EmailError, err.Error())
+			return
+		}
+
+	} else {
+		flog.Log.Errorf("ForgetPassword err:%s", "time not reach")
+		resp.Error = Error(TimeNotReachError, ErrorMap[TimeNotReachError])
+		return
+	}
+
+	resp.Flag = true
+}
+
+type ChangePasswordRequest struct {
+	Email    string `json:"email" validate:"required,email"`
+	Code     string `json:"code" validate:"required,lt=9,gt=5"`
+	Password string `json:"password" validate:"alphanumunicode,gt=5,lt=17"`
+}
+
+func ChangePassword(c *gin.Context) {
+	resp := new(Resp)
+	req := new(ChangePasswordRequest)
+	defer func() {
+		JSONL(c, 200, req, resp)
+	}()
+
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	// validate
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("ChangePassword err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
+		return
+	}
+
+	u := new(model.User)
+	u.Email = req.Email
+	ok, err := u.GetUserByEmail()
+	if err != nil {
+		flog.Log.Errorf("ChangePassword err:%s", err.Error())
+		resp.Error = Error(DBError, ErrorMap[DBError])
+		return
+	}
+	if !ok {
+		flog.Log.Errorf("ChangePassword err:%s", "not found")
+		resp.Error = Error(DbNotFound, "email")
+		return
+	}
+
+	if u.Code == req.Code {
+		u.Password = req.Password
+		err = u.UpdatePassword()
+		if err != nil {
+			flog.Log.Errorf("ChangePassword err:%s", err.Error())
+			resp.Error = Error(DBError, ErrorMap[DBError])
+			return
+		}
+	} else {
+		flog.Log.Errorf("ChangePassword err:%s", "code wrong")
+		resp.Error = Error(CodeWrong, "not valid")
+		return
+	}
+
+	DeleteUserSession(c)
+	c.SetCookie("auth", "", 0, "", "", false, false)
+	resp.Flag = true
+}
+
+type UpdateUserRequest struct {
+	NickName  string `json:"nick_name" validate:"omitempty,gt=1,lt=50"`
+	WeChat    string `json:"wechat" validate:"omitempty,alphanumunicode,gt=3,lt=30"`
+	WeiBo     string `json:"weibo" validate:"omitempty,url"`
+	Github    string `json:"github" validate:"omitempty,url"`
+	QQ        string `json:"qq" validate:"omitempty,numeric,gt=6,lt=12"`
+	Gender    int    `json:"gender" validate:"oneof=0 1 2"`
+	Describe  string `json:"describe" validate:"omitempty,lt=200"`
+	ImagePath string `json:"image_path" validate:"omitempty,lt=100"`
+}
+
 func UpdateUser(c *gin.Context) {
 	resp := new(Resp)
+	req := new(UpdateUserRequest)
 	defer func() {
-		JSONL(c, 200, nil, resp)
+		JSONL(c, 200, req, resp)
 	}()
+
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	// validate
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("UpdateUser err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
+		return
+	}
+
+	u := new(model.User)
+
+	// if image not empty
+	if req.ImagePath != "" {
+		p := new(model.Picture)
+		p.Url = req.ImagePath
+		ok, err := p.Exist()
+		if err != nil {
+			// db err
+			flog.Log.Errorf("UpdateUser err:%s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+
+		if !ok {
+			// not found
+			flog.Log.Errorf("UpdateUser err: image not exist")
+			resp.Error = Error(ParasError, "image url not exist")
+			return
+		}
+
+		u.HeadPhoto = req.ImagePath
+	}
+
 }
 
 func TakeUser(c *gin.Context) {

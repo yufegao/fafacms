@@ -20,12 +20,14 @@ var (
 
 var (
 	HomeRouter = map[string]HttpHandle{
-		"/":         {"Home", controllers.Home, GP, false},
-		"/login":    {"User Login", controllers.Login, GP, false},
-		"/logout":   {"User Logout", controllers.Logout, GP, false},
-		"/register": {"User Register", controllers.RegisterUser, GP, false},
-		"/resent":   {"User Resent Email Code", controllers.ResentUser, GP, false},
-		"/verify":   {"User Verify Email", controllers.VerifyUser, GP, false},
+		"/":                {"Home", controllers.Home, GP, false},
+		"/login":           {"User Login", controllers.Login, GP, false},
+		"/logout":          {"User Logout", controllers.Logout, GP, false},
+		"/register":        {"User Register", controllers.RegisterUser, GP, false},
+		"/activate":        {"User Verify Email To Activate", controllers.ActivateUser, GP, false},
+		"/activate/code":   {"User Resend Email Activate Code", controllers.ResendActivateCodeToUser, GP, false},
+		"/password/forget": {"User Forget Password Gen Code", controllers.ForgetPassword, GP, false},
+		"/password/change": {"User Change Password", controllers.ChangePassword, GP, false},
 	}
 
 	// /v1/user/create
@@ -38,9 +40,9 @@ var (
 		"/group/take":   {"Take Group", controllers.TakeGroup, GP, true},
 		"/group/list":   {"List Group", controllers.ListGroup, GP, true},
 
+		"/user/list":   {"User List All", controllers.ListUser, GP, true},
 		"/user/info":   {"User Info Self", controllers.TakeUser, GP, false},
 		"/user/update": {"User Update Self", controllers.UpdateUser, GP, false},
-		"/user/list":   {"User List All", controllers.ListUser, GP, true},
 
 		//"/resource/create": {controllers.CreateResource, POST},
 		//"/resource/update": {controllers.UpdateResource, POST},
