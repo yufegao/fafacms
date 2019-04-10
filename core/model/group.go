@@ -8,7 +8,7 @@ import (
 
 type Group struct {
 	Id         int    `json:"id" xorm:"bigint pk autoincr"`
-	Name       string `json:"name" xorm:"varchar(100) notnull index"`
+	Name       string `json:"name" xorm:"varchar(100) notnull unique"`
 	Describe   string `json:"describe" xorm:"TEXT"`
 	CreateTime int64  `json:"create_time"`
 	UpdateTime int64  `json:"update_time,omitempty"`
@@ -73,7 +73,7 @@ func (g *Group) Take() (bool, error) {
 type Resource struct {
 	Id       int    `json:"id" xorm:"bigint pk autoincr"`
 	Name     string `json:"name"`
-	Url      string `json:"url" xorm:"varchar(1000) index"`
+	Url      string `json:"url" xorm:"varchar(1000) unique"`
 	Describe string `json:"describe" xorm:"TEXT"`
 	Admin    bool   `json:"admin"`
 
@@ -86,7 +86,7 @@ type Resource struct {
 
 func (r *Resource) Get() (err error) {
 	var exist bool
-	exist, err = config.FafaRdb.Client.Get(r)
+	exist, err = config.FafaRdb.Client.UseBool("admin").Get(r)
 	if err != nil {
 		return
 	}

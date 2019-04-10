@@ -44,6 +44,9 @@ var (
 		"/user/info":   {"User Info Self", controllers.TakeUser, GP, false},
 		"/user/update": {"User Update Self", controllers.UpdateUser, GP, false},
 
+
+		// set/update User groupid
+		// update group resource
 		//"/resource/create": {controllers.CreateResource, POST},
 		//"/resource/update": {controllers.UpdateResource, POST},
 		//"/resource/delete": {controllers.DeleteResource, POST},
@@ -53,6 +56,7 @@ var (
 		//"/auth/update": {controllers.UpdateAuth, GP},
 		//
 
+		// here important
 		//"/node/create": {controllers.CreateNode, POST},
 		//"/node/update": {controllers.UpdateNode, POST},
 		//"/node/delete": {controllers.DeleteNode, POST},

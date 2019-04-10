@@ -12,7 +12,7 @@ type Picture struct {
 	UserId         int    `json:"user_id" xorm:"index"`
 	FileName       string `json:"file_name"`
 	ReallyFileName string `json:"really_file_name"`
-	Md5            string `json:"md5" xorm:"index"`
+	Md5            string `json:"md5" xorm:"unique"`
 	Url            string `json:"url" xorm:"varchar(1000) index"`
 	Describe       string `json:"describe" xorm:"TEXT"`
 	CreateTime     int64  `json:"create_time"`

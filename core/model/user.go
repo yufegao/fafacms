@@ -12,9 +12,9 @@ import (
 // user can not delete
 type User struct {
 	Id              int    `json:"id" xorm:"bigint pk autoincr"`
-	Name            string `json:"name" xorm:"varchar(100) notnull index"` // id and name index
+	Name            string `json:"name" xorm:"varchar(100) notnull unique"` // id and name index
 	NickName        string `json:"nick_name" xorm:"varchar(100) notnull"`
-	Email           string `json:"email" xorm:"varchar(100) notnull index"`
+	Email           string `json:"email" xorm:"varchar(100) notnull unique"`
 	WeChat          string `json:"wechat" xorm:"varchar(100)"`
 	WeiBo           string `json:"weibo" xorm:"TEXT"`
 	Github          string `json:"github" xorm:"TEXT"`

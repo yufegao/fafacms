@@ -74,13 +74,27 @@ func CreateTable(tables []interface{}) {
 			fmt.Println(err.Error())
 			continue
 		}
+		err = config.FafaRdb.Client.CreateUniques(table)
+		if err != nil {
+			fmt.Println(err.Error())
+			continue
+		}
 	}
+
+	InitResource()
 }
 
 func InitResource() {
 	for url, handler := range router.V1Router {
 		r := new(model.Resource)
-		r.Url = url
+		r.Url = fmt.Sprintf("/v1%s", url)
 		r.Name = handler.Name
+		r.Describe = handler.Name
+		r.Admin = handler.Admin
+		err := r.InsertOne()
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+
 	}
 }
