@@ -8,6 +8,7 @@ import (
 	"github.com/hunterhug/fafacms/core/model"
 	"github.com/hunterhug/fafacms/core/util/mail"
 	"github.com/hunterhug/parrot/util"
+	"math"
 	"time"
 )
 
@@ -417,7 +418,21 @@ func UpdateUser(c *gin.Context) {
 		return
 	}
 
+	uu, err := GetUserSession(c)
+	if err != nil {
+		flog.Log.Errorf("UpdateUser err: %s", err.Error())
+		resp.Error = Error(I500, "")
+		return
+	}
+
+	if uu == nil {
+		flog.Log.Errorf("UpdateUser err: %s", err.Error())
+		resp.Error = Error(I500, "")
+		return
+	}
+
 	u := new(model.User)
+	u.Id = uu.Id
 
 	// if image not empty
 	if req.ImagePath != "" {
@@ -441,6 +456,24 @@ func UpdateUser(c *gin.Context) {
 		u.HeadPhoto = req.ImagePath
 	}
 
+	u.Describe = req.Describe
+	u.NickName = req.NickName
+	u.Gender = req.Gender
+	u.WeChat = req.WeChat
+	u.QQ = req.QQ
+	u.Github = req.Github
+	u.WeiBo = req.WeiBo
+	err = u.UpdateInfo()
+	if err != nil {
+		// db err
+		flog.Log.Errorf("UpdateUser err:%s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	resp.Flag = true
+	resp.Data = u
+
 }
 
 func TakeUser(c *gin.Context) {
@@ -459,9 +492,143 @@ func TakeUser(c *gin.Context) {
 	resp.Data = u
 }
 
+type ListUserRequest struct {
+	Id              int      `json:"id"`
+	Name            string   `json:"name" validate:"lt=100"`
+	CreateTimeBegin int64    `json:"create_time_begin"`
+	CreateTimeEnd   int64    `json:"create_time_end"`
+	UpdateTimeBegin int64    `json:"update_time_begin"`
+	UpdateTimeEnd   int64    `json:"update_time_end"`
+	Sort            []string `json:"sort" validate:"dive,lt=100"`
+
+	Email  string `json:"email" validate:"omitempty,email"`
+	WeChat string `json:"wechat" validate:"omitempty,alphanumunicode,gt=3,lt=30"`
+	WeiBo  string `json:"weibo" validate:"omitempty,url"`
+	Github string `json:"github" validate:"omitempty,url"`
+	QQ     string `json:"qq" validate:"omitempty,numeric,gt=6,lt=12"`
+	Gender int    `json:"gender" validate:"oneof=-1 0 1 2"`
+	Status int    `json:"status" validate:"oneof=-1 0 1 2"`
+
+	PageHelp
+}
+
+type ListUserResponse struct {
+	Users []model.User `json:"users"`
+	PageHelp
+}
+
 func ListUser(c *gin.Context) {
 	resp := new(Resp)
+
+	respResult := new(ListUserResponse)
+	req := new(ListUserRequest)
 	defer func() {
 		JSONL(c, 200, nil, resp)
 	}()
+
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	// validate
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("ListUser err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
+		return
+	}
+
+	// new query list session
+	session := config.FafaRdb.Client.NewSession()
+	defer session.Close()
+
+	// group list where prepare
+	session.Table(new(model.User)).Where("1=1")
+
+	// query prepare
+	if req.Id != 0 {
+		session.And("id=?", req.Id)
+	}
+	if req.Name != "" {
+		session.And("name=?", req.Name)
+	}
+
+	if req.Status != -1 {
+		session.And("status=?", req.Status)
+	}
+
+	if req.Gender != -1 {
+		session.And("gender=?", req.Gender)
+	}
+
+	if req.QQ != "" {
+		session.And("q_q=?", req.QQ)
+	}
+
+	if req.Email != "" {
+		session.And("email=?", req.Email)
+	}
+
+	if req.Github != "" {
+		session.And("github=?", req.Github)
+	}
+
+	if req.WeiBo != "" {
+		session.And("wei_bo=?", req.WeiBo)
+	}
+	if req.WeChat != "" {
+		session.And("we_chat=?", req.WeChat)
+	}
+
+	if req.CreateTimeBegin > 0 {
+		session.And("create_time>=?", req.CreateTimeBegin)
+	}
+
+	if req.CreateTimeEnd > 0 {
+		session.And("create_time<?", req.CreateTimeBegin)
+	}
+
+	if req.UpdateTimeBegin > 0 {
+		session.And("update_time>=?", req.UpdateTimeBegin)
+	}
+
+	if req.UpdateTimeEnd > 0 {
+		session.And("update_time<?", req.UpdateTimeEnd)
+	}
+
+	// count num
+	countSession := session.Clone()
+	defer countSession.Close()
+	total, err := countSession.Count()
+	if err != nil {
+		// db err
+		flog.Log.Errorf("ListUser err:%s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	// if count>0 start list
+	users := make([]model.User, 0)
+	p := &req.PageHelp
+	if total == 0 {
+	} else {
+		// sql build
+		p.build(session, req.Sort, model.UserSortName)
+		// do query
+		err = session.Find(&users)
+		if err != nil {
+			// db err
+			flog.Log.Errorf("ListUser err:%s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+	}
+
+	// result
+	respResult.Users = users
+	p.Pages = int(math.Ceil(float64(total) / float64(p.Limit)))
+	respResult.PageHelp = *p
+	resp.Data = respResult
+	resp.Flag = true
 }

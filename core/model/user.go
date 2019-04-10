@@ -41,6 +41,8 @@ type User struct {
 	Ad string `json:"ad,omitempty"`
 }
 
+var UserSortName = []string{"=id", "=name", "-update_time", "-create_time", "-gender"}
+
 func (m *User) Get(userId int) (err error) {
 	var exist bool
 	m.Id = userId
@@ -153,5 +155,15 @@ func (m *User) UpdatePassword() error {
 	m.Code = ""
 	m.CodeExpired = 0
 	_, err := config.FafaRdb.Client.Where("id=?", m.Id).Cols("code", "code_expired", "update_time", "password").Update(m)
+	return err
+}
+
+func (m *User) UpdateInfo() error {
+	if m.Id == 0 {
+		return errors.New("where is empty")
+	}
+
+	m.UpdateTime = time.Now().Unix()
+	_, err := config.FafaRdb.Client.Update(m)
 	return err
 }

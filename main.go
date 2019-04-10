@@ -20,7 +20,7 @@ var (
 func init() {
 	flag.StringVar(&configFile, "config", "./config.json", "config file")
 	flag.BoolVar(&createTable, "db", true, "create db table")
-	flag.BoolVar(&mailDebug, "mdebug", true, "Email debug")
+	flag.BoolVar(&mailDebug, "eb", true, "Email debug")
 	flag.Parse()
 }
 
