@@ -5,33 +5,31 @@ import (
 	"github.com/go-gomail/gomail"
 )
 
-type MailSender struct {
-	Bcc      string
-	BccName  string
-	Host     string
-	Port     int
-	Email    string
-	Password string
+type Sender struct {
+	//Bcc      string
+	//BccName  string
+	Host     string `json:"Host"`
+	Port     int    `json:"Port"`
+	Email    string `json:"Email"`
+	Password string `json:"Password"`
+	Subject  string `json:"Subject"`
+	Body     string `json:"Body"`
 }
 
-type MailMessage struct {
-	From     string
-	FromName string
-	To       string
-	ToName   string
-	Subject  string
-	Body     string
-	MailSender
+type Message struct {
+	To     string
+	ToName string
+	Sender
 }
 
-func (mm *MailMessage) Sent() error {
+func (mm *Message) Sent() error {
 	m := gomail.NewMessage()
-	m.SetAddressHeader("From", mm.From, mm.FromName)
+	m.SetAddressHeader("From", mm.Email, "FaFaCMS")
 	m.SetAddressHeader("To", mm.To, mm.ToName)
 	m.SetHeader("Subject", mm.Subject)
 
-	m.SetHeader("Bcc",
-		m.FormatAddress(mm.Bcc, mm.BccName))
+	//m.SetHeader("Bcc",
+	//	m.FormatAddress(mm.Bcc, mm.BccName))
 
 	m.SetBody("text/html", mm.Body)
 
@@ -40,6 +38,5 @@ func (mm *MailMessage) Sent() error {
 	if err := d.DialAndSend(m); err != nil {
 		return err
 	}
-
 	return nil
 }

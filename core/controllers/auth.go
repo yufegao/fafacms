@@ -187,6 +187,9 @@ func GetUserSession(c *gin.Context) (*model.User, error) {
 
 func SetUserSession(c *gin.Context, user *model.User) error {
 	s := config.FafaSessionMgr.Load(c.Request)
+	user.Password = ""
+	user.ActivateExpired = 0
+	user.ActivateMd5 = ""
 	err := s.PutObject(c.Writer, "user", user)
 	return err
 }

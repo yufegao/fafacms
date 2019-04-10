@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"github.com/hunterhug/fafacms/core/util/mail"
 	"github.com/hunterhug/fafacms/core/util/rdb"
 	"github.com/hunterhug/fafacms/core/util/session"
 	"github.com/alexedwards/scs"
@@ -14,9 +15,11 @@ var (
 )
 
 type Config struct {
+	Domain        string `json:"Domain"`
 	DefaultConfig MyConfig
 	DbConfig      rdb.MyDbConfig
 	SessionConfig session.MyRedisConf
+	MailConfig    mail.Sender `json:"email"`
 }
 
 type MyConfig struct {

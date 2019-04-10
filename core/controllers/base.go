@@ -19,12 +19,14 @@ var (
 	DbNotFound      = 10007
 	DbRepeat        = 10008
 	DbHookIn        = 10009
+	EmailError      = 100010
 	I500            = 99998
 	Unknown         = 99999
 )
 
 // error code message map
 var ErrorMap = map[int]string{
+	EmailError:      "email error",
 	DbNotFound:      "db not found",
 	DbRepeat:        "db repeat data",
 	DbHookIn:        "db hook in",

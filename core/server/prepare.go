@@ -7,6 +7,8 @@ import (
 	"github.com/alexedwards/scs"
 	"github.com/alexedwards/scs/stores/redisstore"
 	"github.com/hunterhug/fafacms/core/config"
+	"github.com/hunterhug/fafacms/core/model"
+	"github.com/hunterhug/fafacms/core/router"
 	"github.com/hunterhug/fafacms/core/util/rdb"
 	"github.com/hunterhug/fafacms/core/util/session"
 	"io/ioutil"
@@ -72,5 +74,13 @@ func CreateTable(tables []interface{}) {
 			fmt.Println(err.Error())
 			continue
 		}
+	}
+}
+
+func InitResource() {
+	for url, handler := range router.V1Router {
+		r := new(model.Resource)
+		r.Url = url
+		r.Name = handler.Name
 	}
 }

@@ -23,7 +23,7 @@ func ParseJSON(c *gin.Context, req interface{}) *ErrorResp {
 
 	//Log.Debugf("%s ParseJSON [%v,line:%v]:%s", ip, f.Name(), line, string(requestBody))
 	if err := json.Unmarshal(requestBody, req); err != nil {
-		Log.Debugf("%s ParseJSONErr [%v,line:%v]:%s", ip, f.Name(), line,err.Error())
+		Log.Debugf("%s ParseJSONErr [%v,line:%v]:%s", ip, f.Name(), line, err.Error())
 		// if parse wrong will not record log
 		c.Set("skipLog", true)
 		return &ErrorResp{
@@ -74,15 +74,56 @@ func JSONL(c *gin.Context, code int, req interface{}, obj *Resp) {
 	cid := util.GetGUID()
 	record.Cid = cid
 
-	Log.Debugf("Monitor:%#v",record)
+	Log.Debugf("Monitor:%#v", record)
 
 	_, err := config.FafaRdb.InsertOne(record)
 	if err != nil {
-		Log.Errorf("insert log record:", err.Error())
+		Log.Errorf("insert log record:%s", err.Error())
 	}
 
 	obj.Cid = cid
 	c.Render(code, render.JSON{Data: obj})
+}
+
+func LogAlone(c *gin.Context, req interface{}, obj *Resp) {
+	record := new(model.Log)
+	record.Ip = c.ClientIP()
+	record.Url = c.Request.URL.Path
+	record.LogTime = time.Now().Unix()
+	record.Ua = c.Request.UserAgent()
+	record.UserId = c.GetInt("uid")
+	flag := obj.Flag
+	if !flag && obj.Error != nil {
+		errstr := obj.Error.Error()
+		errstrr := strings.Split(errstr, "|")
+		if len(errstrr) >= 2 {
+			record.ErrorId = errstrr[0]
+			record.ErrorMessage = strings.Join(errstrr[1:], "|")
+		}
+	}
+	record.Flag = flag
+
+	if req != nil {
+		in, _ := json.Marshal(req)
+		if len(in) > 0 {
+			record.In = string(in)
+		}
+	}
+
+	if obj != nil {
+		out, _ := json.Marshal(obj)
+		if len(out) > 0 {
+			record.Out = string(out)
+		}
+	}
+	cid := util.GetGUID()
+	record.Cid = cid
+	Log.Debugf("Monitor:%#v", record)
+	_, err := config.FafaRdb.InsertOne(record)
+	if err != nil {
+		Log.Errorf("insert log record:%s", err.Error())
+	}
+
 }
 
 func JSON(c *gin.Context, code int, obj *Resp) {

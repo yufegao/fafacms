@@ -96,6 +96,14 @@ func (r *Resource) Get() (err error) {
 	return
 }
 
+func (r *Resource) InsertOne() (err error) {
+	_, err = config.FafaRdb.Client.InsertOne(r)
+	if err != nil {
+		return
+	}
+	return
+}
+
 func (gr *GroupResource) Exist() (bool, error) {
 	if gr.Id == 0 && gr.GroupId == 0 && gr.ResourceId == 0 {
 		return false, errors.New("where is empty")

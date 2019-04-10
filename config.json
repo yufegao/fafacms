@@ -1,4 +1,5 @@
 {
+  "Domain": "http://127.0.0.1:8080",
   "DefaultConfig": {
     "WebPort": ":8080",
     "StoragePath": "./data/storage",
@@ -18,6 +19,14 @@
     "DebugToFile": false,
     "DebugToFileName": "./data/log/fafacms_db.log",
     "Debug": true
+  },
+  "Email": {
+    "Host": "smtp-mail.outlook.com",
+    "Port": 587,
+    "Email": "gdccmcm14@live.com",
+    "Password": "",
+    "Subject": "Welcome register FaFa CMS",
+    "Body": "<a href='%s'>click to active</a>"
   },
   "SessionConfig": {
     "RedisHost": "127.0.0.1:6379",

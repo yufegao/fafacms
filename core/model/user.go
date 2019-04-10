@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hunterhug/fafacms/core/config"
+	"github.com/hunterhug/fafacms/core/util"
+	"time"
 )
 
 // User --> Group
@@ -22,11 +24,11 @@ type User struct {
 	Describe        string `json:"describe" xorm:"TEXT"`
 	HeadPhoto       string `json:"head_photo" xorm:"varchar(1000)"`
 	HomeType        int    `json:"home_type" xorm:"not null comment('0 normal，2...') TINYINT(1)"` // looks what home page
-	CreateTime      int64    `json:"create_time"`
-	UpdateTime      int64    `json:"update_time,omitempty"`
-	DeleteTime      int64    `json:"delete_time,omitempty"`
+	CreateTime      int64  `json:"create_time"`
+	UpdateTime      int64  `json:"update_time,omitempty"`
+	DeleteTime      int64  `json:"delete_time,omitempty"`
 	ActivateMd5     string `json:"activate_md5,omitempty"`     // register and reset md5 to email
-	ActivateExpired int64    `json:"activate_expired,omitempty"` // md5 expired time
+	ActivateExpired int64  `json:"activate_expired,omitempty"` // md5 expired time
 	Status          int    `json:"status" xorm:"not null comment('0 unactive, 1 normal, 2 black') TINYINT(1) index"`
 	GroupId         int    `json:"group_id,omitempty" xorm:"index"`
 
@@ -89,7 +91,35 @@ func (m *User) IsEmailRepeat() (bool, error) {
 	return false, err
 }
 
-func (m *User) InsertOne() error{
+func (m *User) InsertOne() error {
 	_, err := config.FafaRdb.Insert(m)
+	return err
+}
+
+func (m *User) IsCodeExist() (bool, error) {
+	if m.ActivateMd5 == "" {
+		return false, errors.New("where is empty")
+	}
+	c, err := config.FafaRdb.Client.Get(m)
+	return c, err
+}
+
+func (m *User) UpdateStatus() error {
+	if m.Id == 0 {
+		return errors.New("where is empty")
+	}
+	m.UpdateTime = time.Now().Unix()
+	_, err := config.FafaRdb.Client.Where("id=?", m.Id).Cols("status", "update_time").Update(m)
+	return err
+}
+
+func (m *User) UpdateCode() error {
+	if m.Id == 0 {
+		return errors.New("where is empty")
+	}
+	m.UpdateTime = time.Now().Unix()
+	m.ActivateMd5 = util.GetGUID()
+	m.ActivateExpired = time.Now().Add(48 * time.Hour).Unix()
+	_, err := config.FafaRdb.Client.Where("id=?", m.Id).Cols("activate_md5", "activate_expired", "update_time").Update(m)
 	return err
 }

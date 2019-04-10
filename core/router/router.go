@@ -20,9 +20,12 @@ var (
 
 var (
 	HomeRouter = map[string]HttpHandle{
-		"/":       {"Home", controllers.Home, GP, false},
-		"/login":  {"User Login", controllers.Login, GP, false},
-		"/logout": {"User Logout", controllers.Logout, GP, false},
+		"/":         {"Home", controllers.Home, GP, false},
+		"/login":    {"User Login", controllers.Login, GP, false},
+		"/logout":   {"User Logout", controllers.Logout, GP, false},
+		"/register": {"User Register", controllers.RegisterUser, GP, false},
+		"/resent":   {"User Resent Email Code", controllers.ResentUser, GP, false},
+		"/verify":   {"User Verify Email", controllers.VerifyUser, GP, false},
 	}
 
 	// /v1/user/create
@@ -35,10 +38,9 @@ var (
 		"/group/take":   {"Take Group", controllers.TakeGroup, GP, true},
 		"/group/list":   {"List Group", controllers.ListGroup, GP, true},
 
-		"/user/register": {"User Register", controllers.RegisterUser, POST, false},
-		"/user/verify":   {"User Verify Email", controllers.VerifyUser, POST, false},
-		"/user/update":   {"User Update info", controllers.UpdateUser, GP, false},
-		"/user/list":     {"User List", controllers.ListUser, GP, true},
+		"/user/info":   {"User Info Self", controllers.TakeUser, GP, false},
+		"/user/update": {"User Update Self", controllers.UpdateUser, GP, false},
+		"/user/list":   {"User List All", controllers.ListUser, GP, true},
 
 		//"/resource/create": {controllers.CreateResource, POST},
 		//"/resource/update": {controllers.UpdateResource, POST},
@@ -48,6 +50,7 @@ var (
 		//
 		//"/auth/update": {controllers.UpdateAuth, GP},
 		//
+
 		//"/node/create": {controllers.CreateNode, POST},
 		//"/node/update": {controllers.UpdateNode, POST},
 		//"/node/delete": {controllers.DeleteNode, POST},
