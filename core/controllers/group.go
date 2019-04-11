@@ -348,7 +348,7 @@ func ListGroup(c *gin.Context) {
 	respResult := new(ListGroupResponse)
 	req := new(ListGroupRequest)
 	defer func() {
-		JSONL(c, 200, nil, resp)
+		JSONL(c, 200, req, resp)
 	}()
 
 	if errResp := ParseJSON(c, req); errResp != nil {

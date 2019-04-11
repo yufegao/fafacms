@@ -26,8 +26,8 @@ var (
 		"/register":        {"User Register", controllers.RegisterUser, GP, false},
 		"/activate":        {"User Verify Email To Activate", controllers.ActivateUser, GP, false},
 		"/activate/code":   {"User Resend Email Activate Code", controllers.ResendActivateCodeToUser, GP, false},
-		"/password/forget": {"User Forget Password Gen Code", controllers.ForgetPassword, GP, false},
-		"/password/change": {"User Change Password", controllers.ChangePassword, GP, false},
+		"/password/forget": {"User Forget Password Gen Code", controllers.ForgetPasswordOfUser, GP, false},
+		"/password/change": {"User Change Password", controllers.ChangePasswordOfUser, GP, false},
 	}
 
 	// /v1/user/create
@@ -41,20 +41,13 @@ var (
 		"/group/list":   {"List Group", controllers.ListGroup, GP, true},
 
 		"/user/list":   {"User List All", controllers.ListUser, GP, true},
+		"/user/assign": {"User Assign Group", controllers.AssignGroupToUser, GP, true},
 		"/user/info":   {"User Info Self", controllers.TakeUser, GP, false},
 		"/user/update": {"User Update Self", controllers.UpdateUser, GP, false},
 
 
-		// set/update User groupid
-		// update group resource
-		//"/resource/create": {controllers.CreateResource, POST},
-		//"/resource/update": {controllers.UpdateResource, POST},
-		//"/resource/delete": {controllers.DeleteResource, POST},
-		//"/resource/take":   {controllers.TakeResource, GP},
-		//"/resource/list":   {controllers.ListResource, GP},
-		//
-		//"/auth/update": {controllers.UpdateAuth, GP},
-		//
+		"/resource/list":   {"Resource List All", controllers.ListResource, GP, true},
+		"/resource/assign": {"Resource Assign Group", controllers.AssignGroupAndResource, GP, true},
 
 		// here important
 		//"/node/create": {controllers.CreateNode, POST},

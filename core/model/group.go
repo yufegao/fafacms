@@ -23,16 +23,11 @@ type Group struct {
 
 var GroupSortName = []string{"=id", "=name", "-create_time", "=update_time"}
 
-func (g *Group) Get(groupId int) (err error) {
-	var exist bool
-	g.Id = groupId
+func (g *Group) GetById() (exist bool, err error) {
+	if g.Id == 0 {
+		return false, errors.New("where is empty")
+	}
 	exist, err = config.FafaRdb.Client.Get(g)
-	if err != nil {
-		return
-	}
-	if !exist {
-		return fmt.Errorf("group not found")
-	}
 	return
 }
 
@@ -84,6 +79,8 @@ type Resource struct {
 	Ad string `json:"ad,omitempty"`
 }
 
+var ResourceSortName = []string{"=id", "=name", "-admin", "-url"}
+
 func (r *Resource) Get() (err error) {
 	var exist bool
 	exist, err = config.FafaRdb.Client.UseBool("admin").Get(r)
@@ -120,6 +117,6 @@ func (gr *GroupResource) Exist() (bool, error) {
 // extern: Group --> Resource
 type GroupResource struct {
 	Id         int `json:"id" xorm:"bigint pk autoincr"`
-	GroupId    int `json:"group_id index"`
-	ResourceId int `json:"resource_id index"`
+	GroupId    int `json:"group_id index(gr)"`
+	ResourceId int `json:"resource_id index(gr)"`
 }

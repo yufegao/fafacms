@@ -199,10 +199,3 @@ func DeleteUserSession(c *gin.Context) error {
 	err := s.Destroy(c.Writer)
 	return err
 }
-
-func UpdateAuth(c *gin.Context) {
-	resp := new(Resp)
-	defer func() {
-		JSONL(c, 200, nil, resp)
-	}()
-}

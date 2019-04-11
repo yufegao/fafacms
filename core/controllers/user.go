@@ -264,7 +264,7 @@ type ForgetPasswordRequest struct {
 	Email string `json:"email" validate:"required,email"`
 }
 
-func ForgetPassword(c *gin.Context) {
+func ForgetPasswordOfUser(c *gin.Context) {
 	resp := new(Resp)
 	req := new(ForgetPasswordRequest)
 	defer func() {
@@ -334,7 +334,7 @@ type ChangePasswordRequest struct {
 	Password string `json:"password" validate:"alphanumunicode,gt=5,lt=17"`
 }
 
-func ChangePassword(c *gin.Context) {
+func ChangePasswordOfUser(c *gin.Context) {
 	resp := new(Resp)
 	req := new(ChangePasswordRequest)
 	defer func() {
@@ -523,7 +523,7 @@ func ListUser(c *gin.Context) {
 	respResult := new(ListUserResponse)
 	req := new(ListUserRequest)
 	defer func() {
-		JSONL(c, 200, nil, resp)
+		JSONL(c, 200, req, resp)
 	}()
 
 	if errResp := ParseJSON(c, req); errResp != nil {
@@ -631,4 +631,74 @@ func ListUser(c *gin.Context) {
 	respResult.PageHelp = *p
 	resp.Data = respResult
 	resp.Flag = true
+}
+
+type AssignGroupRequest struct {
+	GroupId      int   `json:"group_id"`
+	GroupRelease int   `json:"group_release"`
+	Users        []int `json:"users"`
+}
+
+func AssignGroupToUser(c *gin.Context) {
+	resp := new(Resp)
+	req := new(AssignGroupRequest)
+	defer func() {
+		JSONL(c, 200, req, resp)
+	}()
+
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	if len(req.Users) == 0 {
+		flog.Log.Errorf("AssignGroupToUser err:%s", "users empty")
+		resp.Error = Error(ParasError, "users")
+		return
+	}
+
+	if req.GroupRelease == 1 {
+		u := new(model.User)
+		num, err := config.FafaRdb.Client.Table(new(model.User)).Cols("group_id").In("id", req.Users).Update(u)
+		if err != nil {
+			flog.Log.Errorf("AssignGroupToUser err:%s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+		resp.Data = num
+	} else {
+		if req.GroupId == 0 {
+			flog.Log.Errorf("AssignGroupToUser err:%s", "group id empty")
+			resp.Error = Error(ParasError, "group_id")
+			return
+		}
+
+		g := new(model.Group)
+		g.Id = req.GroupId
+		exist, err := g.GetById()
+		if err != nil {
+			flog.Log.Errorf("AssignGroupToUser err:%s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+
+		if !exist {
+			flog.Log.Errorf("AssignGroupToUser err:%s", "group not found")
+			resp.Error = Error(DbNotFound, "group")
+			return
+		}
+
+		u := new(model.User)
+		u.GroupId = req.GroupId
+		num, err := config.FafaRdb.Client.Table(new(model.User)).Cols("group_id").In("id", req.Users).Update(u)
+		if err != nil {
+			flog.Log.Errorf("AssignGroupToUser err:%s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+		resp.Data = num
+	}
+
+	resp.Flag = true
+
 }
