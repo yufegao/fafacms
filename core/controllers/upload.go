@@ -128,6 +128,7 @@ func UploadFile(c *gin.Context) {
 		return
 	}
 
+	fileMd5 = fileMd5 + "_" + util.IS(uid)
 	fileName := fileMd5 + "." + fileSuffix
 
 	p := new(model.File)
@@ -201,6 +202,8 @@ type ListFileAdminRequest struct {
 	CreateTimeEnd   int64    `json:"create_time_end"`
 	UpdateTimeBegin int64    `json:"update_time_begin"`
 	UpdateTimeEnd   int64    `json:"update_time_end"`
+	SizeBegin       int64    `json:"size_begin"`
+	SizeEnd         int64    `json:"size_end"`
 	Sort            []string `json:"sort" validate:"dive,lt=100"`
 	Md5             string   `json:"md5"`
 	Url             string   `json:"url"`
@@ -208,9 +211,9 @@ type ListFileAdminRequest struct {
 	Status          int      `json:"status" validate:"oneof=-1 0 1"`
 	Type            string   `json:"type"`
 	Tag             string   `json:"tag"`
-	UserId          string   `json:"user_id"`
-	Id              string   `json:"id"`
-	IsPicture       int      `json:"is_picture"`
+	UserId          int      `json:"user_id"`
+	Id              int      `json:"id"`
+	IsPicture       int      `json:"is_picture" validate:"oneof=-1 0 1"`
 	PageHelp
 }
 
@@ -219,11 +222,11 @@ type ListFileAdminResponse struct {
 	PageHelp
 }
 
-func ListFileAdmin(c *gin.Context) {
+func ListFileAdminHelper(c *gin.Context, userId int) {
 	resp := new(Resp)
 
-	respResult := new(ListUserResponse)
-	req := new(ListUserRequest)
+	respResult := new(ListFileAdminResponse)
+	req := new(ListFileAdminRequest)
 	defer func() {
 		JSONL(c, 200, req, resp)
 	}()
@@ -236,7 +239,7 @@ func ListFileAdmin(c *gin.Context) {
 	// validate
 	err := validate.Struct(req)
 	if err != nil {
-		Log.Errorf("ListUser err: %s", err.Error())
+		Log.Errorf("ListFileAdmin err: %s", err.Error())
 		resp.Error = Error(ParasError, err.Error())
 		return
 	}
@@ -246,41 +249,46 @@ func ListFileAdmin(c *gin.Context) {
 	defer session.Close()
 
 	// group list where prepare
-	session.Table(new(model.User)).Where("1=1")
+	session.Table(new(model.File)).Where("1=1")
 
 	// query prepare
 	if req.Id != 0 {
 		session.And("id=?", req.Id)
 	}
-	if req.Name != "" {
-		session.And("name=?", req.Name)
+	if req.Md5 != "" {
+		session.And("md5=?", req.Md5)
 	}
 
 	if req.Status != -1 {
 		session.And("status=?", req.Status)
 	}
 
-	if req.Gender != -1 {
-		session.And("gender=?", req.Gender)
+	if req.Url != "" {
+		session.And("url=?", req.Url)
 	}
 
-	if req.QQ != "" {
-		session.And("q_q=?", req.QQ)
+	if req.IsPicture != -1 {
+		session.And("is_picture=?", req.IsPicture)
 	}
 
-	if req.Email != "" {
-		session.And("email=?", req.Email)
+	if req.Type != "" {
+		session.And("type=?", req.Type)
 	}
 
-	if req.Github != "" {
-		session.And("github=?", req.Github)
+	if req.StoreType != -1 {
+		session.And("store_type=?", req.StoreType)
 	}
 
-	if req.WeiBo != "" {
-		session.And("wei_bo=?", req.WeiBo)
+	if req.Tag != "" {
+		session.And("tag=?", req.Tag)
 	}
-	if req.WeChat != "" {
-		session.And("we_chat=?", req.WeChat)
+
+	if userId != 0 {
+		session.And("user_id=?", userId)
+	} else {
+		if req.UserId != 0 {
+			session.And("user_id=?", req.UserId)
+		}
 	}
 
 	if req.CreateTimeBegin > 0 {
@@ -299,48 +307,147 @@ func ListFileAdmin(c *gin.Context) {
 		session.And("update_time<?", req.UpdateTimeEnd)
 	}
 
+	if req.SizeBegin > 0 {
+		session.And("size>=?", req.SizeBegin)
+	}
+
+	if req.SizeEnd > 0 {
+		session.And("size<?", req.SizeEnd)
+	}
+
 	// count num
 	countSession := session.Clone()
 	defer countSession.Close()
 	total, err := countSession.Count()
 	if err != nil {
 		// db err
-		Log.Errorf("ListUser err:%s", err.Error())
+		Log.Errorf("ListFileAdmin err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
 	}
 
 	// if count>0 start list
-	users := make([]model.User, 0)
+	files := make([]model.File, 0)
 	p := &req.PageHelp
 	if total == 0 {
 	} else {
 		// sql build
-		p.build(session, req.Sort, model.UserSortName)
+		p.build(session, req.Sort, model.FileSortName)
 		// do query
-		err = session.Find(&users)
+		err = session.Find(&files)
 		if err != nil {
 			// db err
-			Log.Errorf("ListUser err:%s", err.Error())
+			Log.Errorf("ListFileAdmin err:%s", err.Error())
 			resp.Error = Error(DBError, err.Error())
 			return
 		}
 	}
 
 	// result
-	respResult.Users = users
+	respResult.Files = files
 	p.Pages = int(math.Ceil(float64(total) / float64(p.Limit)))
 	respResult.PageHelp = *p
 	resp.Data = respResult
 	resp.Flag = true
 }
 
-func ListFile(c *gin.Context) {
+func ListFileAdmin(c *gin.Context) {
+	ListFileAdminHelper(c, 0)
+}
 
+func ListFile(c *gin.Context) {
+	resp := new(Resp)
+	uu, err := GetUserSession(c)
+	if err != nil {
+		Log.Errorf("ListFile err: %s", err.Error())
+		resp.Error = Error(I500, "")
+		JSONL(c, 200, nil, resp)
+		return
+	}
+
+	if uu == nil {
+		Log.Errorf("ListFile err: %s", "500")
+		resp.Error = Error(I500, "")
+		JSONL(c, 200, nil, resp)
+		return
+	}
+
+	uid := uu.Id
+	ListFileAdminHelper(c, uid)
+}
+
+type UpdateFileRequest struct {
+	Id       int    `json:"id"`
+	Tag      string `json:"tag"`
+	Hide     int    `json:"status" validate:"oneof=0 1"`
+	Describe string `json:"describe"`
+}
+
+func UpdateFileAdminHelper(c *gin.Context, userId int) {
+	resp := new(Resp)
+	req := new(UpdateFileRequest)
+	defer func() {
+		JSONL(c, 200, req, resp)
+	}()
+
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	// validate
+	err := validate.Struct(req)
+	if err != nil {
+		Log.Errorf("UpdateFileAdmin err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
+		return
+	}
+
+	if req.Id == 0 {
+		Log.Errorf("UpdateFileAdmin err: %s", "id empty")
+		resp.Error = Error(ParasError, "id empty")
+		return
+	}
+
+	f := new(model.File)
+	f.Id = req.Id
+	f.Tag = req.Tag
+	f.Describe = req.Describe
+	f.UserId = userId
+
+	ok, err := f.Update(req.Hide == 1)
+	if err != nil {
+		// db err
+		Log.Errorf("UpdateFileAdmin err:%s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	resp.Data = ok
+	resp.Flag = true
 }
 
 func UpdateFileAdmin(c *gin.Context) {
-}
+	UpdateFileAdminHelper(c, 0)
 
+}
 func UpdateFile(c *gin.Context) {
+	resp := new(Resp)
+	uu, err := GetUserSession(c)
+	if err != nil {
+		Log.Errorf("UpdateFile err: %s", err.Error())
+		resp.Error = Error(I500, "")
+		JSONL(c, 200, nil, resp)
+		return
+	}
+
+	if uu == nil {
+		Log.Errorf("UpdateFile err: %s", "500")
+		resp.Error = Error(I500, "")
+		JSONL(c, 200, nil, resp)
+		return
+	}
+
+	uid := uu.Id
+	UpdateFileAdminHelper(c, uid)
 }

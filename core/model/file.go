@@ -29,7 +29,7 @@ type File struct {
 	Ad string `json:"ad,omitempty"`
 }
 
-var FileSortName = []string{"=id", "-create_time", "-update_time", "-user_id", "=type", "=tag", "=store_type", "=status"}
+var FileSortName = []string{"=id", "-create_time", "-update_time", "=user_id", "=type", "=tag", "=store_type", "=status", "=size"}
 
 func (f *File) Exist() (bool, error) {
 	if f.Id == 0 && f.Url == "" && f.Md5 == "" {
@@ -42,4 +42,36 @@ func (f *File) Exist() (bool, error) {
 	}
 
 	return false, err
+}
+
+func (f *File) Update(hide bool) (bool, error) {
+	if f.Id == 0 {
+		return false, errors.New("where is empty")
+	}
+
+	s := config.FafaRdb.Client.Id(f.Id)
+	if hide {
+		f.Status = 0
+		s.Cols("status")
+	}
+
+	if f.UserId != 0 {
+		s.Where("user_id=?", f.UserId)
+		f.UserId = 0
+	}
+
+	if f.Describe != "" {
+		s.Cols("describe")
+	}
+
+	if f.Tag != "" {
+		s.Cols("tag")
+	}
+
+	_, err := s.Update(f)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
