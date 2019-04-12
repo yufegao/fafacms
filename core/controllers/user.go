@@ -78,7 +78,7 @@ func RegisterUser(c *gin.Context) {
 
 	// if image not empty
 	if req.ImagePath != "" {
-		p := new(model.Picture)
+		p := new(model.File)
 		p.Url = req.ImagePath
 		ok, err := p.Exist()
 		if err != nil {
@@ -426,7 +426,7 @@ func UpdateUser(c *gin.Context) {
 	}
 
 	if uu == nil {
-		flog.Log.Errorf("UpdateUser err: %s", err.Error())
+		flog.Log.Errorf("UpdateUser err: %s", "500")
 		resp.Error = Error(I500, "")
 		return
 	}
@@ -436,7 +436,7 @@ func UpdateUser(c *gin.Context) {
 
 	// if image not empty
 	if req.ImagePath != "" {
-		p := new(model.Picture)
+		p := new(model.File)
 		p.Url = req.ImagePath
 		ok, err := p.Exist()
 		if err != nil {

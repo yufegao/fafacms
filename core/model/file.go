@@ -5,7 +5,7 @@ import (
 	"github.com/hunterhug/fafacms/core/config"
 )
 
-type Picture struct {
+type File struct {
 	Id             int    `json:"id" xorm:"bigint pk autoincr"`
 	Type           string `json:"type" xorm:"index"`
 	Tag            string `json:"tag" xorm:"index"`
@@ -19,6 +19,8 @@ type Picture struct {
 	UpdateTime     int    `json:"update_time,omitempty"`
 	Status         int    `json:"status" xorm:"not null comment('0 normal，1 hidebutcanuse') TINYINT(1)"`
 	StoreType      int    `json:"store_type" xorm:"not null comment('0 local，1 oss') TINYINT(1)"`
+	IsPicture      int    `json:"is_picture"`
+	Size           int64  `json:"size"`
 
 	// Future...
 	Aa string `json:"aa,omitempty"`
@@ -27,11 +29,13 @@ type Picture struct {
 	Ad string `json:"ad,omitempty"`
 }
 
-func (p *Picture) Exist() (bool, error) {
-	if p.Id == 0 && p.Url == "" && p.Md5 == "" {
+var FileSortName = []string{"=id", "-create_time", "-update_time", "-user_id", "=type", "=tag", "=store_type", "=status"}
+
+func (f *File) Exist() (bool, error) {
+	if f.Id == 0 && f.Url == "" && f.Md5 == "" {
 		return false, errors.New("where is empty")
 	}
-	c, err := config.FafaRdb.Client.Count(p)
+	c, err := config.FafaRdb.Client.Count(f)
 
 	if c >= 1 {
 		return true, nil

@@ -60,7 +60,7 @@ func CreateGroup(c *gin.Context) {
 	if req.ImagePath != "" {
 		// picture table exist
 		g.ImagePath = req.ImagePath
-		p := new(model.Picture)
+		p := new(model.File)
 		p.Url = g.ImagePath
 		ok, err = p.Exist()
 		if err != nil {
@@ -140,7 +140,7 @@ func UpdateGroup(c *gin.Context) {
 	// if image not empty
 	if req.ImagePath != "" {
 		g.ImagePath = req.ImagePath
-		p := new(model.Picture)
+		p := new(model.File)
 		p.Url = g.ImagePath
 		// find picture table
 		ok, err := p.Exist()

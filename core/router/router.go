@@ -45,9 +45,15 @@ var (
 		"/user/info":   {"User Info Self", controllers.TakeUser, GP, false},
 		"/user/update": {"User Update Self", controllers.UpdateUser, GP, false},
 
-
 		"/resource/list":   {"Resource List All", controllers.ListResource, GP, true},
 		"/resource/assign": {"Resource Assign Group", controllers.AssignGroupAndResource, GP, true},
+
+
+		"/file/upload":       {"File Upload", controllers.UploadFile, POST, false},
+		"/file/list":         {"File List Self", controllers.ListFile, POST, false},
+		"/file/update":       {"File Update Self", controllers.UpdateFile, POST, false},
+		"/file/admin/list":   {"File List All", controllers.ListFileAdmin, POST, true},
+		"/file/admin/update": {"File Update All", controllers.UpdateFileAdmin, POST, true},
 
 		// here important
 		//"/node/create": {controllers.CreateNode, POST},
@@ -67,12 +73,6 @@ var (
 		//"/comment/delete": {controllers.DeleteComment, POST},
 		//"/comment/take":   {controllers.TakeComment, GP},
 		//"/comment/list":   {controllers.ListComment, GP},
-	}
-
-	// /b/upload
-	// need login group auth
-	BaseRouter = map[string]HttpHandle{
-		"/upload": {"File Upload", controllers.Upload, POST, false},
 	}
 )
 

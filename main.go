@@ -66,7 +66,7 @@ func main() {
 			model.ContentNode{},
 			model.Comment{},
 			model.Log{},
-			model.Picture{},
+			model.File{},
 		})
 	}
 
@@ -75,6 +75,7 @@ func main() {
 
 	// Storage static API
 	engine.Static("/storage", config.FafaConfig.DefaultConfig.StoragePath)
+	engine.Static("/storage_x", config.FafaConfig.DefaultConfig.StoragePath+"_x")
 
 	// Web welcome home!
 	router.SetRouter(engine)
@@ -83,13 +84,8 @@ func main() {
 	v1 := engine.Group("/v1")
 	v1.Use(controllers.AuthFilter)
 
-	// Base API no version
-	base := engine.Group("/b")
-	base.Use(controllers.AuthFilter)
-
 	// Router Set
 	router.SetAPIRouter(v1, router.V1Router)
-	router.SetAPIRouter(base, router.BaseRouter)
 
 	flog.Log.Noticef("Server run in %s", config.FafaConfig.DefaultConfig.WebPort)
 	err = engine.Run(config.FafaConfig.DefaultConfig.WebPort)

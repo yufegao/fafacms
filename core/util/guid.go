@@ -1,9 +1,11 @@
 package util
 
 import (
-	"strings"
-
+	"crypto/md5"
+	"errors"
+	"fmt"
 	"github.com/satori/go.uuid"
+	"strings"
 )
 
 // GetGUID 生成GUID
@@ -13,4 +15,17 @@ func GetGUID() (valueGUID string) {
 	objidStr = strings.Replace(objidStr, "-", "", -1)
 	valueGUID = objidStr
 	return valueGUID
+}
+
+func Md5(raw []byte) (string, error) {
+	h := md5.New()
+	num, err := h.Write(raw)
+	if err != nil {
+		return "", err
+	}
+	if num == 0 {
+		return "", errors.New("num 0")
+	}
+	data := h.Sum([]byte("hunterhug"))
+	return fmt.Sprintf("%x", data), nil
 }
