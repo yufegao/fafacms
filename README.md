@@ -83,32 +83,32 @@ fafacms -config=./config.json
 ```
 {
   "DefaultConfig": {
-    "WebPort": ":8080", 				    # 程序运行端口(可改)
-    "StoragePath": "./data/storage",  		# 本地文件保存地址(可改)
+    "WebPort": ":8080",               # 程序运行端口(可改)
+    "StoragePath": "./data/storage",  # 本地文件保存地址(可改)
     "LogPath": "./data/log/fafacms_log.log", 	# 日志保存地址(可改)
     "Debug": true   					        # 打开调试(默认保持)
   },
   "DbConfig": {
-    "DriverName": "mysql",  			# 关系型数据库驱动(默认保持)
+    "DriverName": "mysql",  	# 关系型数据库驱动(默认保持)
     "Name": "fafa", 					# 关系型数据库名字(可改)
-    "Host": "127.0.0.1", 				# 关系型数据库地址(可改)
+    "Host": "127.0.0.1", 			# 关系型数据库地址(可改)
     "User": "root", 					# 关系型数据库用户(可改)
-    "Pass": "123456789", 				# 关系型数据库密码(可改)
+    "Pass": "123456789", 			# 关系型数据库密码(可改)
     "Port": "3306", 					# 关系型数据库端口(可改)
-    "Prefix": "fafa_", 					# 关系型数据库表前缀(可改)
-    "MaxIdleConns": 20, 				# 关系型数据库池闲置连接数(默认保持)
-    "MaxOpenConns": 20, 				# 关系型数据库池打开连接数(默认保持)
-    "DebugToFile": true, 				# SQL调试是否输出到文件(默认保持)
+    "Prefix": "fafa_", 				# 关系型数据库表前缀(可改)
+    "MaxIdleConns": 20, 			# 关系型数据库池闲置连接数(默认保持)
+    "MaxOpenConns": 20, 			# 关系型数据库池打开连接数(默认保持)
+    "DebugToFile": true, 			# SQL调试是否输出到文件(默认保持)
     "DebugToFileName": "./data/log/fafacms_db.log", # SQL调试输出文件路径(默认保持)
     "Debug": true 					# SQL调试(默认保持)
   },
   "SessionConfig": {
-    "RedisHost": "127.0.0.1:6379", 			# Redis地址(可改)
+    "RedisHost": "127.0.0.1:6379", 		# Redis地址(可改)
     "RedisMaxIdle": 64, 				# (默认保持)
     "RedisMaxActive": 0, 				# (默认保持)
-    "RedisIdleTimeout": 120, 				# (默认保持)
-    "RedisDB": 0, 					# Redis默认连接数据库(默认保持)
-    "RedisPass": "123456789"   				# Redis密码(可为空,可改)
+    "RedisIdleTimeout": 120, 		# (默认保持)
+    "RedisDB": 0,               # Redis默认连接数据库(默认保持)
+    "RedisPass": "123456789"   	# Redis密码(可为空,可改)
   }
 }
 ```
@@ -122,11 +122,9 @@ chomd 777 build.sh
 ./build
 
 sudo docker exec -it  GoSpider-mysqldb mysql -uroot -p123456789
-
 > create database fafa default character set utf8mb4 collate utf8mb4_unicode_ci;
 
 sudo docker exec -it GoSpider-redis redis-cli -a 123456789
-
 > KEYS *
 ```
 
@@ -142,19 +140,19 @@ sudo ./docker_build.sh
 先新建数据卷, 并且移动配置并修改:
 
 ```
-mkdir $HOME/fafacms
-cp docker_config.json $HOME/fafacms/config.json
+mkdir /root/fafacms
+cp docker_config.json /root/fafacms/config.json
 ```
 
 启动容器:
 
 ```
-sudo docker run -d --name fafacms --net=host -v $HOME/fafacms:/root/fafacms --env RUN_OPTS="-config=/root/fafacms/config.json" hunterhug/fafacms
+sudo docker run -d --name fafacms -p 8080:8080 -v /root/fafacms:/root/fafacms --env RUN_OPTS="-config=/root/fafacms/config.json" hunterhug/fafacms
 
 sudo docker logs -f --tail 10 fafacms
 ```
 
-其中`$HOME/fafacms`是挂载的持久化卷, 配置`config.json`放置在该文件夹下.
+其中`/root/fafacms`是挂载的持久化卷, 配置`config.json`放置在该文件夹下.
 
 ## 前端网站
 

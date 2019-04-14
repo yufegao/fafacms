@@ -105,11 +105,9 @@ chomd 777 build.sh
 ./build
 
 sudo docker exec -it  GoSpider-mysqldb mysql -uroot -p123456789
-
 > create database fafa default character set utf8mb4 collate utf8mb4_unicode_ci;
 
 sudo docker exec -it GoSpider-redis redis-cli -a 123456789
-
 > KEYS *
 ```
 
@@ -125,19 +123,19 @@ sudo ./docker_build.sh
 Make Dir and add config file:
 
 ```
-mkdir $HOME/fafacms
-cp docker_config.json $HOME/fafacms/config.json
+mkdir /root/fafacms
+cp docker_config.json /root/fafacms/config.json
 ```
 
 Initialize container:
 
 ```
-sudo docker run -d --name fafacms --net=host -p 8080:8080 -v $HOME/fafacms:/root/fafacms --env RUN_OPTS="-config=/root/fafacms/config.json" hunterhug/fafacms
+sudo docker run -d --name fafacms -p 8080:8080 -v /root/fafacms:/root/fafacms --env RUN_OPTS="-config=/root/fafacms/config.json" hunterhug/fafacms
 
 sudo docker logs -f --tail 10 fafacms
 ```
 
-`$HOME/fafacms` is persistent volume, please put `config.json` under the folder.
+`/root/fafacms` is persistent volume, please put `config.json` under the folder.
 
 ## Frontend Web
 
