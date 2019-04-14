@@ -21,6 +21,7 @@ type RegisterUserRequest struct {
 	Github    string `json:"github" validate:"omitempty,url"`
 	QQ        string `json:"qq" validate:"omitempty,numeric,gt=6,lt=12"`
 	Password  string `json:"password" validate:"alphanumunicode,gt=5,lt=17"`
+	RePassword  string `json:"repassword" validate:"eqfield=Password"`
 	Gender    int    `json:"gender" validate:"oneof=0 1 2"`
 	Describe  string `json:"describe" validate:"omitempty,lt=200"`
 	ImagePath string `json:"image_path" validate:"omitempty,lt=100"`
@@ -332,6 +333,7 @@ type ChangePasswordRequest struct {
 	Email    string `json:"email" validate:"required,email"`
 	Code     string `json:"code" validate:"required,lt=9,gt=5"`
 	Password string `json:"password" validate:"alphanumunicode,gt=5,lt=17"`
+	RePassword  string `json:"repassword" validate:"eqfield=Password"`
 }
 
 func ChangePasswordOfUser(c *gin.Context) {

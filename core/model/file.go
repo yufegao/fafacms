@@ -49,23 +49,16 @@ func (f *File) Update(hide bool) (bool, error) {
 		return false, errors.New("where is empty")
 	}
 
-	s := config.FafaRdb.Client.Id(f.Id)
+	s := config.FafaRdb.Client
+	s.Where("id=?", f.Id)
 	if hide {
 		f.Status = 0
 		s.Cols("status")
 	}
 
 	if f.UserId != 0 {
-		s.Where("user_id=?", f.UserId)
+		s.And("user_id=?", f.UserId)
 		f.UserId = 0
-	}
-
-	if f.Describe != "" {
-		s.Cols("describe")
-	}
-
-	if f.Tag != "" {
-		s.Cols("tag")
 	}
 
 	_, err := s.Update(f)
