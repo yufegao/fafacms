@@ -86,3 +86,30 @@ func (n *ContentNode) InsertOne() error {
 	_, err := config.FafaRdb.Insert(n)
 	return err
 }
+
+func (n *ContentNode) Get() (bool, error) {
+	if n.Id == 0 && n.Seo == "" {
+		return false, errors.New("where is empty")
+	}
+	return config.FafaRdb.Client.Get(n)
+}
+
+func (n *ContentNode) Update() error {
+	if n.Id == 0 {
+		return errors.New("where is empty")
+	}
+
+	n.UpdateTime = time.Now().Unix()
+
+	_, err := config.FafaRdb.Client.Where("id=?", n.Id).Cols("seo", "level", "parent_node_id", "name", "describe", "update_time", "status", "image_path").Update(n)
+	return err
+}
+
+func (n *ContentNode) Delete() error {
+	if n.Id == 0 {
+		return errors.New("where is empty")
+	}
+
+	_, err := config.FafaRdb.Client.Delete(n)
+	return err
+}
