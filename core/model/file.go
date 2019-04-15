@@ -29,7 +29,7 @@ type File struct {
 	Ad string `json:"ad,omitempty"`
 }
 
-var FileSortName = []string{"=id", "-create_time", "-update_time", "=user_id", "=type", "=tag", "=store_type", "=status", "=size"}
+var FileSortName = []string{"=id", "-update_time", "-create_time", "=user_id", "=type", "=tag", "=store_type", "=status", "=size"}
 
 func (f *File) Exist() (bool, error) {
 	if f.Id == 0 && f.Url == "" && f.Md5 == "" {

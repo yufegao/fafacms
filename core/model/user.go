@@ -20,10 +20,10 @@ type User struct {
 	Github          string `json:"github" xorm:"TEXT"`
 	QQ              string `json:"qq" xorm:"varchar(100)"`
 	Password        string `json:"password,omitempty" xorm:"varchar(100)"`
-	Gender          int    `json:"gender" xorm:"not null comment('0 unknow, 1 boy，2 girl') TINYINT(1)"`
+	Gender          int    `json:"gender" xorm:"not null comment('0 unknow,1 boy,2 girl') TINYINT(1)"`
 	Describe        string `json:"describe" xorm:"TEXT"`
 	HeadPhoto       string `json:"head_photo" xorm:"varchar(1000)"`
-	HomeType        int    `json:"home_type" xorm:"not null comment('0 normal，2...') TINYINT(1)"` // looks what home page
+	HomeType        int    `json:"home_type" xorm:"not null comment('0 normal,1...') TINYINT(1)"` // looks what home page
 	CreateTime      int64  `json:"create_time"`
 	UpdateTime      int64  `json:"update_time,omitempty"`
 	DeleteTime      int64  `json:"delete_time,omitempty"`

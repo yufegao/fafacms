@@ -53,6 +53,8 @@ type ContentNode struct {
 	Ad string `json:"ad,omitempty"`
 }
 
+var ContentNodeSortName = []string{"=id", "-update_time", "-create_time", "+status", "=seo"}
+
 func (n *ContentNode) CheckSeoValid() (bool, error) {
 	if n.UserId == 0 || n.Seo == "" {
 		return false, errors.New("where is empty")
@@ -70,7 +72,7 @@ func (n *ContentNode) CheckParentValid() (bool, error) {
 	if n.UserId == 0 || n.ParentNodeId == 0 {
 		return false, errors.New("where is empty")
 	}
-	c, err := config.FafaRdb.Client.Table(n).Where("user_id=?", n.UserId).And("id=?", n.ParentNodeId).And("level=?", 0).Count()
+	c, err := config.FafaRdb.Client.Table(n).Where("type=?", n.Type).Where("user_id=?", n.UserId).And("id=?", n.ParentNodeId).And("level=?", 0).Count()
 
 	if c >= 1 {
 		return true, nil
