@@ -10,8 +10,6 @@ import (
 	"time"
 )
 
-var validate = validator.New()
-
 type CreateGroupRequest struct {
 	Name      string `json:"name" validate:"required,gt=1,lt=100"`
 	Describe  string `json:"describe" validate:"lt=100"`
@@ -31,6 +29,7 @@ func CreateGroup(c *gin.Context) {
 	}
 
 	// validate
+	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
 		flog.Log.Errorf("CreateGroup err: %s", err.Error())
@@ -113,6 +112,7 @@ func UpdateGroup(c *gin.Context) {
 	}
 
 	// validate
+	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
 		flog.Log.Errorf("UpdateGroup err: %s", err.Error())
@@ -183,9 +183,7 @@ func UpdateGroup(c *gin.Context) {
 		g.Describe = req.Describe
 	}
 
-	// update db
-	g.UpdateTime = time.Now().Unix()
-	_, err = config.FafaRdb.Update(g)
+	err = g.Update()
 	if err != nil {
 		// db err
 		flog.Log.Errorf("UpdateGroup err:%s", err.Error())
@@ -215,6 +213,7 @@ func DeleteGroup(c *gin.Context) {
 	}
 
 	// validate
+	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
 		flog.Log.Errorf("DeleteGroup err: %s", err.Error())
@@ -300,6 +299,7 @@ func TakeGroup(c *gin.Context) {
 	}
 
 	// validate
+	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
 		flog.Log.Errorf("TakeGroup err: %s", err.Error())
@@ -357,6 +357,7 @@ func ListGroup(c *gin.Context) {
 	}
 
 	// validate
+	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
 		flog.Log.Errorf("ListGroup err: %s", err.Error())

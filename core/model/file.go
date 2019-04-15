@@ -35,7 +35,21 @@ func (f *File) Exist() (bool, error) {
 	if f.Id == 0 && f.Url == "" && f.Md5 == "" {
 		return false, errors.New("where is empty")
 	}
-	c, err := config.FafaRdb.Client.Count(f)
+	s := config.FafaRdb.Client.Table(f)
+	s.Where("1=1")
+
+	if f.Id != 0 {
+		s.And("id=?", f.Id)
+	}
+	if f.Url != "" {
+		s.And("url=?", f.Url)
+	}
+
+	if f.Md5 != "" {
+		s.And("md5=?", f.Md5)
+	}
+
+	c, err := s.Count(f)
 
 	if c >= 1 {
 		return true, nil
@@ -49,7 +63,7 @@ func (f *File) Update(hide bool) (bool, error) {
 		return false, errors.New("where is empty")
 	}
 
-	s := config.FafaRdb.Client
+	s := config.FafaRdb.Client.NewSession()
 	s.Where("id=?", f.Id)
 	if hide {
 		f.Status = 0
@@ -58,9 +72,15 @@ func (f *File) Update(hide bool) (bool, error) {
 
 	if f.UserId != 0 {
 		s.And("user_id=?", f.UserId)
-		f.UserId = 0
 	}
 
+	if f.Describe != "" {
+		s.Cols("describe")
+	}
+
+	if f.Tag != "" {
+		s.Cols("tag")
+	}
 	_, err := s.Update(f)
 	if err != nil {
 		return false, err

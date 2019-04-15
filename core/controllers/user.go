@@ -3,6 +3,7 @@ package controllers
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator"
 	"github.com/hunterhug/fafacms/core/config"
 	"github.com/hunterhug/fafacms/core/flog"
 	"github.com/hunterhug/fafacms/core/model"
@@ -13,18 +14,18 @@ import (
 )
 
 type RegisterUserRequest struct {
-	Name      string `json:"name" validate:"required,alphanumunicode,gt=1,lt=50"`
-	NickName  string `json:"nick_name" validate:"required,gt=1,lt=50"`
-	Email     string `json:"email" validate:"required,email"`
-	WeChat    string `json:"wechat" validate:"omitempty,alphanumunicode,gt=3,lt=30"`
-	WeiBo     string `json:"weibo" validate:"omitempty,url"`
-	Github    string `json:"github" validate:"omitempty,url"`
-	QQ        string `json:"qq" validate:"omitempty,numeric,gt=6,lt=12"`
-	Password  string `json:"password" validate:"alphanumunicode,gt=5,lt=17"`
-	RePassword  string `json:"repassword" validate:"eqfield=Password"`
-	Gender    int    `json:"gender" validate:"oneof=0 1 2"`
-	Describe  string `json:"describe" validate:"omitempty,lt=200"`
-	ImagePath string `json:"image_path" validate:"omitempty,lt=100"`
+	Name       string `json:"name" validate:"required,alphanumunicode,gt=1,lt=50"`
+	NickName   string `json:"nick_name" validate:"required,gt=1,lt=50"`
+	Email      string `json:"email" validate:"required,email"`
+	WeChat     string `json:"wechat" validate:"omitempty,alphanumunicode,gt=3,lt=30"`
+	WeiBo      string `json:"weibo" validate:"omitempty,url"`
+	Github     string `json:"github" validate:"omitempty,url"`
+	QQ         string `json:"qq" validate:"omitempty,numeric,gt=6,lt=12"`
+	Password   string `json:"password" validate:"alphanumunicode,gt=5,lt=17"`
+	RePassword string `json:"repassword" validate:"eqfield=Password"`
+	Gender     int    `json:"gender" validate:"oneof=0 1 2"`
+	Describe   string `json:"describe" validate:"omitempty,lt=200"`
+	ImagePath  string `json:"image_path" validate:"omitempty,lt=100"`
 }
 
 func RegisterUser(c *gin.Context) {
@@ -40,6 +41,7 @@ func RegisterUser(c *gin.Context) {
 	}
 
 	// validate
+	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
 		flog.Log.Errorf("RegisterUser err: %s", err.Error())
@@ -100,7 +102,6 @@ func RegisterUser(c *gin.Context) {
 	}
 
 	u.ActivateMd5 = util.Md5(u.Email)
-	u.CreateTime = time.Now().Unix()
 	u.Describe = req.Describe
 	u.ActivateExpired = time.Now().Add(48 * time.Hour).Unix()
 	u.NickName = req.NickName
@@ -278,6 +279,7 @@ func ForgetPasswordOfUser(c *gin.Context) {
 	}
 
 	// validate
+	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
 		flog.Log.Errorf("RegisterUser err: %s", err.Error())
@@ -330,10 +332,10 @@ func ForgetPasswordOfUser(c *gin.Context) {
 }
 
 type ChangePasswordRequest struct {
-	Email    string `json:"email" validate:"required,email"`
-	Code     string `json:"code" validate:"required,lt=9,gt=5"`
-	Password string `json:"password" validate:"alphanumunicode,gt=5,lt=17"`
-	RePassword  string `json:"repassword" validate:"eqfield=Password"`
+	Email      string `json:"email" validate:"required,email"`
+	Code       string `json:"code" validate:"required,lt=9,gt=5"`
+	Password   string `json:"password" validate:"alphanumunicode,gt=5,lt=17"`
+	RePassword string `json:"repassword" validate:"eqfield=Password"`
 }
 
 func ChangePasswordOfUser(c *gin.Context) {
@@ -349,6 +351,7 @@ func ChangePasswordOfUser(c *gin.Context) {
 	}
 
 	// validate
+	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
 		flog.Log.Errorf("ChangePassword err: %s", err.Error())
@@ -413,6 +416,7 @@ func UpdateUser(c *gin.Context) {
 	}
 
 	// validate
+	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
 		flog.Log.Errorf("UpdateUser err: %s", err.Error())
@@ -423,12 +427,6 @@ func UpdateUser(c *gin.Context) {
 	uu, err := GetUserSession(c)
 	if err != nil {
 		flog.Log.Errorf("UpdateUser err: %s", err.Error())
-		resp.Error = Error(I500, "")
-		return
-	}
-
-	if uu == nil {
-		flog.Log.Errorf("UpdateUser err: %s", "500")
 		resp.Error = Error(I500, "")
 		return
 	}
@@ -534,6 +532,7 @@ func ListUser(c *gin.Context) {
 	}
 
 	// validate
+	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
 		flog.Log.Errorf("ListUser err: %s", err.Error())

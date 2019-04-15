@@ -3,6 +3,7 @@ package controllers
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator"
 	"github.com/hunterhug/fafacms/core/config"
 	"github.com/hunterhug/fafacms/core/flog"
 	"github.com/hunterhug/fafacms/core/model"
@@ -39,6 +40,7 @@ func ListResource(c *gin.Context) {
 	}
 
 	// validate
+	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
 		flog.Log.Errorf("ListResource err: %s", err.Error())

@@ -43,10 +43,9 @@ type User struct {
 
 var UserSortName = []string{"=id", "=name", "-update_time", "-create_time", "-gender"}
 
-func (m *User) Get(userId int) (err error) {
+func (u *User) Get() (err error) {
 	var exist bool
-	m.Id = userId
-	exist, err = config.FafaRdb.Client.Get(m)
+	exist, err = config.FafaRdb.Client.Get(u)
 	if err != nil {
 		return
 	}
@@ -56,11 +55,11 @@ func (m *User) Get(userId int) (err error) {
 	return
 }
 
-func (m *User) Exist() (bool, error) {
-	if m.Id == 0 && m.Name == "" && m.GroupId == 0 {
+func (u *User) Exist() (bool, error) {
+	if u.Id == 0 && u.Name == "" && u.GroupId == 0 {
 		return false, errors.New("where is empty")
 	}
-	c, err := config.FafaRdb.Client.Count(m)
+	c, err := config.FafaRdb.Client.Count(u)
 
 	if c >= 1 {
 		return true, nil
@@ -69,11 +68,11 @@ func (m *User) Exist() (bool, error) {
 	return false, err
 }
 
-func (m *User) IsNameRepeat() (bool, error) {
-	if m.Name == "" {
+func (u *User) IsNameRepeat() (bool, error) {
+	if u.Name == "" {
 		return false, errors.New("where is empty")
 	}
-	c, err := config.FafaRdb.Client.Table(m).Where("name=?", m.Name).Count()
+	c, err := config.FafaRdb.Client.Table(u).Where("name=?", u.Name).Count()
 
 	if c >= 1 {
 		return true, nil
@@ -82,11 +81,11 @@ func (m *User) IsNameRepeat() (bool, error) {
 	return false, err
 }
 
-func (m *User) IsEmailRepeat() (bool, error) {
-	if m.Email == "" {
+func (u *User) IsEmailRepeat() (bool, error) {
+	if u.Email == "" {
 		return false, errors.New("where is empty")
 	}
-	c, err := config.FafaRdb.Client.Table(m).Where("email=?", m.Email).Count()
+	c, err := config.FafaRdb.Client.Table(u).Where("email=?", u.Email).Count()
 
 	if c >= 1 {
 		return true, nil
@@ -95,75 +94,76 @@ func (m *User) IsEmailRepeat() (bool, error) {
 	return false, err
 }
 
-func (m *User) InsertOne() error {
-	_, err := config.FafaRdb.Insert(m)
+func (u *User) InsertOne() error {
+	u.CreateTime = time.Now().Unix()
+	_, err := config.FafaRdb.Insert(u)
 	return err
 }
 
-func (m *User) IsActivateCodeExist() (bool, error) {
-	if m.ActivateMd5 == "" {
+func (u *User) IsActivateCodeExist() (bool, error) {
+	if u.ActivateMd5 == "" {
 		return false, errors.New("where is empty")
 	}
-	c, err := config.FafaRdb.Client.Get(m)
+	c, err := config.FafaRdb.Client.Get(u)
 	return c, err
 }
 
-func (m *User) UpdateStatus() error {
-	if m.Id == 0 {
+func (u *User) UpdateStatus() error {
+	if u.Id == 0 {
 		return errors.New("where is empty")
 	}
-	m.UpdateTime = time.Now().Unix()
-	_, err := config.FafaRdb.Client.Where("id=?", m.Id).Cols("status", "update_time").Update(m)
+	u.UpdateTime = time.Now().Unix()
+	_, err := config.FafaRdb.Client.Where("id=?", u.Id).Cols("status", "update_time").Update(u)
 	return err
 }
 
-func (m *User) UpdateActivateCode() error {
-	if m.Id == 0 {
+func (u *User) UpdateActivateCode() error {
+	if u.Id == 0 {
 		return errors.New("where is empty")
 	}
-	m.UpdateTime = time.Now().Unix()
-	m.ActivateMd5 = util.GetGUID()
-	m.ActivateExpired = time.Now().Add(48 * time.Hour).Unix()
-	_, err := config.FafaRdb.Client.Where("id=?", m.Id).Cols("activate_md5", "activate_expired", "update_time").Update(m)
+	u.UpdateTime = time.Now().Unix()
+	u.ActivateMd5 = util.GetGUID()
+	u.ActivateExpired = time.Now().Add(48 * time.Hour).Unix()
+	_, err := config.FafaRdb.Client.Where("id=?", u.Id).Cols("activate_md5", "activate_expired", "update_time").Update(u)
 	return err
 }
 
-func (m *User) GetUserByEmail() (bool, error) {
-	if m.Email == "" {
+func (u *User) GetUserByEmail() (bool, error) {
+	if u.Email == "" {
 		return false, errors.New("where is empty")
 	}
-	c, err := config.FafaRdb.Client.Where("email=?", m.Email).Get(m)
+	c, err := config.FafaRdb.Client.Get(u)
 	return c, err
 }
 
-func (m *User) UpdateCode() error {
-	if m.Id == 0 {
+func (u *User) UpdateCode() error {
+	if u.Id == 0 {
 		return errors.New("where is empty")
 	}
-	m.UpdateTime = time.Now().Unix()
-	m.Code = util.GetGUID()[0:6]
-	m.CodeExpired = time.Now().Unix() + 60
-	_, err := config.FafaRdb.Client.Where("id=?", m.Id).Cols("code", "code_expired", "update_time").Update(m)
+	u.UpdateTime = time.Now().Unix()
+	u.Code = util.GetGUID()[0:6]
+	u.CodeExpired = time.Now().Unix() + 60
+	_, err := config.FafaRdb.Client.Where("id=?", u.Id).Cols("code", "code_expired", "update_time").Update(u)
 	return err
 }
 
-func (m *User) UpdatePassword() error {
-	if m.Id == 0 {
+func (u *User) UpdatePassword() error {
+	if u.Id == 0 {
 		return errors.New("where is empty")
 	}
-	m.UpdateTime = time.Now().Unix()
-	m.Code = ""
-	m.CodeExpired = 0
-	_, err := config.FafaRdb.Client.Where("id=?", m.Id).Cols("code", "code_expired", "update_time", "password").Update(m)
+	u.UpdateTime = time.Now().Unix()
+	u.Code = ""
+	u.CodeExpired = 0
+	_, err := config.FafaRdb.Client.Where("id=?", u.Id).Cols("code", "code_expired", "update_time", "password").Update(u)
 	return err
 }
 
-func (m *User) UpdateInfo() error {
-	if m.Id == 0 {
+func (u *User) UpdateInfo() error {
+	if u.Id == 0 {
 		return errors.New("where is empty")
 	}
 
-	m.UpdateTime = time.Now().Unix()
-	_, err := config.FafaRdb.Client.Update(m)
+	u.UpdateTime = time.Now().Unix()
+	_, err := config.FafaRdb.Client.Where("id=?", u.Id).Update(u)
 	return err
 }

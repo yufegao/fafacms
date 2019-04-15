@@ -20,14 +20,17 @@ var (
 
 var (
 	HomeRouter = map[string]HttpHandle{
-		"/":                {"Home", controllers.Home, GP, false},
-		"/login":           {"User Login", controllers.Login, GP, false},
-		"/logout":          {"User Logout", controllers.Logout, GP, false},
-		"/register":        {"User Register", controllers.RegisterUser, GP, false},
-		"/activate":        {"User Verify Email To Activate", controllers.ActivateUser, GP, false},
-		"/activate/code":   {"User Resend Email Activate Code", controllers.ResendActivateCodeToUser, GP, false},
-		"/password/forget": {"User Forget Password Gen Code", controllers.ForgetPasswordOfUser, GP, false},
-		"/password/change": {"User Change Password", controllers.ChangePasswordOfUser, GP, false},
+		"/":                       {"Home", controllers.Home, GP, false},
+		"/u/:name":                {"user home page", controllers.Home, GP, false},
+		"/u/:name/:node":          {"user node page", controllers.Home, GP, false},
+		"/u/:name/:node/:content": {"user content page", controllers.Home, GP, false},
+		"/login":                  {"User Login", controllers.Login, GP, false},
+		"/logout":                 {"User Logout", controllers.Logout, GP, false},
+		"/register":               {"User Register", controllers.RegisterUser, GP, false},
+		"/activate":               {"User Verify Email To Activate", controllers.ActivateUser, GP, false},
+		"/activate/code":          {"User Resend Email Activate Code", controllers.ResendActivateCodeToUser, GP, false},
+		"/password/forget":        {"User Forget Password Gen Code", controllers.ForgetPasswordOfUser, GP, false},
+		"/password/change":        {"User Change Password", controllers.ChangePasswordOfUser, GP, false},
 	}
 
 	// /v1/user/create
@@ -55,12 +58,11 @@ var (
 		"/file/admin/list":   {"File List All", controllers.ListFileAdmin, POST, true},
 		"/file/admin/update": {"File Update All", controllers.UpdateFileAdmin, POST, true},
 
-		// here important
-		//"/node/create": {controllers.CreateNode, POST},
-		//"/node/update": {controllers.UpdateNode, POST},
-		//"/node/delete": {controllers.DeleteNode, POST},
-		//"/node/take":   {controllers.TakeNode, GP},
-		//"/node/list":   {controllers.ListNode, GP},
+		"/node/create": {"Create Node Self", controllers.CreateNode, POST, false},
+		"/node/update": {"Update Node Self", controllers.UpdateNode, POST, false},
+		"/node/delete": {"Delete Node Self", controllers.DeleteNode, POST, false},
+		"/node/take":   {"Take Node Self", controllers.TakeNode, GP, false},
+		"/node/list":   {"List Node Self", controllers.ListNode, GP, false},
 		//
 		//"/content/create": {controllers.CreateContent, POST},
 		//"/content/update": {controllers.UpdateContent, POST},

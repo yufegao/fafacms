@@ -59,7 +59,8 @@ var AuthFilter = func(c *gin.Context) {
 
 	//  get groupId by user
 	nowUser := new(model.User)
-	err := nowUser.Get(u.Id)
+	nowUser.Id = u.Id
+	err := nowUser.Get()
 	if err != nil {
 		flog.Log.Errorf("filter err:%s", err.Error())
 		resp.Error = &ErrorResp{
@@ -152,7 +153,8 @@ func CheckCookie(c *gin.Context) (success bool, user *model.User) {
 
 	// get user password
 	user = &model.User{}
-	err = user.Get(int(userId))
+	user.Id = int(userId)
+	err = user.Get()
 	if err != nil {
 		return
 	}

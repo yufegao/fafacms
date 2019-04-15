@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hunterhug/fafacms/core/config"
+	"time"
 )
 
 type Group struct {
@@ -31,11 +32,32 @@ func (g *Group) GetById() (exist bool, err error) {
 	return
 }
 
+func (g *Group) Update() error {
+	if g.Id == 0 {
+		return errors.New("where is empty")
+	}
+
+	g.UpdateTime = time.Now().Unix()
+	_, err := config.FafaRdb.Client.Where("id=?", g.Id).Update(g)
+	return err
+}
+
 func (g *Group) Exist() (bool, error) {
 	if g.Id == 0 && g.Name == "" {
 		return false, errors.New("where is empty")
 	}
-	c, err := config.FafaRdb.Client.Count(g)
+
+	s := config.FafaRdb.Client.Table(g)
+	s.Where("1=1")
+
+	if g.Id != 0 {
+		s.And("id=?", g.Id)
+	}
+	if g.Name != "" {
+		s.And("name=?", g.Name)
+	}
+
+	c, err := s.Count()
 
 	if c >= 1 {
 		return true, nil
@@ -48,8 +70,8 @@ func (g *Group) Delete() error {
 	if g.Id == 0 && g.Name == "" {
 		return errors.New("where is empty")
 	}
-	_, err := config.FafaRdb.Client.Delete(g)
 
+	_, err := config.FafaRdb.Client.Delete(g)
 	return err
 }
 
@@ -105,7 +127,21 @@ func (gr *GroupResource) Exist() (bool, error) {
 	if gr.Id == 0 && gr.GroupId == 0 && gr.ResourceId == 0 {
 		return false, errors.New("where is empty")
 	}
-	c, err := config.FafaRdb.Client.Count(gr)
+
+	s := config.FafaRdb.Client.Table(gr)
+	s.Where("1=1")
+
+	if gr.Id != 0 {
+		s.And("id=?", gr.Id)
+	}
+	if gr.GroupId != 0 {
+		s.And("group_id=?", gr.GroupId)
+	}
+
+	if gr.ResourceId != 0 {
+		s.And("resource_id=?", gr.ResourceId)
+	}
+	c, err := s.Count()
 
 	if c >= 1 {
 		return true, nil

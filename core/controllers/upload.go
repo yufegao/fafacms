@@ -3,6 +3,7 @@ package controllers
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator"
 	"github.com/hunterhug/fafacms/core/config"
 	. "github.com/hunterhug/fafacms/core/flog"
 	"github.com/hunterhug/fafacms/core/model"
@@ -54,12 +55,6 @@ func UploadFile(c *gin.Context) {
 	uu, err := GetUserSession(c)
 	if err != nil {
 		Log.Errorf("upload err: %s", err.Error())
-		resp.Error = Error(I500, "")
-		return
-	}
-
-	if uu == nil {
-		Log.Errorf("upload err: %s", "500")
 		resp.Error = Error(I500, "")
 		return
 	}
@@ -237,6 +232,7 @@ func ListFileAdminHelper(c *gin.Context, userId int) {
 	}
 
 	// validate
+	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
 		Log.Errorf("ListFileAdmin err: %s", err.Error())
@@ -365,13 +361,6 @@ func ListFile(c *gin.Context) {
 		return
 	}
 
-	if uu == nil {
-		Log.Errorf("ListFile err: %s", "500")
-		resp.Error = Error(I500, "")
-		JSONL(c, 200, nil, resp)
-		return
-	}
-
 	uid := uu.Id
 	ListFileAdminHelper(c, uid)
 }
@@ -396,6 +385,7 @@ func UpdateFileAdminHelper(c *gin.Context, userId int) {
 	}
 
 	// validate
+	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
 		Log.Errorf("UpdateFileAdmin err: %s", err.Error())
@@ -436,13 +426,6 @@ func UpdateFile(c *gin.Context) {
 	uu, err := GetUserSession(c)
 	if err != nil {
 		Log.Errorf("UpdateFile err: %s", err.Error())
-		resp.Error = Error(I500, "")
-		JSONL(c, 200, nil, resp)
-		return
-	}
-
-	if uu == nil {
-		Log.Errorf("UpdateFile err: %s", "500")
 		resp.Error = Error(I500, "")
 		JSONL(c, 200, nil, resp)
 		return

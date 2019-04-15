@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"time"
@@ -8,13 +9,27 @@ import (
 
 func Server() *gin.Engine {
 	//gin.SetMode(gin.ReleaseMode)
+	gin.ForceConsoleColor()
 
 	r := gin.New()
 
-	// Global middleware
-	// Logger middleware will write the logs to gin.DefaultWriter even if you set with GIN_MODE=release.
+	// LoggerWithFormatter middleware will write the logs to gin.DefaultWriter
 	// By default gin.DefaultWriter = os.Stdout
-	r.Use(gin.Logger())
+	r.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
+
+		// your custom format
+		return fmt.Sprintf("%s - [%s] \"%s %s %s %d %s\" - %s - %s\n",
+			param.ClientIP,
+			param.TimeStamp.Format(time.RFC1123),
+			param.Method,
+			param.Path,
+			param.Request.Proto,
+			param.StatusCode,
+			param.Latency,
+			param.Request.UserAgent(),
+			param.ErrorMessage,
+		)
+	}))
 
 	// Recovery middleware recovers from any panics and writes a 500 if there was one.
 	r.Use(gin.Recovery())
@@ -27,5 +42,10 @@ func Server() *gin.Engine {
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+
+	r.GET("/ping", func(c *gin.Context) {
+		c.String(200, "pong")
+	})
+
 	return r
 }
