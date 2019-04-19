@@ -16,7 +16,6 @@ type Content struct {
 	Describe   string `json:"describe" xorm:"TEXT"`
 	CreateTime int    `json:"create_time"`
 	UpdateTime int    `json:"update_time,omitempty"`
-	DeleteTime int    `json:"delete_time,omitempty"`
 	ImagePath  string `json:"image_path" xorm:"varchar(1000)"`
 	Views      int    `json:"views"`
 	Password   string `json:"password,omitempty"`
