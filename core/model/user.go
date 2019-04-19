@@ -8,11 +8,9 @@ import (
 	"time"
 )
 
-// User --> Group
-// user can not delete
 type User struct {
 	Id              int    `json:"id" xorm:"bigint pk autoincr"`
-	Name            string `json:"name" xorm:"varchar(100) notnull unique"` // id and name index
+	Name            string `json:"name" xorm:"varchar(100) notnull unique"`
 	NickName        string `json:"nick_name" xorm:"varchar(100) notnull"`
 	Email           string `json:"email" xorm:"varchar(100) notnull unique"`
 	WeChat          string `json:"wechat" xorm:"varchar(100)"`
@@ -23,7 +21,6 @@ type User struct {
 	Gender          int    `json:"gender" xorm:"not null comment('0 unknow,1 boy,2 girl') TINYINT(1)"`
 	Describe        string `json:"describe" xorm:"TEXT"`
 	HeadPhoto       string `json:"head_photo" xorm:"varchar(1000)"`
-	HomeType        int    `json:"home_type" xorm:"not null comment('0 normal,1...') TINYINT(1)"` // looks what home page
 	CreateTime      int64  `json:"create_time"`
 	UpdateTime      int64  `json:"update_time,omitempty"`
 	DeleteTime      int64  `json:"delete_time,omitempty"`
@@ -33,12 +30,10 @@ type User struct {
 	GroupId         int    `json:"group_id,omitempty" xorm:"index"`
 	Code            string `json:"code,omitempty"`         // forget password code
 	CodeExpired     int64  `json:"code_expired,omitempty"` // forget password code expired
-
-	// Future...
-	Aa string `json:"aa,omitempty"`
-	Ab string `json:"ab,omitempty"`
-	Ac string `json:"ac,omitempty"`
-	Ad string `json:"ad,omitempty"`
+	Aa              string `json:"aa,omitempty"`
+	Ab              string `json:"ab,omitempty"`
+	Ac              string `json:"ac,omitempty"`
+	Ad              string `json:"ad,omitempty"`
 }
 
 var UserSortName = []string{"=id", "=name", "-update_time", "-create_time", "-gender"}

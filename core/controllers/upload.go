@@ -231,7 +231,7 @@ func ListFileAdminHelper(c *gin.Context, userId int) {
 		return
 	}
 
-	// validate
+	
 	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
@@ -316,7 +316,7 @@ func ListFileAdminHelper(c *gin.Context, userId int) {
 	defer countSession.Close()
 	total, err := countSession.Count()
 	if err != nil {
-		// db err
+
 		Log.Errorf("ListFileAdmin err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
@@ -332,7 +332,7 @@ func ListFileAdminHelper(c *gin.Context, userId int) {
 		// do query
 		err = session.Find(&files)
 		if err != nil {
-			// db err
+
 			Log.Errorf("ListFileAdmin err:%s", err.Error())
 			resp.Error = Error(DBError, err.Error())
 			return
@@ -384,7 +384,7 @@ func UpdateFileAdminHelper(c *gin.Context, userId int) {
 		return
 	}
 
-	// validate
+	
 	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
@@ -407,7 +407,7 @@ func UpdateFileAdminHelper(c *gin.Context, userId int) {
 
 	ok, err := f.Update(req.Hide == 1)
 	if err != nil {
-		// db err
+
 		Log.Errorf("UpdateFileAdmin err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return

@@ -11,6 +11,8 @@ import (
 	"strings"
 )
 
+var AuthDebug = false
+
 // auth filter
 var AuthFilter = func(c *gin.Context) {
 	resp := new(Resp)
@@ -39,7 +41,7 @@ var AuthFilter = func(c *gin.Context) {
 			}
 			u = userInfo
 		} else {
-			// cookie and seesion not exist, nologin
+			// cookie and session not exist, nologin
 			flog.Log.Errorf("filter err: %s", "no cookie")
 			resp.Error = &ErrorResp{
 				ErrorID:  NoLogin,
@@ -51,6 +53,10 @@ var AuthFilter = func(c *gin.Context) {
 
 	// record log will need uid, monitor who op
 	c.Set("uid", u.Id)
+
+	if AuthDebug {
+		return
+	}
 
 	// root user can ignore auth
 	if u.Id == -1 {
@@ -91,24 +97,13 @@ var AuthFilter = func(c *gin.Context) {
 		return
 	}
 
-	// group := new(model.Group)
-	// err = group.Get(nowUser.GroupId)
-	// if err != nil {
-	// 	flog.Log.Errorf("filter err:%s", err.Error())
-	// 	resp.Error = &ErrorResp{
-	// 		ErrorID:  AuthPermit,
-	// 		ErrorMsg: ErrorMap[AuthPermit],
-	// 	}
-	// 	return
-	// }
-
 	// if group has this resource
 	gr := new(model.GroupResource)
 	gr.GroupId = nowUser.GroupId
 	gr.ResourceId = r.Id
 	exist, err := config.FafaRdb.Client.Exist(gr)
 	if err != nil {
-		// db err
+
 		flog.Log.Errorf("filter err:%s", err.Error())
 		resp.Error = &ErrorResp{
 			ErrorID:  AuthPermit,

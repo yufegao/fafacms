@@ -21,12 +21,10 @@ type File struct {
 	StoreType      int    `json:"store_type" xorm:"not null comment('0 local，1 oss') TINYINT(1)"`
 	IsPicture      int    `json:"is_picture"`
 	Size           int64  `json:"size"`
-
-	// Future...
-	Aa string `json:"aa,omitempty"`
-	Ab string `json:"ab,omitempty"`
-	Ac string `json:"ac,omitempty"`
-	Ad string `json:"ad,omitempty"`
+	Aa             string `json:"aa,omitempty"`
+	Ab             string `json:"ab,omitempty"`
+	Ac             string `json:"ac,omitempty"`
+	Ad             string `json:"ad,omitempty"`
 }
 
 var FileSortName = []string{"=id", "-update_time", "-create_time", "=user_id", "=type", "=tag", "=store_type", "=status", "=size"}

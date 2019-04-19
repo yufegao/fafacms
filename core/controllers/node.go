@@ -10,7 +10,6 @@ import (
 )
 
 type CreateNodeRequest struct {
-	Type         int    `json:"type"  validate:"oneof=0 1"`
 	Seo          string `json:"seo" validate:"omitempty,alphanumunicode,gt=3,lt=30"`
 	Name         string `json:"name" validate:"required,lt=100"`
 	Describe     string `json:"describe" validate:"omitempty,lt=200"`
@@ -30,7 +29,6 @@ func CreateNode(c *gin.Context) {
 		return
 	}
 
-	// validate
 	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
@@ -48,7 +46,6 @@ func CreateNode(c *gin.Context) {
 
 	n := new(model.ContentNode)
 	n.UserId = uu.Id
-	n.Type = req.Type
 	if req.Seo != "" {
 		n.Seo = req.Seo
 		exist, err := n.CheckSeoValid()
@@ -83,7 +80,7 @@ func CreateNode(c *gin.Context) {
 		p.Url = req.ImagePath
 		ok, err := p.Exist()
 		if err != nil {
-			// db err
+
 			flog.Log.Errorf("CreateNode err:%s", err.Error())
 			resp.Error = Error(DBError, err.Error())
 			return
@@ -103,7 +100,7 @@ func CreateNode(c *gin.Context) {
 	n.ParentNodeId = req.ParentNodeId
 	err = n.InsertOne()
 	if err != nil {
-		// db err
+
 		flog.Log.Errorf("CreateNode err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
@@ -135,12 +132,17 @@ func UpdateNode(c *gin.Context) {
 		return
 	}
 
-	// validate
 	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
 		flog.Log.Errorf("UpdateNode err: %s", err.Error())
 		resp.Error = Error(ParasError, err.Error())
+		return
+	}
+
+	if req.ParentNodeId == req.Id {
+		flog.Log.Errorf("UpdateNode err: %s", "self can not be parent")
+		resp.Error = Error(ParasError, "self can not be parent")
 		return
 	}
 
@@ -212,7 +214,7 @@ func UpdateNode(c *gin.Context) {
 			p.Url = req.ImagePath
 			ok, err := p.Exist()
 			if err != nil {
-				// db err
+
 				flog.Log.Errorf("UpdateNode err:%s", err.Error())
 				resp.Error = Error(DBError, err.Error())
 				return
@@ -241,7 +243,7 @@ func UpdateNode(c *gin.Context) {
 
 	err = n.Update()
 	if err != nil {
-		// db err
+
 		flog.Log.Errorf("UpdateNode err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
@@ -266,7 +268,6 @@ func DeleteNode(c *gin.Context) {
 		return
 	}
 
-	// validate
 	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
@@ -285,8 +286,37 @@ func DeleteNode(c *gin.Context) {
 	n.Id = req.Id
 	n.UserId = uu.Id
 
-	// todo
-	//n.Get()
+	childNum, err := n.CheckChildrenNum()
+	if err != nil {
+		flog.Log.Errorf("DeleteNode err:%s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	if childNum >= 1 {
+		flog.Log.Errorf("DeleteNode err:%s", "has node child")
+		resp.Error = Error(DbHookIn, "has node child")
+		return
+	}
+
+	content := new(model.Content)
+	content.UserId = uu.Id
+	content.NodeId = n.Id
+	contentNum, err := content.CountNumOfNode()
+	if err != nil {
+		flog.Log.Errorf("DeleteNode err:%s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	if contentNum >= 1 {
+		flog.Log.Errorf("DeleteNode err:%s", "has content child")
+		resp.Error = Error(DbHookIn, "has content child")
+		return
+	}
+
+	resp.Flag = true
+
 }
 
 type TakeNodeRequest struct {
@@ -306,7 +336,6 @@ func TakeNode(c *gin.Context) {
 		return
 	}
 
-	// validate
 	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
@@ -344,11 +373,10 @@ func TakeNode(c *gin.Context) {
 
 type ListNodeRequest struct {
 	Id           int    `json:"id"`
-	Type         int    `json:"type" validate:"oneof=0 1"`
 	Seo          string `json:"seo" validate:"omitempty,alphanumunicode,gt=3,lt=30"`
 	ParentNodeId int    `json:"parent_node_id"`
 	Status       int    `json:"status" validate:"oneof=-1 0 1"`
-	Level        int    `json:"status" validate:"oneof=-1 0 1"`
+	Level        int    `json:"level" validate:"oneof=-1 0 1"`
 
 	CreateTimeBegin int64    `json:"create_time_begin"`
 	CreateTimeEnd   int64    `json:"create_time_end"`
@@ -377,7 +405,6 @@ func ListNode(c *gin.Context) {
 		return
 	}
 
-	// validate
 	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
@@ -405,7 +432,6 @@ func ListNode(c *gin.Context) {
 		session.And("id=?", req.Id)
 	}
 
-	session.And("type=?", req.Type)
 	session.And("user_id=?", uu.Id)
 
 	if req.Status != -1 {
@@ -420,8 +446,9 @@ func ListNode(c *gin.Context) {
 		session.And("level=?", req.Level)
 	}
 
-	session.And("parent_node_id=?", req.ParentNodeId)
-
+	if req.ParentNodeId != -1 {
+		session.And("parent_node_id=?", req.ParentNodeId)
+	}
 	if req.CreateTimeBegin > 0 {
 		session.And("create_time>=?", req.CreateTimeBegin)
 	}
@@ -443,7 +470,7 @@ func ListNode(c *gin.Context) {
 	defer countSession.Close()
 	total, err := countSession.Count()
 	if err != nil {
-		// db err
+
 		flog.Log.Errorf("ListNode err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
@@ -459,7 +486,7 @@ func ListNode(c *gin.Context) {
 		// do query
 		err = session.Find(&nodes)
 		if err != nil {
-			// db err
+
 			flog.Log.Errorf("ListNode err:%s", err.Error())
 			resp.Error = Error(DBError, err.Error())
 			return

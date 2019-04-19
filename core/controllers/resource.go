@@ -39,7 +39,7 @@ func ListResource(c *gin.Context) {
 		return
 	}
 
-	// validate
+	
 	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
@@ -76,7 +76,7 @@ func ListResource(c *gin.Context) {
 	defer countSession.Close()
 	total, err := countSession.Count()
 	if err != nil {
-		// db err
+
 		flog.Log.Errorf("ListResource err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
@@ -92,7 +92,7 @@ func ListResource(c *gin.Context) {
 		// do query
 		err = session.Find(&r)
 		if err != nil {
-			// db err
+
 			flog.Log.Errorf("ListResource err:%s", err.Error())
 			resp.Error = Error(DBError, err.Error())
 			return

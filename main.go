@@ -15,18 +15,21 @@ var (
 	configFile  string
 	createTable bool
 	mailDebug   bool
+	canSkipAuth bool
 )
 
 func init() {
 	flag.StringVar(&configFile, "config", "./config.json", "config file")
-	flag.BoolVar(&createTable, "db", true, "create db table")
-	flag.BoolVar(&mailDebug, "eb", true, "Email debug")
+	flag.BoolVar(&createTable, "init_db", true, "create db table")
+	flag.BoolVar(&mailDebug, "email_debug", true, "Email debug")
+	flag.BoolVar(&canSkipAuth, "auth_skip_debug", true, "Auth skip debug")
 	flag.Parse()
 }
 
 func main() {
 	mail.Debug = mailDebug
-
+	controllers.AuthDebug = canSkipAuth
+	
 	var err error
 
 	// Init Config

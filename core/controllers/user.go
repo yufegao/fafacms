@@ -40,7 +40,6 @@ func RegisterUser(c *gin.Context) {
 		return
 	}
 
-	// validate
 	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
@@ -85,7 +84,7 @@ func RegisterUser(c *gin.Context) {
 		p.Url = req.ImagePath
 		ok, err := p.Exist()
 		if err != nil {
-			// db err
+
 			flog.Log.Errorf("RegisterUser err:%s", err.Error())
 			resp.Error = Error(DBError, err.Error())
 			return
@@ -126,14 +125,18 @@ func RegisterUser(c *gin.Context) {
 	}
 	err = u.InsertOne()
 	if err != nil {
-		// db err
+
 		flog.Log.Errorf("RegisterUser err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
 	}
 
 	resp.Flag = true
-	resp.Data = u
+
+	if AuthDebug {
+		resp.Data = u
+	}
+	
 }
 
 func ActivateUser(c *gin.Context) {
@@ -278,7 +281,6 @@ func ForgetPasswordOfUser(c *gin.Context) {
 		return
 	}
 
-	// validate
 	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
@@ -350,7 +352,6 @@ func ChangePasswordOfUser(c *gin.Context) {
 		return
 	}
 
-	// validate
 	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
@@ -415,7 +416,6 @@ func UpdateUser(c *gin.Context) {
 		return
 	}
 
-	// validate
 	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
@@ -440,7 +440,7 @@ func UpdateUser(c *gin.Context) {
 		p.Url = req.ImagePath
 		ok, err := p.Exist()
 		if err != nil {
-			// db err
+
 			flog.Log.Errorf("UpdateUser err:%s", err.Error())
 			resp.Error = Error(DBError, err.Error())
 			return
@@ -465,7 +465,7 @@ func UpdateUser(c *gin.Context) {
 	u.WeiBo = req.WeiBo
 	err = u.UpdateInfo()
 	if err != nil {
-		// db err
+
 		flog.Log.Errorf("UpdateUser err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
@@ -531,7 +531,6 @@ func ListUser(c *gin.Context) {
 		return
 	}
 
-	// validate
 	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
@@ -603,7 +602,7 @@ func ListUser(c *gin.Context) {
 	defer countSession.Close()
 	total, err := countSession.Count()
 	if err != nil {
-		// db err
+
 		flog.Log.Errorf("ListUser err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
@@ -619,7 +618,7 @@ func ListUser(c *gin.Context) {
 		// do query
 		err = session.Find(&users)
 		if err != nil {
-			// db err
+
 			flog.Log.Errorf("ListUser err:%s", err.Error())
 			resp.Error = Error(DBError, err.Error())
 			return

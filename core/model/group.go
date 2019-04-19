@@ -14,15 +14,33 @@ type Group struct {
 	CreateTime int64  `json:"create_time"`
 	UpdateTime int64  `json:"update_time,omitempty"`
 	ImagePath  string `json:"image_path" xorm:"varchar(1000)"`
-
-	// Future...
-	Aa string `json:"aa,omitempty"`
-	Ab string `json:"ab,omitempty"`
-	Ac string `json:"ac,omitempty"`
-	Ad string `json:"ad,omitempty"`
+	Aa         string `json:"aa,omitempty"`
+	Ab         string `json:"ab,omitempty"`
+	Ac         string `json:"ac,omitempty"`
+	Ad         string `json:"ad,omitempty"`
 }
 
 var GroupSortName = []string{"=id", "=name", "-create_time", "=update_time"}
+
+type Resource struct {
+	Id       int    `json:"id" xorm:"bigint pk autoincr"`
+	Name     string `json:"name"`
+	Url      string `json:"url" xorm:"varchar(1000) unique"`
+	Describe string `json:"describe" xorm:"TEXT"`
+	Admin    bool   `json:"admin"`
+	Aa       string `json:"aa,omitempty"`
+	Ab       string `json:"ab,omitempty"`
+	Ac       string `json:"ac,omitempty"`
+	Ad       string `json:"ad,omitempty"`
+}
+
+var ResourceSortName = []string{"=id", "=name", "-admin", "-url"}
+
+type GroupResource struct {
+	Id         int `json:"id" xorm:"bigint pk autoincr"`
+	GroupId    int `json:"group_id index(gr)"`
+	ResourceId int `json:"resource_id index(gr)"`
+}
 
 func (g *Group) GetById() (exist bool, err error) {
 	if g.Id == 0 {
@@ -87,22 +105,6 @@ func (g *Group) Take() (bool, error) {
 	return true, err
 }
 
-type Resource struct {
-	Id       int    `json:"id" xorm:"bigint pk autoincr"`
-	Name     string `json:"name"`
-	Url      string `json:"url" xorm:"varchar(1000) unique"`
-	Describe string `json:"describe" xorm:"TEXT"`
-	Admin    bool   `json:"admin"`
-
-	// Future...
-	Aa string `json:"aa,omitempty"`
-	Ab string `json:"ab,omitempty"`
-	Ac string `json:"ac,omitempty"`
-	Ad string `json:"ad,omitempty"`
-}
-
-var ResourceSortName = []string{"=id", "=name", "-admin", "-url"}
-
 func (r *Resource) Get() (err error) {
 	var exist bool
 	exist, err = config.FafaRdb.Client.UseBool("admin").Get(r)
@@ -148,11 +150,4 @@ func (gr *GroupResource) Exist() (bool, error) {
 	}
 
 	return false, err
-}
-
-// extern: Group --> Resource
-type GroupResource struct {
-	Id         int `json:"id" xorm:"bigint pk autoincr"`
-	GroupId    int `json:"group_id index(gr)"`
-	ResourceId int `json:"resource_id index(gr)"`
 }
