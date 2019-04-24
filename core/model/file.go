@@ -17,7 +17,7 @@ type File struct {
 	Describe       string `json:"describe" xorm:"TEXT"`
 	CreateTime     int64  `json:"create_time"`
 	UpdateTime     int    `json:"update_time,omitempty"`
-	Status         int    `json:"status" xorm:"not null comment('0 normal，1 hidebutcanuse') TINYINT(1)"`
+	Status         int    `json:"status" xorm:"not null comment('0 normal，1 hide but can use') TINYINT(1)"`
 	StoreType      int    `json:"store_type" xorm:"not null comment('0 local，1 oss') TINYINT(1)"`
 	IsPicture      int    `json:"is_picture"`
 	Size           int64  `json:"size"`
@@ -64,7 +64,7 @@ func (f *File) Update(hide bool) (bool, error) {
 	s := config.FafaRdb.Client.NewSession()
 	s.Where("id=?", f.Id)
 	if hide {
-		f.Status = 0
+		f.Status = 1
 		s.Cols("status")
 	}
 

@@ -416,7 +416,6 @@ func UpdateFileAdminHelper(c *gin.Context, userId int) {
 
 func UpdateFileAdmin(c *gin.Context) {
 	UpdateFileAdminHelper(c, 0)
-
 }
 
 func UpdateFile(c *gin.Context) {

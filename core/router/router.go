@@ -66,19 +66,22 @@ var (
 		"/file/admin/list":   {"File List All", controllers.ListFileAdmin, POST, true},     // 管理员查看所有文件
 		"/file/admin/update": {"File Update All", controllers.UpdateFileAdmin, POST, true}, // 管理员修改文件
 
-		// 内容节点操作，管理员不关心，所有没有全局接口
-		"/node/create": {"Create Node Self", controllers.CreateNode, POST, false},
-		"/node/update": {"Update Node Self", controllers.UpdateNode, POST, false},
-		"/node/delete": {"Delete Node Self", controllers.DeleteNode, POST, false},
-		"/node/take":   {"Take Node Self", controllers.TakeNode, GP, false},
-		"/node/list":   {"List Node Self", controllers.ListNode, GP, false},
+		// 内容节点操作
+		"/node/create":     {"Create Node Self", controllers.CreateNode, POST, false},
+		"/node/update":     {"Update Node Self", controllers.UpdateNode, POST, false},
+		"/node/delete":     {"Delete Node Self", controllers.DeleteNode, POST, false},
+		"/node/take":       {"Take Node Self", controllers.TakeNode, GP, false},
+		"/node/list":       {"List Node Self", controllers.ListNode, GP, false},
+		"/node/admin/list": {"List Node All", controllers.ListNodeAdmin, GP, true}, // 管理员查看其他用户节点
 
-		// 内容
-		//"/content/create": {controllers.CreateContent, POST},
-		//"/content/update": {controllers.UpdateContent, POST},
-		//"/content/delete": {controllers.DeleteContent, POST},
-		//"/content/take":   {controllers.TakeContent, GP},
-		//"/content/list":   {controllers.ListContent, GP},
+		// 内容操作
+		"/content/create":       {"Create Content Self", controllers.CreateContent, POST, false},
+		"/content/update":       {"Update Content Self", controllers.UpdateContent, POST, false},
+		"/content/admin/update": {"Update Content All", controllers.UpdateContent, POST, true},
+		"/content/delete":       {"Delete Content Self Logic", controllers.DeleteContent, POST, false},
+		"/content/take":         {"Take Content Self", controllers.TakeContent, GP, false},
+		"/content/list":         {"List Content Self", controllers.ListContent, GP, false},
+		"/content/admin/list":   {"List Content All", controllers.ListContent, GP, true},
 		//
 		//"/comment/create": {controllers.CreateComment, POST},
 		//"/comment/update": {controllers.UpdateComment, POST},

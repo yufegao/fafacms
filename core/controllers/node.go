@@ -369,12 +369,12 @@ func TakeNode(c *gin.Context) {
 }
 
 type ListNodeRequest struct {
-	Id           int    `json:"id"`
-	Seo          string `json:"seo" validate:"omitempty,alphanumunicode,gt=3,lt=30"`
-	ParentNodeId int    `json:"parent_node_id"`
-	Status       int    `json:"status" validate:"oneof=-1 0 1"`
-	Level        int    `json:"level" validate:"oneof=-1 0 1"`
-
+	Id              int      `json:"id"`
+	Seo             string   `json:"seo" validate:"omitempty,alphanumunicode,gt=3,lt=30"`
+	ParentNodeId    int      `json:"parent_node_id"`
+	Status          int      `json:"status" validate:"oneof=-1 0 1"`
+	Level           int      `json:"level" validate:"oneof=-1 0 1"`
+	UserId          int      `json:"user_id"`
 	CreateTimeBegin int64    `json:"create_time_begin"`
 	CreateTimeEnd   int64    `json:"create_time_end"`
 	UpdateTimeBegin int64    `json:"update_time_begin"`
@@ -389,6 +389,24 @@ type ListNodeResponse struct {
 }
 
 func ListNode(c *gin.Context) {
+	resp := new(Resp)
+	uu, err := GetUserSession(c)
+	if err != nil {
+		flog.Log.Errorf("ListNode err: %s", err.Error())
+		resp.Error = Error(I500, "")
+		JSONL(c, 200, nil, resp)
+		return
+	}
+
+	uid := uu.Id
+	ListNodeHelper(c, uid)
+}
+
+func ListNodeAdmin(c *gin.Context) {
+	ListNodeHelper(c, 0)
+}
+
+func ListNodeHelper(c *gin.Context, userId int) {
 	resp := new(Resp)
 
 	respResult := new(ListNodeResponse)
@@ -410,13 +428,6 @@ func ListNode(c *gin.Context) {
 		return
 	}
 
-	uu, err := GetUserSession(c)
-	if err != nil {
-		flog.Log.Errorf("ListNode err: %s", err.Error())
-		resp.Error = Error(I500, "")
-		return
-	}
-
 	// new query list session
 	session := config.FafaRdb.Client.NewSession()
 	defer session.Close()
@@ -429,7 +440,13 @@ func ListNode(c *gin.Context) {
 		session.And("id=?", req.Id)
 	}
 
-	session.And("user_id=?", uu.Id)
+	if userId != 0 {
+		session.And("user_id=?", userId)
+	} else {
+		if req.UserId != 0 {
+			session.And("user_id=?", req.UserId)
+		}
+	}
 
 	if req.Status != -1 {
 		session.And("status=?", req.Status)
