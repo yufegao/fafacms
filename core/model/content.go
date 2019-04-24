@@ -19,12 +19,31 @@ type Content struct {
 	ImagePath  string `json:"image_path" xorm:"varchar(1000)"`
 	Views      int    `json:"views"`
 	Password   string `json:"password,omitempty"`
-	Good       int    `json:"good"`
-	Bad        int    `json:"bad"`
 	Aa         string `json:"aa,omitempty"`
 	Ab         string `json:"ab,omitempty"`
 	Ac         string `json:"ac,omitempty"`
 	Ad         string `json:"ad,omitempty"`
+}
+
+type ContentSupport struct {
+	Id          int    `json:"id" xorm:"bigint pk autoincr"`
+	UserId      int    `json:"user_id" xorm:"index"`
+	UserName    string `json:"user_name" xorm:"index"`
+	ContentId   int    `json:"content_id" xorm:"index"`
+	ContentUser int    `json:"content_user" xorm:"index"`
+	CreateTime  int    `json:"create_time"`
+	Suggest     int    `json:"suggest" xorm:"not null comment('1 good, 0 Ha，2 bad') TINYINT(1) index"`
+}
+
+type ContentCal struct {
+	Id            int   `json:"id" xorm:"bigint pk autoincr"`
+	ContentId     int   `json:"content_id" xorm:"index"`
+	ContentUserId int   `json:"content_user_id" xorm:"index"`
+	CreateTime    int   `json:"create_time"`
+	UpdateTime    int64 `json:"update_time,omitempty"`
+	Good          int   `json:"good"`
+	Bad           int   `json:"bad"`
+	Ha            int   `json:"ha"`
 }
 
 type ContentNode struct {
