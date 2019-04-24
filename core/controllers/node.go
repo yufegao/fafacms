@@ -212,14 +212,12 @@ func UpdateNode(c *gin.Context) {
 			p.Url = req.ImagePath
 			ok, err := p.Exist()
 			if err != nil {
-
 				flog.Log.Errorf("UpdateNode err:%s", err.Error())
 				resp.Error = Error(DBError, err.Error())
 				return
 			}
 
 			if !ok {
-				// not found
 				flog.Log.Errorf("UpdateNode err: image not exist")
 				resp.Error = Error(ParasError, "image url not exist")
 				return
@@ -237,11 +235,12 @@ func UpdateNode(c *gin.Context) {
 		n.Describe = req.Describe
 	}
 
-	n.Status = req.Status
+	if n.Status != req.Status {
+		n.Status = req.Status
+	}
 
 	err = n.Update()
 	if err != nil {
-
 		flog.Log.Errorf("UpdateNode err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return

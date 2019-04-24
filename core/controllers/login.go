@@ -102,6 +102,9 @@ func Login(c *gin.Context) {
 		authKey := util.Md5(c.ClientIP() + "|" + uu.Password)
 		secretKey := util.IS(uu.Id) + "|" + authKey
 		c.SetCookie("auth", secretKey, 3600*24*7, "/", "", false, true)
+	} else {
+		// cookie clean
+		c.SetCookie("auth", "", -1, "/", "", false, true)
 	}
 }
 

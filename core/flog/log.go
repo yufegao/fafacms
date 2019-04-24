@@ -65,7 +65,6 @@ func InitLog(logFile string) {
 func SetLogLevel(level string) {
 	if num, ok := log.LogLevelMap[strings.ToUpper(level)]; ok {
 		Log.SetLevel(num)
-		//OLog.SetLevel(num)
 	} else {
 		panic("no this level")
 	}

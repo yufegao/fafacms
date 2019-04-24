@@ -38,8 +38,9 @@ var AuthFilter = func(c *gin.Context) {
 			}
 			u = userInfo
 		} else {
-			// cookie and session not exist, nologin
-			flog.Log.Errorf("filter err: %s", "no cookie")
+			// cookie and session not exist, no login
+			// cookie clean
+			c.SetCookie("auth", "", -1, "/", "", false, true)
 			resp.Error = Error(NoLogin, "")
 			return
 		}
@@ -70,6 +71,12 @@ var AuthFilter = func(c *gin.Context) {
 	if nowUser.Status == 0 {
 		flog.Log.Errorf("filter err: not active")
 		resp.Error = Error(AuthPermit, "not active")
+		return
+	}
+
+	if nowUser.Status == 2 {
+		flog.Log.Errorf("filter err: black lock, contact admin")
+		resp.Error = Error(AuthPermit, "black lock, contact admin")
 		return
 	}
 
@@ -114,8 +121,6 @@ func CheckCookie(c *gin.Context) (success bool, user *model.User) {
 	// cookie string split
 	arr := strings.Split(cookieString, "|")
 	if len(arr) < 2 {
-		// cookie clean
-		c.SetCookie("auth", "", -1, "/", "", false, true)
 		return
 	}
 
@@ -123,7 +128,7 @@ func CheckCookie(c *gin.Context) (success bool, user *model.User) {
 	var userId int64
 	str, password := arr[0], arr[1]
 	userId, err = strconv.ParseInt(str, 10, 0)
-	if err != nil {
+	if err != nil || userId == 0 {
 		return
 	}
 
@@ -136,12 +141,10 @@ func CheckCookie(c *gin.Context) (success bool, user *model.User) {
 	}
 
 	// if the same
-	if password == util.Md5(c.ClientIP()+"|"+user.Password) {
+	if user.Status == 1 && password == util.Md5(c.ClientIP()+"|"+user.Password) {
 		success = true
 		return
 	} else {
-		// cookie clean
-		c.SetCookie("auth", "", -1, "/", "", false, true)
 		return
 	}
 }

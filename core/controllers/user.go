@@ -28,6 +28,7 @@ type RegisterUserRequest struct {
 	ImagePath  string `json:"image_path" validate:"omitempty,lt=100"`
 }
 
+// 用户注册
 func RegisterUser(c *gin.Context) {
 	resp := new(Resp)
 	req := new(RegisterUserRequest)
@@ -49,8 +50,6 @@ func RegisterUser(c *gin.Context) {
 	}
 
 	u := new(model.User)
-
-	// name check
 	u.Name = req.Name
 	repeat, err := u.IsNameRepeat()
 	if err != nil {
@@ -91,7 +90,6 @@ func RegisterUser(c *gin.Context) {
 		}
 
 		if !ok {
-			// not found
 			flog.Log.Errorf("RegisterUser err: image not exist")
 			resp.Error = Error(ParasError, "image url not exist")
 			return
@@ -127,6 +125,101 @@ func RegisterUser(c *gin.Context) {
 	if err != nil {
 
 		flog.Log.Errorf("RegisterUser err:%s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	resp.Flag = true
+
+	if AuthDebug {
+		resp.Data = u
+	}
+
+}
+
+// 用户创建
+func CreateUser(c *gin.Context) {
+	resp := new(Resp)
+	req := new(RegisterUserRequest)
+	defer func() {
+		JSONL(c, 200, req, resp)
+	}()
+
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	var validate = validator.New()
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("CreateUser err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
+		return
+	}
+
+	u := new(model.User)
+	u.Name = req.Name
+	repeat, err := u.IsNameRepeat()
+	if err != nil {
+		flog.Log.Errorf("CreateUser err: %s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+	if repeat {
+		flog.Log.Errorf("CreateUser err: %s", "name already use by other")
+		resp.Error = Error(ParasError, "name already use by other")
+		return
+	}
+
+	// email check
+	u.Email = req.Email
+	repeat, err = u.IsEmailRepeat()
+	if err != nil {
+		flog.Log.Errorf("CreateUser err: %s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+	if repeat {
+		flog.Log.Errorf("CreateUser err: %s", "email already use by other")
+		resp.Error = Error(ParasError, "email already use by other")
+		return
+	}
+
+	// if image not empty
+	if req.ImagePath != "" {
+		p := new(model.File)
+		p.Url = req.ImagePath
+		ok, err := p.Exist()
+		if err != nil {
+
+			flog.Log.Errorf("CreateUser err:%s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+
+		if !ok {
+			flog.Log.Errorf("CreateUser err: image not exist")
+			resp.Error = Error(ParasError, "image url not exist")
+			return
+		}
+
+		u.HeadPhoto = req.ImagePath
+	}
+
+	u.Describe = req.Describe
+	u.NickName = req.NickName
+	u.Password = req.Password
+	u.Gender = req.Gender
+	u.WeChat = req.WeChat
+	u.QQ = req.QQ
+	u.Github = req.Github
+	u.WeiBo = req.WeiBo
+	u.Status = 1
+
+	err = u.InsertOne()
+	if err != nil {
+		flog.Log.Errorf("CreateUser err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
 	}
@@ -447,7 +540,6 @@ func UpdateUser(c *gin.Context) {
 		}
 
 		if !ok {
-			// not found
 			flog.Log.Errorf("UpdateUser err: image not exist")
 			resp.Error = Error(ParasError, "image url not exist")
 			return
@@ -506,7 +598,6 @@ type ListUserRequest struct {
 	QQ              string   `json:"qq" validate:"omitempty,numeric,gt=6,lt=12"`
 	Gender          int      `json:"gender" validate:"oneof=-1 0 1 2"`
 	Status          int      `json:"status" validate:"oneof=-1 0 1 2"`
-
 	PageHelp
 }
 
@@ -697,4 +788,47 @@ func AssignGroupToUser(c *gin.Context) {
 
 	resp.Flag = true
 
+}
+
+type UpdateUserAdminRequest struct {
+	Id       int    `json:"id" validate:"required,gt=0"`
+	NickName string `json:"nick_name" validate:"omitempty,gt=1,lt=50"`
+	Password string `json:"password,omitempty"`
+	Status   int    `json:"status" validate:"oneof=0 1 2"`
+}
+
+func UpdateUserAdmin(c *gin.Context) {
+	resp := new(Resp)
+	req := new(UpdateUserAdminRequest)
+	defer func() {
+		JSONL(c, 200, req, resp)
+	}()
+
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	var validate = validator.New()
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("UpdateUserAdmin err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
+		return
+	}
+
+	u := new(model.User)
+	u.NickName = req.NickName
+	u.Id = req.Id
+	u.Password = req.Password
+	u.Status = req.Status
+	err = u.UpdateInfo()
+	if err != nil {
+		flog.Log.Errorf("UpdateUserAdmin err:%s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	resp.Flag = true
+	resp.Data = u
 }
