@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/alexedwards/scs"
+	"github.com/alexedwards/scs/stores/memstore"
 	"github.com/alexedwards/scs/stores/redisstore"
 	"github.com/hunterhug/fafacms/core/config"
 	"github.com/hunterhug/fafacms/core/model"
@@ -12,6 +13,7 @@ import (
 	"github.com/hunterhug/fafacms/core/util/rdb"
 	"github.com/hunterhug/fafacms/core/util/session"
 	"io/ioutil"
+	"time"
 )
 
 func InitConfig(configFilePath string) error {
@@ -52,6 +54,10 @@ func InitSession(redisConf session.MyRedisConf) error {
 	redisStore := redisstore.New(pool)
 	config.FafaSessionMgr = scs.NewManager(redisStore)
 	return nil
+}
+
+func InitMemorySession() {
+	config.FafaSessionMgr = scs.NewManager(memstore.New(time.Hour * 1))
 }
 
 func CreateTable(tables []interface{}) {

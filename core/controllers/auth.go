@@ -33,20 +33,14 @@ var AuthFilter = func(c *gin.Context) {
 			err := SetUserSession(c, userInfo)
 			if err != nil {
 				flog.Log.Errorf("filter err:%s", err.Error())
-				resp.Error = &ErrorResp{
-					ErrorID:  I500,
-					ErrorMsg: ErrorMap[I500],
-				}
+				resp.Error = Error(I500, "")
 				return
 			}
 			u = userInfo
 		} else {
 			// cookie and session not exist, nologin
 			flog.Log.Errorf("filter err: %s", "no cookie")
-			resp.Error = &ErrorResp{
-				ErrorID:  NoLogin,
-				ErrorMsg: ErrorMap[NoLogin],
-			}
+			resp.Error = Error(NoLogin, "")
 			return
 		}
 	}
@@ -69,19 +63,13 @@ var AuthFilter = func(c *gin.Context) {
 	err := nowUser.Get()
 	if err != nil {
 		flog.Log.Errorf("filter err:%s", err.Error())
-		resp.Error = &ErrorResp{
-			ErrorID:  AuthPermit,
-			ErrorMsg: ErrorMap[AuthPermit],
-		}
+		resp.Error = Error(AuthPermit, "")
 		return
 	}
 
 	if nowUser.Status == 0 {
-		flog.Log.Errorf("filter err: notactive")
-		resp.Error = &ErrorResp{
-			ErrorID:  AuthPermit,
-			ErrorMsg: "not active",
-		}
+		flog.Log.Errorf("filter err: not active")
+		resp.Error = Error(AuthPermit, "not active")
 		return
 	}
 
@@ -103,22 +91,15 @@ var AuthFilter = func(c *gin.Context) {
 	gr.ResourceId = r.Id
 	exist, err := config.FafaRdb.Client.Exist(gr)
 	if err != nil {
-
 		flog.Log.Errorf("filter err:%s", err.Error())
-		resp.Error = &ErrorResp{
-			ErrorID:  AuthPermit,
-			ErrorMsg: ErrorMap[AuthPermit],
-		}
+		resp.Error = Error(AuthPermit, "")
 		return
 	}
 
 	if !exist {
 		// not found
 		flog.Log.Errorf("filter err:%s", "resource not allow")
-		resp.Error = &ErrorResp{
-			ErrorID:  AuthPermit,
-			ErrorMsg: ErrorMap[AuthPermit],
-		}
+		resp.Error = Error(AuthPermit, "")
 		return
 	}
 }

@@ -92,7 +92,6 @@ func ListResource(c *gin.Context) {
 		// do query
 		err = session.Find(&r)
 		if err != nil {
-
 			flog.Log.Errorf("ListResource err:%s", err.Error())
 			resp.Error = Error(DBError, err.Error())
 			return

@@ -50,11 +50,31 @@ func (u *User) Get() (err error) {
 	return
 }
 
+func (u *User) GetRaw() (bool, error) {
+	return config.FafaRdb.Client.Get(u)
+}
+
 func (u *User) Exist() (bool, error) {
 	if u.Id == 0 && u.Name == "" && u.GroupId == 0 {
 		return false, errors.New("where is empty")
 	}
-	c, err := config.FafaRdb.Client.Count(u)
+
+	s := config.FafaRdb.Client.Table(u)
+	s.Where("1=1")
+
+	if u.Id != 0 {
+		s.And("id=?", u.Id)
+	}
+
+	if u.Name != "" {
+		s.And("name=?", u.Name)
+	}
+
+	if u.GroupId != 0 {
+		s.And("group_id", u.GroupId)
+	}
+
+	c, err := s.Count()
 
 	if c >= 1 {
 		return true, nil
@@ -137,7 +157,7 @@ func (u *User) UpdateCode() error {
 	}
 	u.UpdateTime = time.Now().Unix()
 	u.Code = util.GetGUID()[0:6]
-	u.CodeExpired = time.Now().Unix() + 60
+	u.CodeExpired = time.Now().Unix() + 300
 	_, err := config.FafaRdb.Client.Where("id=?", u.Id).Cols("code", "code_expired", "update_time").Update(u)
 	return err
 }

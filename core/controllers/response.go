@@ -49,11 +49,11 @@ func JSONL(c *gin.Context, code int, req interface{}, obj *Resp) {
 	record.UserId = c.GetInt("uid")
 	flag := obj.Flag
 	if !flag && obj.Error != nil {
-		errstr := obj.Error.Error()
-		errstrr := strings.Split(errstr, "|")
-		if len(errstrr) >= 2 {
-			record.ErrorId = errstrr[0]
-			record.ErrorMessage = strings.Join(errstrr[1:], "|")
+		errStr := obj.Error.Error()
+		errStrSplit := strings.Split(errStr, "|")
+		if len(errStrSplit) >= 2 {
+			record.ErrorId = errStrSplit[0]
+			record.ErrorMessage = strings.Join(errStrSplit[1:], "|")
 		}
 	}
 	record.Flag = flag
@@ -94,11 +94,11 @@ func LogAlone(c *gin.Context, req interface{}, obj *Resp) {
 	record.UserId = c.GetInt("uid")
 	flag := obj.Flag
 	if !flag && obj.Error != nil {
-		errstr := obj.Error.Error()
-		errstrr := strings.Split(errstr, "|")
-		if len(errstrr) >= 2 {
-			record.ErrorId = errstrr[0]
-			record.ErrorMessage = strings.Join(errstrr[1:], "|")
+		errStr := obj.Error.Error()
+		errStrSplit := strings.Split(errStr, "|")
+		if len(errStrSplit) >= 2 {
+			record.ErrorId = errStrSplit[0]
+			record.ErrorMessage = strings.Join(errStrSplit[1:], "|")
 		}
 	}
 	record.Flag = flag

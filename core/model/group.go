@@ -101,8 +101,8 @@ func (g *Group) Take() (bool, error) {
 	if !ok {
 		return false, nil
 	}
-	_, err = config.FafaRdb.Client.Get(g)
-	return true, err
+	return config.FafaRdb.Client.Get(g)
+
 }
 
 func (r *Resource) Get() (err error) {

@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/hunterhug/fafacms/core/config"
 	"github.com/hunterhug/fafacms/core/flog"
 	"github.com/hunterhug/fafacms/core/model"
 	"github.com/hunterhug/parrot/util"
@@ -29,10 +28,7 @@ func Login(c *gin.Context) {
 	// paras not empty
 	if req.UserName == "" || req.PassWd == "" {
 		flog.Log.Errorf("login err:%s", "paras wrong")
-		resp.Error = &ErrorResp{
-			ErrorID:  ParasError,
-			ErrorMsg: ErrorMap[ParasError],
-		}
+		resp.Error = Error(ParasError, "field username or pass_wd")
 		return
 	}
 	// check session
@@ -50,10 +46,7 @@ func Login(c *gin.Context) {
 		err := SetUserSession(c, userInfo)
 		if err != nil {
 			flog.Log.Errorf("login err:%s", err.Error())
-			resp.Error = &ErrorResp{
-				ErrorID:  I500,
-				ErrorMsg: ErrorMap[I500],
-			}
+			resp.Error = Error(I500, "")
 			return
 		}
 
@@ -80,22 +73,16 @@ func Login(c *gin.Context) {
 	uu := new(model.User)
 	uu.Name = req.UserName
 	uu.Password = req.PassWd
-	ok, err := config.FafaRdb.Client.Get(uu)
+	ok, err := uu.GetRaw()
 	if err != nil {
 		flog.Log.Errorf("login err:%s", err.Error())
-		resp.Error = &ErrorResp{
-			ErrorID:  I500,
-			ErrorMsg: ErrorMap[I500],
-		}
+		resp.Error = Error(I500, "")
 		return
 	}
 
 	if !ok {
 		flog.Log.Errorf("login err:%s", "user or password wrong")
-		resp.Error = &ErrorResp{
-			ErrorID:  LoginWrong,
-			ErrorMsg: ErrorMap[LoginWrong],
-		}
+		resp.Error = Error(LoginWrong, "user or password wrong")
 		return
 	}
 
@@ -104,16 +91,13 @@ func Login(c *gin.Context) {
 	err = SetUserSession(c, uu)
 	if err != nil {
 		flog.Log.Errorf("login err:%s", err.Error())
-		resp.Error = &ErrorResp{
-			ErrorID:  I500,
-			ErrorMsg: ErrorMap[I500],
-		}
+		resp.Error = Error(I500, "")
 		return
 
 	}
 
 	resp.Flag = true
-	
+
 	if req.Remember {
 		authKey := util.Md5(c.ClientIP() + "|" + uu.Password)
 		secretKey := util.IS(uu.Id) + "|" + authKey

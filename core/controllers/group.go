@@ -28,7 +28,6 @@ func CreateGroup(c *gin.Context) {
 		return
 	}
 
-
 	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
@@ -42,7 +41,6 @@ func CreateGroup(c *gin.Context) {
 	g.Name = req.Name
 	ok, err := g.Exist()
 	if err != nil {
-		
 		flog.Log.Errorf("CreateGroup err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
@@ -63,7 +61,6 @@ func CreateGroup(c *gin.Context) {
 		p.Url = g.ImagePath
 		ok, err = p.Exist()
 		if err != nil {
-			
 			flog.Log.Errorf("CreateGroup err:%s", err.Error())
 			resp.Error = Error(DBError, err.Error())
 			return
@@ -83,9 +80,8 @@ func CreateGroup(c *gin.Context) {
 	g.CreateTime = time.Now().Unix()
 	_, err = config.FafaRdb.InsertOne(g)
 	if err != nil {
-		
 		flog.Log.Errorf("CreateGroup err:%s", err.Error())
-		resp.Error = Error(DBError, "")
+		resp.Error = Error(DBError, err.Error())
 		return
 	}
 	resp.Flag = true
@@ -111,7 +107,6 @@ func UpdateGroup(c *gin.Context) {
 		return
 	}
 
-
 	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
@@ -121,11 +116,10 @@ func UpdateGroup(c *gin.Context) {
 	}
 
 	// if group exist
-	g := new(model.Group)
-	g.Id = req.Id
-	ok, err := g.Exist()
+	gg := new(model.Group)
+	gg.Id = req.Id
+	ok, err := gg.GetById()
 	if err != nil {
-		
 		flog.Log.Errorf("UpdateGroup err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
@@ -133,9 +127,13 @@ func UpdateGroup(c *gin.Context) {
 
 	if !ok {
 		// not found
+		flog.Log.Errorf("UpdateGroup err: group not exist")
 		resp.Error = Error(DbNotFound, "")
 		return
 	}
+
+	g := new(model.Group)
+	g.Id = req.Id
 
 	// if image not empty
 	if req.ImagePath != "" {
@@ -145,7 +143,6 @@ func UpdateGroup(c *gin.Context) {
 		// find picture table
 		ok, err := p.Exist()
 		if err != nil {
-			
 			flog.Log.Errorf("UpdateGroup err:%s", err.Error())
 			resp.Error = Error(DBError, "")
 			return
@@ -160,19 +157,19 @@ func UpdateGroup(c *gin.Context) {
 	}
 
 	// if group name change repeat
-	if req.Name != "" {
+	if req.Name != "" && req.Name != g.Name {
 		temp := new(model.Group)
 		temp.Name = req.Name
 		// exist the same name
 		ok, err := temp.Exist()
 		if err != nil {
-			
 			flog.Log.Errorf("UpdateGroup err:%s", err.Error())
-			resp.Error = Error(DBError, "")
+			resp.Error = Error(DBError, err.Error())
 			return
 		}
 		if ok {
 			// found
+			flog.Log.Errorf("UpdateGroup err: group name repeat")
 			resp.Error = Error(DbRepeat, "group name")
 			return
 		}
@@ -185,9 +182,8 @@ func UpdateGroup(c *gin.Context) {
 
 	err = g.Update()
 	if err != nil {
-		
 		flog.Log.Errorf("UpdateGroup err:%s", err.Error())
-		resp.Error = Error(DBError, "")
+		resp.Error = Error(DBError, err.Error())
 		return
 	}
 
@@ -212,7 +208,6 @@ func DeleteGroup(c *gin.Context) {
 		return
 	}
 
-
 	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
@@ -227,12 +222,13 @@ func DeleteGroup(c *gin.Context) {
 	temp.Name = req.Name
 	ok, err := temp.Take()
 	if err != nil {
-		
+		flog.Log.Errorf("DeleteGroup err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
 	}
 	if !ok {
 		// not found
+		flog.Log.Errorf("DeleteGroup err:%s", "group not found")
 		resp.Error = Error(DbNotFound, "")
 		return
 	}
@@ -242,12 +238,13 @@ func DeleteGroup(c *gin.Context) {
 	gr.GroupId = temp.Id
 	ok, err = gr.Exist()
 	if err != nil {
-		
+		flog.Log.Errorf("DeleteGroup err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
 	}
 	if ok {
 		// found can not delete
+		flog.Log.Errorf("DeleteGroup err:%s", "exist resource")
 		resp.Error = Error(DbHookIn, "exist resource")
 		return
 	}
@@ -257,12 +254,13 @@ func DeleteGroup(c *gin.Context) {
 	u.GroupId = temp.Id
 	ok, err = u.Exist()
 	if err != nil {
-		
+		flog.Log.Errorf("DeleteGroup err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
 	}
 	if ok {
 		// found can not delete
+		flog.Log.Errorf("DeleteGroup err:%s", "exist user")
 		resp.Error = Error(DbHookIn, "exist user")
 		return
 	}
@@ -272,7 +270,6 @@ func DeleteGroup(c *gin.Context) {
 	g.Id = temp.Id
 	err = g.Delete()
 	if err != nil {
-		
 		flog.Log.Errorf("DeleteGroup err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
@@ -298,7 +295,6 @@ func TakeGroup(c *gin.Context) {
 		return
 	}
 
-
 	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
@@ -318,7 +314,8 @@ func TakeGroup(c *gin.Context) {
 		return
 	}
 	if !ok {
-		resp.Error = Error(DbNotFound, "")
+		flog.Log.Errorf("TakeGroup err:%s", "group not found")
+		resp.Error = Error(DbNotFound, "group not found")
 		return
 	}
 
@@ -355,7 +352,6 @@ func ListGroup(c *gin.Context) {
 		resp.Error = errResp
 		return
 	}
-
 
 	var validate = validator.New()
 	err := validate.Struct(req)
@@ -401,7 +397,6 @@ func ListGroup(c *gin.Context) {
 	defer countSession.Close()
 	total, err := countSession.Count()
 	if err != nil {
-		
 		flog.Log.Errorf("ListGroup err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
@@ -417,7 +412,6 @@ func ListGroup(c *gin.Context) {
 		// do query
 		err = session.Find(&groups)
 		if err != nil {
-			
 			flog.Log.Errorf("ListGroup err:%s", err.Error())
 			resp.Error = Error(DBError, err.Error())
 			return

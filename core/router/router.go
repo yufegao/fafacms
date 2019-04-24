@@ -24,13 +24,15 @@ var (
 		"/u/:name":                {"user home page", controllers.Home, GP, false},
 		"/u/:name/:node":          {"user node page", controllers.Home, GP, false},
 		"/u/:name/:node/:content": {"user content page", controllers.Home, GP, false},
-		"/login":                  {"User Login", controllers.Login, GP, false},
-		"/logout":                 {"User Logout", controllers.Logout, GP, false},
-		"/register":               {"User Register", controllers.RegisterUser, GP, false},
-		"/activate":               {"User Verify Email To Activate", controllers.ActivateUser, GP, false},
-		"/activate/code":          {"User Resend Email Activate Code", controllers.ResendActivateCodeToUser, GP, false},
-		"/password/forget":        {"User Forget Password Gen Code", controllers.ForgetPasswordOfUser, GP, false},
-		"/password/change":        {"User Change Password", controllers.ChangePasswordOfUser, GP, false},
+
+		// auth api
+		"/login":           {"User Login", controllers.Login, GP, false},
+		"/logout":          {"User Logout", controllers.Logout, GP, false},
+		"/register":        {"User Register", controllers.RegisterUser, GP, false},
+		"/activate":        {"User Verify Email To Activate", controllers.ActivateUser, GP, false},
+		"/activate/code":   {"User Resend Email Activate Code", controllers.ResendActivateCodeToUser, GP, false},
+		"/password/forget": {"User Forget Password Gen Code", controllers.ForgetPasswordOfUser, GP, false},
+		"/password/change": {"User Change Password", controllers.ChangePasswordOfUser, GP, false},
 	}
 
 	// /v1/user/create

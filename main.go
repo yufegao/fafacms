@@ -12,10 +12,11 @@ import (
 )
 
 var (
-	configFile  string
-	createTable bool
-	mailDebug   bool
-	canSkipAuth bool
+	configFile      string
+	createTable     bool
+	mailDebug       bool
+	canSkipAuth     bool
+	sessionUseRedis bool
 )
 
 func init() {
@@ -23,13 +24,14 @@ func init() {
 	flag.BoolVar(&createTable, "init_db", true, "create db table")
 	flag.BoolVar(&mailDebug, "email_debug", true, "Email debug")
 	flag.BoolVar(&canSkipAuth, "auth_skip_debug", true, "Auth skip debug")
+	flag.BoolVar(&sessionUseRedis, "use_session_redis", false, "Use Redis Session")
 	flag.Parse()
 }
 
 func main() {
 	mail.Debug = mailDebug
 	controllers.AuthDebug = canSkipAuth
-	
+
 	var err error
 
 	// Init Config
@@ -53,9 +55,13 @@ func main() {
 		panic(err)
 	}
 
-	err = server.InitSession(config.FafaConfig.SessionConfig)
-	if err != nil {
-		panic(err)
+	if sessionUseRedis {
+		err = server.InitSession(config.FafaConfig.SessionConfig)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		server.InitMemorySession()
 	}
 
 	// Create Table, Here to init db
@@ -67,7 +73,11 @@ func main() {
 			model.GroupResource{},
 			model.Content{},
 			model.ContentNode{},
+			model.ContentSupport{},
+			model.ContentCal{},
 			model.Comment{},
+			model.CommentSupport{},
+			model.CommentCal{},
 			model.Log{},
 			model.File{},
 		})

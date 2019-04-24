@@ -80,7 +80,6 @@ func CreateNode(c *gin.Context) {
 		p.Url = req.ImagePath
 		ok, err := p.Exist()
 		if err != nil {
-
 			flog.Log.Errorf("CreateNode err:%s", err.Error())
 			resp.Error = Error(DBError, err.Error())
 			return
@@ -100,7 +99,6 @@ func CreateNode(c *gin.Context) {
 	n.ParentNodeId = req.ParentNodeId
 	err = n.InsertOne()
 	if err != nil {
-
 		flog.Log.Errorf("CreateNode err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
@@ -158,7 +156,7 @@ func UpdateNode(c *gin.Context) {
 	exist, err := n.Get()
 	if err != nil {
 		flog.Log.Errorf("UpdateNode err: %s", err.Error())
-		resp.Error = Error(DBError, "id empty")
+		resp.Error = Error(DBError, err.Error())
 		return
 	}
 	if !exist {
@@ -357,7 +355,7 @@ func TakeNode(c *gin.Context) {
 	exist, err := n.Get()
 	if err != nil {
 		flog.Log.Errorf("TakeNode err: %s", err.Error())
-		resp.Error = Error(DBError, "")
+		resp.Error = Error(DBError, err.Error())
 		return
 	}
 
@@ -486,7 +484,6 @@ func ListNode(c *gin.Context) {
 		// do query
 		err = session.Find(&nodes)
 		if err != nil {
-
 			flog.Log.Errorf("ListNode err:%s", err.Error())
 			resp.Error = Error(DBError, err.Error())
 			return

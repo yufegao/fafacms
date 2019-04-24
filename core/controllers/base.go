@@ -69,9 +69,16 @@ func Error(code int, detail string) *ErrorResp {
 	if !ok {
 		code = Unknown
 	}
+
+	str := fmt.Sprintf("%s:%s", ErrorMap[code], detail)
+
+	if detail == "" {
+		str = fmt.Sprintf("%s", ErrorMap[code])
+	}
+	
 	return &ErrorResp{
 		ErrorID:  code,
-		ErrorMsg: fmt.Sprintf("%s:%s", ErrorMap[code], detail),
+		ErrorMsg: str,
 	}
 }
 

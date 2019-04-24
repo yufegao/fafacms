@@ -136,7 +136,7 @@ func RegisterUser(c *gin.Context) {
 	if AuthDebug {
 		resp.Data = u
 	}
-	
+
 }
 
 func ActivateUser(c *gin.Context) {
@@ -193,7 +193,7 @@ func ActivateUser(c *gin.Context) {
 		err = SetUserSession(c, u)
 		if err != nil {
 			flog.Log.Errorf("ActivateUser err:%s", err.Error())
-			resp.Error = Error(I500, ErrorMap[I500])
+			resp.Error = Error(I500, "")
 			c.String(200, ErrorMap[I500])
 			return
 		}
@@ -294,12 +294,12 @@ func ForgetPasswordOfUser(c *gin.Context) {
 	ok, err := u.GetUserByEmail()
 	if err != nil {
 		flog.Log.Errorf("ForgetPassword err:%s", err.Error())
-		resp.Error = Error(DBError, ErrorMap[DBError])
+		resp.Error = Error(DBError, err.Error())
 		return
 	}
 	if !ok {
-		flog.Log.Errorf("ForgetPassword err:%s", "not found")
-		resp.Error = Error(DbNotFound, ErrorMap[DbNotFound])
+		flog.Log.Errorf("ForgetPassword err:%s", "email not found")
+		resp.Error = Error(DbNotFound, "email not found")
 		return
 	}
 
@@ -307,7 +307,7 @@ func ForgetPasswordOfUser(c *gin.Context) {
 		err = u.UpdateCode()
 		if err != nil {
 			flog.Log.Errorf("ForgetPassword err:%s", err.Error())
-			resp.Error = Error(DBError, ErrorMap[DBError])
+			resp.Error = Error(DBError, err.Error())
 			return
 		}
 
@@ -326,7 +326,7 @@ func ForgetPasswordOfUser(c *gin.Context) {
 
 	} else {
 		flog.Log.Errorf("ForgetPassword err:%s", "time not reach")
-		resp.Error = Error(TimeNotReachError, ErrorMap[TimeNotReachError])
+		resp.Error = Error(TimeNotReachError, "hold on please")
 		return
 	}
 
@@ -365,12 +365,12 @@ func ChangePasswordOfUser(c *gin.Context) {
 	ok, err := u.GetUserByEmail()
 	if err != nil {
 		flog.Log.Errorf("ChangePassword err:%s", err.Error())
-		resp.Error = Error(DBError, ErrorMap[DBError])
+		resp.Error = Error(DBError, err.Error())
 		return
 	}
 	if !ok {
-		flog.Log.Errorf("ChangePassword err:%s", "not found")
-		resp.Error = Error(DbNotFound, "email")
+		flog.Log.Errorf("ChangePassword err:%s", "email not found")
+		resp.Error = Error(DbNotFound, "email not found")
 		return
 	}
 
@@ -379,7 +379,7 @@ func ChangePasswordOfUser(c *gin.Context) {
 		err = u.UpdatePassword()
 		if err != nil {
 			flog.Log.Errorf("ChangePassword err:%s", err.Error())
-			resp.Error = Error(DBError, ErrorMap[DBError])
+			resp.Error = Error(DBError, err.Error())
 			return
 		}
 	} else {
@@ -465,7 +465,6 @@ func UpdateUser(c *gin.Context) {
 	u.WeiBo = req.WeiBo
 	err = u.UpdateInfo()
 	if err != nil {
-
 		flog.Log.Errorf("UpdateUser err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
@@ -484,8 +483,8 @@ func TakeUser(c *gin.Context) {
 
 	u, err := GetUserSession(c)
 	if err != nil {
-		flog.Log.Errorf("TakeUser err:%s", "session not found")
-		resp.Error = Error(LazyError, "session not found")
+		flog.Log.Errorf("TakeUser err:%s", err.Error())
+		resp.Error = Error(I500, "")
 		return
 	}
 	resp.Flag = true
@@ -500,14 +499,13 @@ type ListUserRequest struct {
 	UpdateTimeBegin int64    `json:"update_time_begin"`
 	UpdateTimeEnd   int64    `json:"update_time_end"`
 	Sort            []string `json:"sort" validate:"dive,lt=100"`
-
-	Email  string `json:"email" validate:"omitempty,email"`
-	WeChat string `json:"wechat" validate:"omitempty,alphanumunicode,gt=3,lt=30"`
-	WeiBo  string `json:"weibo" validate:"omitempty,url"`
-	Github string `json:"github" validate:"omitempty,url"`
-	QQ     string `json:"qq" validate:"omitempty,numeric,gt=6,lt=12"`
-	Gender int    `json:"gender" validate:"oneof=-1 0 1 2"`
-	Status int    `json:"status" validate:"oneof=-1 0 1 2"`
+	Email           string   `json:"email" validate:"omitempty,email"`
+	WeChat          string   `json:"wechat" validate:"omitempty,alphanumunicode,gt=3,lt=30"`
+	WeiBo           string   `json:"weibo" validate:"omitempty,url"`
+	Github          string   `json:"github" validate:"omitempty,url"`
+	QQ              string   `json:"qq" validate:"omitempty,numeric,gt=6,lt=12"`
+	Gender          int      `json:"gender" validate:"oneof=-1 0 1 2"`
+	Status          int      `json:"status" validate:"oneof=-1 0 1 2"`
 
 	PageHelp
 }
@@ -602,7 +600,6 @@ func ListUser(c *gin.Context) {
 	defer countSession.Close()
 	total, err := countSession.Count()
 	if err != nil {
-
 		flog.Log.Errorf("ListUser err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
@@ -618,7 +615,6 @@ func ListUser(c *gin.Context) {
 		// do query
 		err = session.Find(&users)
 		if err != nil {
-
 			flog.Log.Errorf("ListUser err:%s", err.Error())
 			resp.Error = Error(DBError, err.Error())
 			return
