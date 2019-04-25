@@ -23,10 +23,12 @@ type Config struct {
 }
 
 type MyConfig struct {
-	WebPort     string
-	LogPath     string
-	StoragePath string
-	Debug       bool
+	WebPort       string
+	LogPath       string
+	StoragePath   string
+	LogDebug      bool
+	StorageOss    bool
+	CloseRegister bool
 }
 
 func JsonOutConfig(config Config) (string, error) {

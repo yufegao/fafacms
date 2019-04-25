@@ -12,7 +12,7 @@ func TestJsonOutConfig(t *testing.T) {
 
 	c.DefaultConfig.StoragePath = "/root/data"
 	c.DefaultConfig.WebPort = "8080"
-	c.DefaultConfig.Debug = true
+	c.DefaultConfig.LogDebug = true
 
 	c.DbConfig.Host = "127.0.0.1"
 	c.DbConfig.User = "root"

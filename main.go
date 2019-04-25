@@ -69,7 +69,7 @@ func main() {
 
 	// 如果全局调试，那么所有DEBUG以上级别日志将会打印
 	// 实际情况下，最好设置为 true，
-	if config.FafaConfig.DefaultConfig.Debug {
+	if config.FafaConfig.DefaultConfig.LogDebug {
 		flog.SetLogLevel("DEBUG")
 	}
 

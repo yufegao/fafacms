@@ -68,12 +68,14 @@ var AuthFilter = func(c *gin.Context) {
 		return
 	}
 
+	// 未激活不能进入
 	if nowUser.Status == 0 {
 		flog.Log.Errorf("filter err: not active")
 		resp.Error = Error(AuthPermit, "not active")
 		return
 	}
 
+	// 被加入了黑名单
 	if nowUser.Status == 2 {
 		flog.Log.Errorf("filter err: black lock, contact admin")
 		resp.Error = Error(AuthPermit, "black lock, contact admin")
@@ -149,6 +151,7 @@ func CheckCookie(c *gin.Context) (success bool, user *model.User) {
 	}
 }
 
+// 获取用户信息，存于Session中的
 func GetUserSession(c *gin.Context) (*model.User, error) {
 	u := new(model.User)
 	s := config.FafaSessionMgr.Load(c.Request)
@@ -168,6 +171,8 @@ func GetUserSession(c *gin.Context) (*model.User, error) {
 
 func SetUserSession(c *gin.Context, user *model.User) error {
 	s := config.FafaSessionMgr.Load(c.Request)
+
+	// 核心信息不能暴露出去
 	user.Password = ""
 	user.ActivateExpired = 0
 	user.ActivateMd5 = ""

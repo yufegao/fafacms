@@ -10,6 +10,7 @@ type File struct {
 	Type           string `json:"type" xorm:"index"`
 	Tag            string `json:"tag" xorm:"index"`
 	UserId         int    `json:"user_id" xorm:"index"`
+	UserName       string `json:"user_name" xorm:"index"`
 	FileName       string `json:"file_name"`
 	ReallyFileName string `json:"really_file_name"`
 	Md5            string `json:"md5" xorm:"unique"`

@@ -28,13 +28,19 @@ type RegisterUserRequest struct {
 	ImagePath  string `json:"image_path" validate:"omitempty,lt=100"`
 }
 
-// 用户注册
+// 用户注册，任何人可以用唯一邮箱来注册
 func RegisterUser(c *gin.Context) {
 	resp := new(Resp)
 	req := new(RegisterUserRequest)
 	defer func() {
 		JSONL(c, 200, req, resp)
 	}()
+
+	// 配置如果关闭注册，那么直接返回
+	if config.FafaConfig.DefaultConfig.CloseRegister {
+		resp.Error = Error(LazyError, "can not register")
+		return
+	}
 
 	if errResp := ParseJSON(c, req); errResp != nil {
 		resp.Error = errResp
@@ -49,6 +55,7 @@ func RegisterUser(c *gin.Context) {
 		return
 	}
 
+	// 唯一名字不能重复，作为子域名存在
 	u := new(model.User)
 	u.Name = req.Name
 	repeat, err := u.IsNameRepeat()
@@ -63,7 +70,7 @@ func RegisterUser(c *gin.Context) {
 		return
 	}
 
-	// email check
+	// 邮箱不能重复
 	u.Email = req.Email
 	repeat, err = u.IsEmailRepeat()
 	if err != nil {
@@ -98,9 +105,11 @@ func RegisterUser(c *gin.Context) {
 		u.HeadPhoto = req.ImagePath
 	}
 
+	// 激活验证码
 	u.ActivateMd5 = util.Md5(u.Email)
-	u.Describe = req.Describe
 	u.ActivateExpired = time.Now().Add(48 * time.Hour).Unix()
+
+	u.Describe = req.Describe
 	u.NickName = req.NickName
 	u.Password = req.Password
 	u.Gender = req.Gender
@@ -121,9 +130,9 @@ func RegisterUser(c *gin.Context) {
 		resp.Error = Error(EmailError, err.Error())
 		return
 	}
+
 	err = u.InsertOne()
 	if err != nil {
-
 		flog.Log.Errorf("RegisterUser err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
@@ -131,13 +140,14 @@ func RegisterUser(c *gin.Context) {
 
 	resp.Flag = true
 
+	// 如果不是调试模式，不应该返回信息
 	if AuthDebug {
 		resp.Data = u
 	}
 
 }
 
-// 用户创建
+// 创建用户，管理员权限
 func CreateUser(c *gin.Context) {
 	resp := new(Resp)
 	req := new(RegisterUserRequest)
@@ -215,6 +225,8 @@ func CreateUser(c *gin.Context) {
 	u.QQ = req.QQ
 	u.Github = req.Github
 	u.WeiBo = req.WeiBo
+
+	// 默认激活
 	u.Status = 1
 
 	err = u.InsertOne()
@@ -232,6 +244,7 @@ func CreateUser(c *gin.Context) {
 
 }
 
+// 用户自己激活自己
 func ActivateUser(c *gin.Context) {
 	resp := new(Resp)
 	code := c.Query("code")
@@ -249,6 +262,7 @@ func ActivateUser(c *gin.Context) {
 	u := new(model.User)
 	u.ActivateMd5 = code
 
+	// 判断激活码是否存在
 	exist, err := u.IsActivateCodeExist()
 	if err != nil {
 		flog.Log.Errorf("ActivateUser err:%s", err.Error())
@@ -264,17 +278,22 @@ func ActivateUser(c *gin.Context) {
 		return
 	}
 
+	// 如果用户不是未激活状态
 	if u.Status != 0 {
-		c.Redirect(302, config.FafaConfig.Domain)
+		flog.Log.Errorf("ActivateUser err:%s", "already active")
+		resp.Error = Error(LazyError, "already active")
+		c.String(200, "already active")
 		return
 	}
 
+	// 验证码过期，要重新生成验证码，需要用户手动请求另外的API
 	if u.ActivateExpired < time.Now().Unix() {
 		flog.Log.Errorf("ActivateUser err:%s", "code expired")
 		resp.Error = Error(LazyError, "code expired")
 		c.String(200, "code expired, resent email:<a href='%s/activate/code?code=%s'>Here</a>", config.FafaConfig.Domain, code)
 		return
 	} else {
+		// 更新用户的状态
 		u.Status = 1
 		err = u.UpdateStatus()
 		if err != nil {
@@ -283,6 +302,8 @@ func ActivateUser(c *gin.Context) {
 			c.String(200, "db err")
 			return
 		}
+
+		// 激活成功马上为用户设置Session
 		err = SetUserSession(c, u)
 		if err != nil {
 			flog.Log.Errorf("ActivateUser err:%s", err.Error())
@@ -292,10 +313,13 @@ func ActivateUser(c *gin.Context) {
 		}
 	}
 
+	resp.Flag = true
+	// 最后重定位到首页
 	c.Redirect(302, config.FafaConfig.Domain)
 
 }
 
+// 用户激活验证码失效了，重新生成并发送邮件
 func ResendActivateCodeToUser(c *gin.Context) {
 	resp := new(Resp)
 	code := c.Query("code")
@@ -312,6 +336,7 @@ func ResendActivateCodeToUser(c *gin.Context) {
 	u := new(model.User)
 	u.ActivateMd5 = code
 
+	// 要生成新的验证码必须携带之前的验证码才行
 	exist, err := u.IsActivateCodeExist()
 	if err != nil {
 		flog.Log.Errorf("ResendUser err:%s", err.Error())
@@ -327,13 +352,20 @@ func ResendActivateCodeToUser(c *gin.Context) {
 	}
 
 	if u.Status != 0 {
+		// 用户不是未激活状态
+		flog.Log.Errorf("ActivateUser err:%s", "already active")
+		resp.Error = Error(LazyError, "already active")
+		c.String(200, "already active")
+		return
 	} else if u.ActivateExpired > time.Now().Unix() {
+		// 验证码过期时间还没到，要等一下
 		flog.Log.Errorf("ResendUser err:%s", "code not expired")
 		resp.Error = Error(LazyError, "code not expired")
 		c.String(200, "code not expired")
 		return
 	}
 
+	// 更新验证码，过期时间48小时
 	err = u.UpdateActivateCode()
 	if err != nil {
 		flog.Log.Errorf("ResendUser err:%s", err.Error())
@@ -355,6 +387,7 @@ func ResendActivateCodeToUser(c *gin.Context) {
 		return
 	}
 
+	resp.Flag = true
 	c.String(200, "email code reset")
 }
 
@@ -362,6 +395,7 @@ type ForgetPasswordRequest struct {
 	Email string `json:"email" validate:"required,email"`
 }
 
+// 用户忘记了密码，需要发充值密码验证码
 func ForgetPasswordOfUser(c *gin.Context) {
 	resp := new(Resp)
 	req := new(ForgetPasswordRequest)
@@ -382,6 +416,7 @@ func ForgetPasswordOfUser(c *gin.Context) {
 		return
 	}
 
+	// 通过用户邮箱获取用户信息
 	u := new(model.User)
 	u.Email = req.Email
 	ok, err := u.GetUserByEmail()
@@ -396,7 +431,9 @@ func ForgetPasswordOfUser(c *gin.Context) {
 		return
 	}
 
+	// 重设密码验证码过期的话重新设置
 	if u.CodeExpired < time.Now().Unix() {
+		// 验证码300秒内有效
 		err = u.UpdateCode()
 		if err != nil {
 			flog.Log.Errorf("ForgetPassword err:%s", err.Error())
@@ -433,6 +470,7 @@ type ChangePasswordRequest struct {
 	RePassword string `json:"repassword" validate:"eqfield=Password"`
 }
 
+// 更改密码，需要用到忘记密码的验证码
 func ChangePasswordOfUser(c *gin.Context) {
 	resp := new(Resp)
 	req := new(ChangePasswordRequest)
@@ -453,6 +491,7 @@ func ChangePasswordOfUser(c *gin.Context) {
 		return
 	}
 
+	// 通过用户邮箱获取用户信息
 	u := new(model.User)
 	u.Email = req.Email
 	ok, err := u.GetUserByEmail()
@@ -467,6 +506,7 @@ func ChangePasswordOfUser(c *gin.Context) {
 		return
 	}
 
+	// 验证码一致，可以修改
 	if u.Code == req.Code {
 		u.Password = req.Password
 		err = u.UpdatePassword()
@@ -481,6 +521,7 @@ func ChangePasswordOfUser(c *gin.Context) {
 		return
 	}
 
+	// 更改密码后需要删除登录信息
 	DeleteUserSession(c)
 	c.SetCookie("auth", "", 0, "", "", false, false)
 	resp.Flag = true
@@ -497,6 +538,7 @@ type UpdateUserRequest struct {
 	ImagePath string `json:"image_path" validate:"omitempty,lt=100"`
 }
 
+// 用户自己修改自己的信息
 func UpdateUser(c *gin.Context) {
 	resp := new(Resp)
 	req := new(UpdateUserRequest)
@@ -517,6 +559,7 @@ func UpdateUser(c *gin.Context) {
 		return
 	}
 
+	// 获取自己的信息
 	uu, err := GetUserSession(c)
 	if err != nil {
 		flog.Log.Errorf("UpdateUser err: %s", err.Error())
@@ -567,6 +610,7 @@ func UpdateUser(c *gin.Context) {
 
 }
 
+// 用户获取自己的信息
 func TakeUser(c *gin.Context) {
 	resp := new(Resp)
 	defer func() {
@@ -606,6 +650,7 @@ type ListUserResponse struct {
 	PageHelp
 }
 
+// 列出用户列表，超级管理员权限
 func ListUser(c *gin.Context) {
 	resp := new(Resp)
 
@@ -726,6 +771,7 @@ type AssignGroupRequest struct {
 	Users        []int `json:"users"`
 }
 
+// 为用户分配组，每个用户只能有一个组，权限相对弱一点
 func AssignGroupToUser(c *gin.Context) {
 	resp := new(Resp)
 	req := new(AssignGroupRequest)
@@ -744,6 +790,7 @@ func AssignGroupToUser(c *gin.Context) {
 		return
 	}
 
+	// 为用户移除组
 	if req.GroupRelease == 1 {
 		u := new(model.User)
 		num, err := config.FafaRdb.Client.Table(new(model.User)).Cols("group_id").In("id", req.Users).Update(u)
@@ -797,6 +844,7 @@ type UpdateUserAdminRequest struct {
 	Status   int    `json:"status" validate:"oneof=0 1 2"`
 }
 
+// 更新用户信息，超级管理员，可以修改用户密码，以及将用户加入黑名单，禁止使用等
 func UpdateUserAdmin(c *gin.Context) {
 	resp := new(Resp)
 	req := new(UpdateUserAdminRequest)

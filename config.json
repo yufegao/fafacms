@@ -2,9 +2,11 @@
   "Domain": "http://127.0.0.1:8080",
   "DefaultConfig": {
     "WebPort": ":8080",
+    "StorageOss": false,
     "StoragePath": "./data/storage",
+    "LogDebug": true,
     "LogPath": "./data/log/fafacms_log.log",
-    "Debug": true
+    "CloseRegister": true
   },
   "DbConfig": {
     "DriverName": "mysql",

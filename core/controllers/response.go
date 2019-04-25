@@ -85,6 +85,7 @@ func JSONL(c *gin.Context, code int, req interface{}, obj *Resp) {
 	c.Render(code, render.JSON{Data: obj})
 }
 
+// 不转发，仅仅审计
 func LogAlone(c *gin.Context, req interface{}, obj *Resp) {
 	record := new(model.Log)
 	record.Ip = c.ClientIP()

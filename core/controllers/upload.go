@@ -38,6 +38,7 @@ type UploadResponse struct {
 	Size     int64  `json:"size"`
 	Url      string `json:"url"`
 	Addon    string `json:"addon"`
+	Oss      bool   `json:"oss"`
 }
 
 /*
@@ -59,7 +60,7 @@ func UploadFile(c *gin.Context) {
 		return
 	}
 
-	uid := uu.Id
+	uName := uu.Name
 
 	fileType := c.DefaultPostForm("type", "other")
 	if fileType == "" {
@@ -100,6 +101,7 @@ func UploadFile(c *gin.Context) {
 		return
 	}
 
+	// 打开文件流
 	f, err := h.Open()
 	if err != nil {
 		Log.Errorf("upload err:%s", err.Error())
@@ -109,6 +111,7 @@ func UploadFile(c *gin.Context) {
 
 	defer f.Close()
 
+	// 读取二进制
 	raw, err := ioutil.ReadAll(f)
 	if err != nil {
 		Log.Errorf("upload err:%s", err.Error())
@@ -116,6 +119,15 @@ func UploadFile(c *gin.Context) {
 		return
 	}
 
+	// 二进制空那么报错
+	fileSize := len(raw)
+	if fileSize == 0 {
+		Log.Errorf("upload err:%s", "file empty")
+		resp.Error = Error(UploadFileError, "file empty")
+		return
+	}
+
+	// 加盐的MD5
 	fileMd5, err := myutil.Md5(raw)
 	if err != nil {
 		Log.Errorf("upload err:%s", err.Error())
@@ -123,9 +135,11 @@ func UploadFile(c *gin.Context) {
 		return
 	}
 
-	fileMd5 = fileMd5 + "_" + util.IS(uid)
+	// MD5需要再加上用户唯一标志，方便不同用户可以上传一样的文件
+	fileMd5 = fileMd5 + "_" + uName
 	fileName := fileMd5 + "." + fileSuffix
 
+	// 判断数据库文件是否存在
 	p := new(model.File)
 	p.Md5 = fileMd5
 	exist, err := p.Exist()
@@ -134,34 +148,45 @@ func UploadFile(c *gin.Context) {
 		return
 	}
 
+	// 文件不存在
 	if !exist {
-		fileDir := filepath.Join(config.FafaConfig.DefaultConfig.StoragePath, fileType, util.IS(uid))
-		util.MakeDir(fileDir)
+		fileDir := filepath.Join(config.FafaConfig.DefaultConfig.StoragePath, uName, fileType)
 		fileAbName := filepath.Join(fileDir, fileName)
 
-		if len(raw) == 0 {
-			Log.Errorf("upload err:%s", "file empty")
-			resp.Error = Error(UploadFileError, "file empty")
-			return
-		}
-
-		err = util.SaveToFile(fileAbName, raw)
-		if err != nil {
-			Log.Errorf("upload err:%s", err.Error())
-			resp.Error = Error(UploadFileError, err.Error())
-			return
-		}
-
-		if util.InArray(scaleType, fileSuffix) {
-			p.IsPicture = 1
-			fileScaleDir := filepath.Join(config.FafaConfig.DefaultConfig.StoragePath+"_x", fileType, util.IS(uid))
-			util.MakeDir(fileScaleDir)
-			fileScaleAbName := filepath.Join(fileScaleDir, fileName)
-			err := go_image.ScaleF2F(fileAbName, fileScaleAbName, 100)
+		// 本地存储模式
+		if config.FafaConfig.DefaultConfig.StorageOss != true {
+			// 磁盘模式
+			util.MakeDir(fileDir)
+			err = util.SaveToFile(fileAbName, raw)
 			if err != nil {
 				Log.Errorf("upload err:%s", err.Error())
 				resp.Error = Error(UploadFileError, err.Error())
 				return
+			}
+		} else {
+			// 阿里OSS模式
+			p.StoreType = 1
+		}
+
+		// 如果是图片进行裁剪
+		if util.InArray(scaleType, fileSuffix) {
+			p.IsPicture = 1
+
+			// 本地存储模式
+			if config.FafaConfig.DefaultConfig.StorageOss != true {
+				fileScaleDir := filepath.Join(config.FafaConfig.DefaultConfig.StoragePath+"_x", uName, fileType)
+				fileScaleAbName := filepath.Join(fileScaleDir, fileName)
+
+				// 裁剪
+				util.MakeDir(fileScaleDir)
+				err := go_image.ScaleF2F(fileAbName, fileScaleAbName, 100)
+				if err != nil {
+					Log.Errorf("upload err:%s", err.Error())
+					resp.Error = Error(UploadFileError, err.Error())
+					return
+				}
+			} else {
+				// 阿里OSS模式
 			}
 		}
 
@@ -170,10 +195,13 @@ func UploadFile(c *gin.Context) {
 		p.ReallyFileName = h.Filename
 		p.CreateTime = time.Now().Unix()
 		p.Describe = describe
-		p.UserId = uid
+		p.UserId = uu.Id
+		p.UserName = uName
 		p.Tag = tag
-		p.Url = fmt.Sprintf("/%s/%d/%s", fileType, uid, fileName)
-		p.Size = h.Size
+
+		// 统一URL
+		p.Url = fmt.Sprintf("/%s/%s/%s", uName, fileType, fileName)
+		p.Size = int64(fileSize)
 		_, err = config.FafaRdb.InsertOne(p)
 		if err != nil {
 			Log.Errorf("upload err:%s", err.Error())
@@ -184,10 +212,20 @@ func UploadFile(c *gin.Context) {
 		data.Addon = "file the same in server"
 	}
 
+	// 返回基本信息
 	resp.Flag = true
 	data.FileName = h.Filename
-	data.Size = h.Size
-	data.Url = fmt.Sprintf("/%s/%d/%s", fileType, uid, fileName)
+	data.Size = int64(fileSize)
+
+	// 如果是OSS的话应该返回全路径。
+	// 如下：
+	if config.FafaConfig.DefaultConfig.StorageOss != true {
+		p.Url = fmt.Sprintf("/%s/%s/%s", uName, fileType, fileName)
+	} else {
+		// todo
+		p.Url = ""
+		data.Oss = true
+	}
 	resp.Data = data
 	return
 }
@@ -345,10 +383,12 @@ func ListFileAdminHelper(c *gin.Context, userId int) {
 	resp.Flag = true
 }
 
+// 列出所有用户的文件信息，管理员权限
 func ListFileAdmin(c *gin.Context) {
 	ListFileAdminHelper(c, 0)
 }
 
+// 列出自己的文件
 func ListFile(c *gin.Context) {
 	resp := new(Resp)
 	uu, err := GetUserSession(c)
@@ -396,15 +436,16 @@ func UpdateFileAdminHelper(c *gin.Context, userId int) {
 		return
 	}
 
+	// 可以修改文件Tag和描述，方便分组
 	f := new(model.File)
 	f.Id = req.Id
 	f.Tag = req.Tag
 	f.Describe = req.Describe
 	f.UserId = userId
 
+	// 更改文件，可以将文件设置为隐藏
 	ok, err := f.Update(req.Hide == 1)
 	if err != nil {
-
 		Log.Errorf("UpdateFileAdmin err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
@@ -414,10 +455,12 @@ func UpdateFileAdminHelper(c *gin.Context, userId int) {
 	resp.Flag = true
 }
 
+// 可以更改其他人的文件信息，管理员权限
 func UpdateFileAdmin(c *gin.Context) {
 	UpdateFileAdminHelper(c, 0)
 }
 
+// 更新自己的文件信息
 func UpdateFile(c *gin.Context) {
 	resp := new(Resp)
 	uu, err := GetUserSession(c)
