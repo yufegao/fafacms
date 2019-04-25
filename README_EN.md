@@ -69,7 +69,7 @@ description of`config.json`:
     "WebPort": ":8080", 				    	# Port for project(optional)
     "StoragePath": "./data/storage",  # Path for file saving(optional)
     "LogPath": "./data/log/fafacms_log.log", 	# Log saving path(optional)
-    "Debug": true   					        # Debug(default)
+    "LogDebug": true   					        # Debug(default)
   },
   "DbConfig": {
     "DriverName": "mysql",  	# Relational DB driver(default)

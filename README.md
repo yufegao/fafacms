@@ -85,7 +85,7 @@ fafacms -config=./config.json
     "WebPort": ":8080",               # 程序运行端口(可改)
     "StoragePath": "./data/storage",  # 本地文件保存地址(可改)
     "LogPath": "./data/log/fafacms_log.log", 	# 日志保存地址(可改)
-    "Debug": true   					        # 打开调试(默认保持)
+    "LogDebug": true   					        # 打开调试(默认保持)
   },
   "DbConfig": {
     "DriverName": "mysql",  	# 关系型数据库驱动(默认保持)
