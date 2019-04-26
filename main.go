@@ -108,6 +108,7 @@ func main() {
 			model.CommentCal{},
 			model.Log{},
 			model.File{},
+			model.ContentHistory{},
 		})
 	}
 

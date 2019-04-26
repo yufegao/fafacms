@@ -5,18 +5,23 @@
 	"Deps": [
 		{
 			"ImportPath": "github.com/alexedwards/scs",
-			"Comment": "v1.4.0",
-			"Rev": "cac921d76a577e6c80f3f6bc0857b8eeb650669e"
+			"Comment": "v1.4.0-2-gcfcbf41",
+			"Rev": "cfcbf41460ffe695c7d52159fbff3393c646c8f0"
 		},
 		{
 			"ImportPath": "github.com/alexedwards/scs/stores/cookiestore",
-			"Comment": "v1.4.0",
-			"Rev": "cac921d76a577e6c80f3f6bc0857b8eeb650669e"
+			"Comment": "v1.4.0-2-gcfcbf41",
+			"Rev": "cfcbf41460ffe695c7d52159fbff3393c646c8f0"
+		},
+		{
+			"ImportPath": "github.com/alexedwards/scs/stores/memstore",
+			"Comment": "v1.4.0-2-gcfcbf41",
+			"Rev": "cfcbf41460ffe695c7d52159fbff3393c646c8f0"
 		},
 		{
 			"ImportPath": "github.com/alexedwards/scs/stores/redisstore",
-			"Comment": "v1.4.0",
-			"Rev": "cac921d76a577e6c80f3f6bc0857b8eeb650669e"
+			"Comment": "v1.4.0-2-gcfcbf41",
+			"Rev": "cfcbf41460ffe695c7d52159fbff3393c646c8f0"
 		},
 		{
 			"ImportPath": "github.com/gin-contrib/cors",
@@ -46,6 +51,11 @@
 			"ImportPath": "github.com/gin-gonic/gin/render",
 			"Comment": "v1.3.0-150-gffcbe77",
 			"Rev": "ffcbe77b1e6222b4e0e97eb1920adc1813fb2224"
+		},
+		{
+			"ImportPath": "github.com/go-gomail/gomail",
+			"Comment": "2.0.0-23-g81ebce5",
+			"Rev": "81ebce5c23dfd25c6c67194b37d3dd3f338c98b1"
 		},
 		{
 			"ImportPath": "github.com/go-playground/locales",
@@ -98,6 +108,22 @@
 			"Rev": "39e2c31b7ca38b521ceb836620a269e62c895dc9"
 		},
 		{
+			"ImportPath": "github.com/hunterhug/go_image",
+			"Rev": "887faf0aba0a4357e72918f5d73e205da8c04fb6"
+		},
+		{
+			"ImportPath": "github.com/hunterhug/go_image/graphics",
+			"Rev": "887faf0aba0a4357e72918f5d73e205da8c04fb6"
+		},
+		{
+			"ImportPath": "github.com/hunterhug/go_image/graphics/convolve",
+			"Rev": "887faf0aba0a4357e72918f5d73e205da8c04fb6"
+		},
+		{
+			"ImportPath": "github.com/hunterhug/go_image/graphics/interp",
+			"Rev": "887faf0aba0a4357e72918f5d73e205da8c04fb6"
+		},
+		{
 			"ImportPath": "github.com/hunterhug/parrot/log/golog",
 			"Rev": "6af97adffe79ea0ed0fca21d79b7fdf2cd9cd912"
 		},
@@ -139,6 +165,11 @@
 			"ImportPath": "github.com/modern-go/reflect2",
 			"Comment": "v1.0.1",
 			"Rev": "94122c33edd36123c84d5368cfb2b69df93a0ec8"
+		},
+		{
+			"ImportPath": "github.com/patrickmn/go-cache",
+			"Comment": "v2.1.0-2-g5633e08",
+			"Rev": "5633e0862627c011927fa39556acae8b1f1df58a"
 		},
 		{
 			"ImportPath": "github.com/satori/go.uuid",

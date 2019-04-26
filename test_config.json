@@ -1,0 +1,41 @@
+{
+  "Domain": "http://127.0.0.1:8080",
+  "DefaultConfig": {
+    "WebPort": ":8080",
+    "StorageOss": false,
+    "StoragePath": "./data/storage",
+    "LogDebug": true,
+    "LogPath": "./data/log/fafacms_log.log",
+    "CloseRegister": false
+  },
+  "DbConfig": {
+    "DriverName": "mysql",
+    "Name": "fafa",
+    "Host": "192.168.91.129",
+    "User": "root",
+    "Pass": "123456789",
+    "Port": "3306",
+    "Prefix": "fafacms_",
+    "MaxIdleConns": 20,
+    "MaxOpenConns": 20,
+    "DebugToFile": false,
+    "DebugToFileName": "./data/log/fafacms_db.log",
+    "Debug": true
+  },
+  "Email": {
+    "Host": "smtp-mail.outlook.com",
+    "Port": 587,
+    "Email": "gdccmcm14@live.com",
+    "Password": "",
+    "Subject": "Welcome register FaFa CMS",
+    "Body": "<a href='%s'>click to active</a>"
+  },
+  "SessionConfig": {
+    "RedisHost": "192.168.91.129:6379",
+    "RedisMaxIdle": 64,
+    "RedisMaxActive": 0,
+    "RedisIdleTimeout": 120,
+    "RedisDB": 0,
+    "RedisPass": "123456789"
+  }
+}

@@ -6,25 +6,43 @@ import (
 	"time"
 )
 
+// 内容表
 type Content struct {
+	Id          int    `json:"id" xorm:"bigint pk autoincr"`
+	Seo         string `json:"seo" xorm:"index"`
+	Title       string `json:"name" xorm:"varchar(200) notnull"`
+	UserId      int    `json:"user_id" xorm:"index"`
+	UserName    string `json:"user_name" xorm:"index"` // 冗余字段
+	NodeId      int    `json:"node_id" xorm:"index"`
+	Status      int    `json:"status" xorm:"not null comment('0 normal, 1 hide，2 deleted') TINYINT(1) index"`
+	Describe    string `json:"describe" xorm:"TEXT"`
+	PreDescribe string `json:"pre_describe" xorm:"TEXT"`                             // 预览内容，临时保存，当修改后调用发布接口，会刷新到Describe，并且记录进历史表
+	PreFlush    int    `json:"status" xorm:"not null comment('1 flush') TINYINT(1)"` // 是否预览内容已经被刷新
+	CreateTime  int    `json:"create_time"`
+	UpdateTime  int    `json:"update_time,omitempty"`
+	ImagePath   string `json:"image_path" xorm:"varchar(1000)"`
+	Views       int    `json:"views"`
+	Password    string `json:"password,omitempty"`
+	Aa          string `json:"aa,omitempty"`
+	Ab          string `json:"ab,omitempty"`
+	Ac          string `json:"ac,omitempty"`
+	Ad          string `json:"ad,omitempty"`
+}
+
+// 内容历史表
+type ContentHistory struct {
 	Id         int    `json:"id" xorm:"bigint pk autoincr"`
+	ContentId  int    `json:"content_id" xorm:"bigint pk autoincr"`
 	Seo        string `json:"seo" xorm:"index"`
 	Title      string `json:"name" xorm:"varchar(200) notnull"`
 	UserId     int    `json:"user_id" xorm:"index"`
+	UserName   string `json:"user_name" xorm:"index"`
 	NodeId     int    `json:"node_id" xorm:"index"`
-	Status     int    `json:"status" xorm:"not null comment('0 normal, 1 hide，2 deleted') TINYINT(1) index"`
 	Describe   string `json:"describe" xorm:"TEXT"`
 	CreateTime int    `json:"create_time"`
-	UpdateTime int    `json:"update_time,omitempty"`
-	ImagePath  string `json:"image_path" xorm:"varchar(1000)"`
-	Views      int    `json:"views"`
-	Password   string `json:"password,omitempty"`
-	Aa         string `json:"aa,omitempty"`
-	Ab         string `json:"ab,omitempty"`
-	Ac         string `json:"ac,omitempty"`
-	Ad         string `json:"ad,omitempty"`
 }
 
+// 支持表，哪个用户对哪个内容进行了点评
 type ContentSupport struct {
 	Id          int    `json:"id" xorm:"bigint pk autoincr"`
 	UserId      int    `json:"user_id" xorm:"index"`
@@ -35,6 +53,7 @@ type ContentSupport struct {
 	Suggest     int    `json:"suggest" xorm:"not null comment('1 good, 0 Ha，2 bad') TINYINT(1) index"`
 }
 
+// 汇总表，内容的总评数量
 type ContentCal struct {
 	Id            int   `json:"id" xorm:"bigint pk autoincr"`
 	ContentId     int   `json:"content_id" xorm:"index"`
@@ -46,6 +65,7 @@ type ContentCal struct {
 	Ha            int   `json:"ha"`
 }
 
+// 内容节点，最多两层
 type ContentNode struct {
 	Id           int    `json:"id" xorm:"bigint pk autoincr"`
 	UserId       int    `json:"user_id" xorm:"index"`
