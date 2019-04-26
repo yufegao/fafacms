@@ -6,7 +6,7 @@
     "StoragePath": "./data/storage",
     "LogDebug": true,
     "LogPath": "./data/log/fafacms_log.log",
-    "CloseRegister": true
+    "CloseRegister": false
   },
   "DbConfig": {
     "DriverName": "mysql",
