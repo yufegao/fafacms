@@ -202,7 +202,6 @@ func CreateUser(c *gin.Context) {
 		p.Url = req.ImagePath
 		ok, err := p.Exist()
 		if err != nil {
-
 			flog.Log.Errorf("CreateUser err:%s", err.Error())
 			resp.Error = Error(DBError, err.Error())
 			return
@@ -765,6 +764,56 @@ func ListUser(c *gin.Context) {
 	resp.Flag = true
 }
 
+type ListGroupUserRequest struct {
+	GroupId int `json:"group_id" validate:"lt=0"`
+}
+
+type ListGroupUserResponse struct {
+	Users []model.User `json:"users"`
+}
+
+// 列出组下的用户
+func ListGroupUser(c *gin.Context) {
+	resp := new(Resp)
+
+	respResult := new(ListGroupUserResponse)
+	req := new(ListGroupUserRequest)
+	defer func() {
+		JSONL(c, 200, req, resp)
+	}()
+
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	var validate = validator.New()
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("ListGroupUser err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
+		return
+	}
+
+	// new query list session
+	session := config.FafaRdb.Client.NewSession()
+	defer session.Close()
+
+	users := make([]model.User, 0)
+
+	// group list where prepare
+	err = session.Table(new(model.User)).Where("group_id=?", req.GroupId).Find(&users)
+	if err != nil {
+		flog.Log.Errorf("ListUser err:%s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	respResult.Users = users
+	resp.Data = respResult
+	resp.Flag = true
+}
+
 type AssignGroupRequest struct {
 	GroupId      int   `json:"group_id"`
 	GroupRelease int   `json:"group_release"`
@@ -869,6 +918,8 @@ func UpdateUserAdmin(c *gin.Context) {
 	u.NickName = req.NickName
 	u.Id = req.Id
 	u.Password = req.Password
+
+	// 可以将用户拉入黑名单或者激活
 	u.Status = req.Status
 	err = u.UpdateInfo()
 	if err != nil {

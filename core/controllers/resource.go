@@ -10,6 +10,7 @@ import (
 	"math"
 )
 
+// 列出资源
 type ListResourceRequest struct {
 	Id    int      `json:"id"`
 	Name  string   `json:"name" validate:"omitempty,lt=100"`
@@ -167,6 +168,7 @@ func AssignGroupAndResource(c *gin.Context) {
 	}
 	session := config.FafaRdb.Client.NewSession()
 	defer session.Close()
+
 	err = session.Begin()
 	if err != nil {
 		flog.Log.Errorf("AssignGroupAndResource err:%s", err.Error())

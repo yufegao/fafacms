@@ -23,7 +23,6 @@ type User struct {
 	HeadPhoto       string `json:"head_photo" xorm:"varchar(1000)"`
 	CreateTime      int64  `json:"create_time"`
 	UpdateTime      int64  `json:"update_time,omitempty"`
-	DeleteTime      int64  `json:"delete_time,omitempty"`
 	ActivateMd5     string `json:"activate_md5,omitempty"`     // register and reset md5 to email
 	ActivateExpired int64  `json:"activate_expired,omitempty"` // md5 expired time
 	Status          int    `json:"status" xorm:"not null comment('0 unactive, 1 normal, 2 black') TINYINT(1) index"`

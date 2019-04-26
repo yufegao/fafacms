@@ -6,7 +6,7 @@ type Comment struct {
 	ObjectId   int    `json:"object_id" xorm:"index"`
 	ObjectUser int    `json:"object_user" xorm:"index"`
 	CommentId  int    `json:"comment_id,omitempty"`
-	Status     int    `json:"status" xorm:"not null comment('1 normal, 0 hide，2 deleted') TINYINT(1) index"`
+	Status     int    `json:"status" xorm:"not null comment('1 normal, 0 hide，2 deleted') TINYINT(1) index"` // 逻辑删除为2
 	Describe   string `json:"describe" xorm:"TEXT"`
 	CreateTime int64  `json:"create_time"`
 	UpdateTime int64  `json:"update_time,omitempty"`

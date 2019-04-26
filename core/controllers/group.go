@@ -425,3 +425,58 @@ func ListGroup(c *gin.Context) {
 	resp.Data = respResult
 	resp.Flag = true
 }
+
+type ListGroupResourceRequest struct {
+	GroupId int `json:"group_id" validate:"lt=0"`
+}
+
+type ListGroupResourceResponse struct {
+	Resources []int `json:"resources"`
+}
+
+// 列出组下的资源
+func ListGroupResource(c *gin.Context) {
+	resp := new(Resp)
+
+	respResult := new(ListGroupResourceResponse)
+	req := new(ListGroupResourceRequest)
+	defer func() {
+		JSONL(c, 200, req, resp)
+	}()
+
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	var validate = validator.New()
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("ListGroupResource err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
+		return
+	}
+
+	// new query list session
+	session := config.FafaRdb.Client.NewSession()
+	defer session.Close()
+
+	grs := make([]model.GroupResource, 0)
+
+	// group list where prepare
+	err = session.Table(new(model.GroupResource)).Where("group_id=?", req.GroupId).Find(&grs)
+	if err != nil {
+		flog.Log.Errorf("ListUser err:%s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	rs := make([]int, 0)
+	for _, v := range grs {
+		rs = append(rs, v.ResourceId)
+	}
+
+	respResult.Resources = rs
+	resp.Data = respResult
+	resp.Flag = true
+}

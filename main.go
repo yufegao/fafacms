@@ -95,20 +95,20 @@ func main() {
 	// 创建数据库表，需要先手动创建DB
 	if createTable {
 		server.CreateTable([]interface{}{
-			model.User{},
-			model.Group{},
-			model.Resource{},
-			model.GroupResource{},
-			model.Content{},
-			model.ContentNode{},
-			model.ContentSupport{},
-			model.ContentCal{},
-			model.Comment{},
+			model.User{},           // 用户表
+			model.Group{},          // 用户组表，用户可以拥有一个组
+			model.Resource{},       // 资源表，主要为需要管理员权限的路由服务
+			model.GroupResource{},  // 组可以被分配资源
+			model.Content{},        // 内容表
+			model.ContentHistory{}, // 内容历史表
+			model.ContentNode{},    // 内容节点表，内容必须拥有一个节点
+			model.ContentSupport{}, // 反馈表，内容被点赞或者反对，一对一
+			model.ContentCal{},     // 内容反馈统计表
+			model.Comment{},        // 评论表
 			model.CommentSupport{},
 			model.CommentCal{},
-			model.Log{},
-			model.File{},
-			model.ContentHistory{},
+			model.Log{},  // 日志表
+			model.File{}, // 文件表
 		})
 	}
 

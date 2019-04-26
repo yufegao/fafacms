@@ -142,7 +142,7 @@ func UploadFile(c *gin.Context) {
 	// 判断数据库文件是否存在
 	p := new(model.File)
 	p.Md5 = fileMd5
-	exist, err := p.Exist()
+	exist, err := p.Get()
 	if err != nil {
 		resp.Error = Error(DBError, err.Error())
 		return
@@ -163,16 +163,21 @@ func UploadFile(c *gin.Context) {
 				resp.Error = Error(UploadFileError, err.Error())
 				return
 			}
+
+			p.Url = fmt.Sprintf("/%s/%s/%s", uName, fileType, fileName)
 		} else {
 			// 阿里OSS模式
 			p.StoreType = 1
+			p.Url = fmt.Sprintf("oss://%s/%s/%s", uName, fileType, fileName)
+
+			// todo here
 		}
 
 		// 如果是图片进行裁剪
 		if util.InArray(scaleType, fileSuffix) {
 			p.IsPicture = 1
 
-			// 本地存储模式
+			// 本地存储模式，裁剪图静态路径为  /storage_x
 			if config.FafaConfig.DefaultConfig.StorageOss != true {
 				fileScaleDir := filepath.Join(config.FafaConfig.DefaultConfig.StoragePath+"_x", uName, fileType)
 				fileScaleAbName := filepath.Join(fileScaleDir, fileName)
@@ -187,6 +192,7 @@ func UploadFile(c *gin.Context) {
 				}
 			} else {
 				// 阿里OSS模式
+				// todo here
 			}
 		}
 
@@ -198,9 +204,6 @@ func UploadFile(c *gin.Context) {
 		p.UserId = uu.Id
 		p.UserName = uName
 		p.Tag = tag
-
-		// 统一URL
-		p.Url = fmt.Sprintf("/%s/%s/%s", uName, fileType, fileName)
 		p.Size = int64(fileSize)
 		_, err = config.FafaRdb.InsertOne(p)
 		if err != nil {
@@ -209,23 +212,22 @@ func UploadFile(c *gin.Context) {
 			return
 		}
 	} else {
+		// 文件存在
 		data.Addon = "file the same in server"
+		if p.Status != 0 {
+			// 如果被隐藏了额，应该改回来
+			p.Status = 0
+			p.UpdateStatus()
+		}
 	}
 
 	// 返回基本信息
 	resp.Flag = true
-	data.FileName = h.Filename
-	data.Size = int64(fileSize)
+	data.FileName = p.FileName
+	data.Size = p.Size
+	data.Url = p.Url
+	data.Oss = p.StoreType == 1
 
-	// 如果是OSS的话应该返回全路径。
-	// 如下：
-	if config.FafaConfig.DefaultConfig.StorageOss != true {
-		p.Url = fmt.Sprintf("/%s/%s/%s", uName, fileType, fileName)
-	} else {
-		// todo
-		p.Url = ""
-		data.Oss = true
-	}
 	resp.Data = data
 	return
 }
@@ -293,6 +295,7 @@ func ListFileAdminHelper(c *gin.Context, userId int) {
 	}
 
 	if req.Status != -1 {
+		// 只要不暴露这个参数的话，那些隐藏的文件不会被用户看到
 		session.And("status=?", req.Status)
 	}
 
@@ -443,7 +446,7 @@ func UpdateFileAdminHelper(c *gin.Context, userId int) {
 	f.Describe = req.Describe
 	f.UserId = userId
 
-	// 更改文件，可以将文件设置为隐藏
+	// 更改文件，可以将文件设置为隐藏，文件一旦上传，不能删除
 	ok, err := f.Update(req.Hide == 1)
 	if err != nil {
 		Log.Errorf("UpdateFileAdmin err:%s", err.Error())

@@ -41,11 +41,13 @@ var (
 	// need login group auth
 	V1Router = map[string]HttpHandle{
 		// 用户组操作
-		"/group/create": {"Create Group", controllers.CreateGroup, POST, true},
-		"/group/update": {"Update Group", controllers.UpdateGroup, POST, true},
-		"/group/delete": {"Delete Group", controllers.DeleteGroup, POST, true},
-		"/group/take":   {"Take Group", controllers.TakeGroup, GP, true},
-		"/group/list":   {"List Group", controllers.ListGroup, GP, true},
+		"/group/create":        {"Create Group", controllers.CreateGroup, POST, true},
+		"/group/update":        {"Update Group", controllers.UpdateGroup, POST, true},
+		"/group/delete":        {"Delete Group", controllers.DeleteGroup, POST, true},
+		"/group/take":          {"Take Group", controllers.TakeGroup, GP, true},
+		"/group/list":          {"List Group", controllers.ListGroup, GP, true},
+		"/group/user/list":     {"Group List User", controllers.ListGroupUser, GP, true},         // 超级管理员列出组下的用户
+		"/group/resource/list": {"Group List Resource", controllers.ListGroupResource, GP, true}, // 超级管理员列出组下的资源
 
 		// 用户操作
 		"/user/list":         {"User List All", controllers.ListUser, GP, true},              // 超级管理员列出用户列表

@@ -46,6 +46,8 @@ func CreateNode(c *gin.Context) {
 
 	n := new(model.ContentNode)
 	n.UserId = uu.Id
+
+	// 如果SEO非空，检查是否已经存在
 	if req.Seo != "" {
 		n.Seo = req.Seo
 		exist, err := n.CheckSeoValid()
@@ -54,11 +56,13 @@ func CreateNode(c *gin.Context) {
 			return
 		}
 		if exist {
+			// 存在报错
 			resp.Error = Error(DbRepeat, "field seo")
 			return
 		}
 	}
 
+	// 如果指定了父亲节点
 	if req.ParentNodeId != 0 {
 		n.ParentNodeId = req.ParentNodeId
 		exist, err := n.CheckParentValid()
@@ -67,6 +71,7 @@ func CreateNode(c *gin.Context) {
 			return
 		}
 		if !exist {
+			// 父亲节点不存在，报错
 			resp.Error = Error(DbNotFound, "field parent node")
 			return
 		}
@@ -153,6 +158,8 @@ func UpdateNode(c *gin.Context) {
 	n := new(model.ContentNode)
 	n.Id = req.Id
 	n.UserId = uu.Id
+
+	// 获取节点，节点会携带所有内容
 	exist, err := n.Get()
 	if err != nil {
 		flog.Log.Errorf("UpdateNode err: %s", err.Error())
@@ -160,47 +167,59 @@ func UpdateNode(c *gin.Context) {
 		return
 	}
 	if !exist {
+		// 不存在节点，报错
 		flog.Log.Errorf("UpdateNode err: %s", "field id not found")
 		resp.Error = Error(DbNotFound, "field id not found")
 		return
 	}
 
+	// 不能将自己作为自己的父亲
 	if n.Id == req.ParentNodeId {
 		flog.Log.Errorf("UpdateNode err: %s", "loop err")
 		resp.Error = Error(DbNotFound, "loop err")
 		return
 	}
 
+	// SEO不为空
 	if req.Seo != "" {
+		// 和之前的SEO不一样
 		if req.Seo != n.Seo {
 			n.Seo = req.Seo
+			// 检查是否存在SEO
 			exist, err := n.CheckSeoValid()
 			if err != nil {
 				resp.Error = Error(DBError, "")
 				return
 			}
 			if exist {
+				// SEO存在了，报错
 				resp.Error = Error(DbRepeat, "field seo")
 				return
 			}
 		}
 	}
 
+	// 指定了父亲节点
 	if req.ParentNodeId != 0 {
+		// 和之前的父亲节点不一样
 		if req.ParentNodeId != n.ParentNodeId {
 			n.ParentNodeId = req.ParentNodeId
+			// 检查该父亲节点是否存在
 			exist, err := n.CheckParentValid()
 			if err != nil {
 				resp.Error = Error(DBError, "")
 				return
 			}
 			if !exist {
+				// 不存在父亲节点，报错
 				resp.Error = Error(DbNotFound, "field parent node")
 				return
 			}
+			// 有了父亲节点，级别为1
 			n.Level = 1
 		}
 	} else {
+		// 没有指定父亲节点，归零
 		n.Level = 0
 		n.ParentNodeId = 0
 	}
@@ -227,6 +246,7 @@ func UpdateNode(c *gin.Context) {
 		}
 	}
 
+	// 以下只要存在不一致性才替换
 	if req.Name != n.Name {
 		n.Name = req.Name
 	}
@@ -239,6 +259,7 @@ func UpdateNode(c *gin.Context) {
 		n.Status = req.Status
 	}
 
+	// 更新
 	err = n.Update()
 	if err != nil {
 		flog.Log.Errorf("UpdateNode err:%s", err.Error())
@@ -283,6 +304,7 @@ func DeleteNode(c *gin.Context) {
 	n.Id = req.Id
 	n.UserId = uu.Id
 
+	// 删除节点时节点下不能有节点
 	childNum, err := n.CheckChildrenNum()
 	if err != nil {
 		flog.Log.Errorf("DeleteNode err:%s", err.Error())
@@ -291,6 +313,7 @@ func DeleteNode(c *gin.Context) {
 	}
 
 	if childNum >= 1 {
+		// 不能删除
 		flog.Log.Errorf("DeleteNode err:%s", "has node child")
 		resp.Error = Error(DbHookIn, "has node child")
 		return
@@ -299,6 +322,8 @@ func DeleteNode(c *gin.Context) {
 	content := new(model.Content)
 	content.UserId = uu.Id
 	content.NodeId = n.Id
+
+	// 删除节点时，节点下不能有内容
 	contentNum, err := content.CountNumOfNode()
 	if err != nil {
 		flog.Log.Errorf("DeleteNode err:%s", err.Error())
@@ -307,13 +332,21 @@ func DeleteNode(c *gin.Context) {
 	}
 
 	if contentNum >= 1 {
+		// 有内容，不能删除
 		flog.Log.Errorf("DeleteNode err:%s", "has content child")
 		resp.Error = Error(DbHookIn, "has content child")
 		return
 	}
 
-	resp.Flag = true
+	// 逻辑删除
+	err = n.LogicDelete()
+	if err != nil {
+		flog.Log.Errorf("DeleteNode err:%s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
 
+	resp.Flag = true
 }
 
 type TakeNodeRequest struct {
@@ -372,7 +405,7 @@ type ListNodeRequest struct {
 	Id              int      `json:"id"`
 	Seo             string   `json:"seo" validate:"omitempty,alphanumunicode,gt=3,lt=30"`
 	ParentNodeId    int      `json:"parent_node_id"`
-	Status          int      `json:"status" validate:"oneof=-1 0 1"`
+	Status          int      `json:"status" validate:"oneof=-1 0 1 2"`
 	Level           int      `json:"level" validate:"oneof=-1 0 1"`
 	UserId          int      `json:"user_id"`
 	CreateTimeBegin int64    `json:"create_time_begin"`
@@ -449,6 +482,10 @@ func ListNodeHelper(c *gin.Context, userId int) {
 	}
 
 	if req.Status != -1 {
+		// 保证非管理员，不会查找到被删除的节点的
+		if userId != 0 && req.Status == 2 {
+			req.Status = 0
+		}
 		session.And("status=?", req.Status)
 	}
 
