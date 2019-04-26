@@ -110,3 +110,13 @@ func (n *ContentNode) LogicDelete() error {
 	_, err := config.FafaRdb.Client.Where("id=?", n.Id).And("user_id=?", n.UserId).Cols("seo", "level", "parent_node_id", "update_time", "status").Update(n)
 	return err
 }
+
+// 真删除
+func (n *ContentNode) Delete() error {
+	if n.UserId == 0 || n.Id == 0 {
+		return errors.New("where is empty")
+	}
+
+	_, err := config.FafaRdb.Client.Where("user_id=?", n.UserId).And("id=?", n.Id).Delete(n)
+	return err
+}

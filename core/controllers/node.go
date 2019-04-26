@@ -324,7 +324,7 @@ func DeleteNode(c *gin.Context) {
 	content.NodeId = n.Id
 
 	// 删除节点时，节点下不能有内容
-	contentNum, err := content.CountNumOfNode()
+	allContentNum, contentNum, err := content.CountNumOfNode()
 	if err != nil {
 		flog.Log.Errorf("DeleteNode err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
@@ -338,8 +338,14 @@ func DeleteNode(c *gin.Context) {
 		return
 	}
 
-	// 逻辑删除
-	err = n.LogicDelete()
+	// 如果从来没有删除过，请直接删除
+	if allContentNum == 0 {
+		err = n.Delete()
+	} else {
+		// 逻辑删除
+		err = n.LogicDelete()
+	}
+
 	if err != nil {
 		flog.Log.Errorf("DeleteNode err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())

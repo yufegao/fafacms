@@ -17,6 +17,7 @@ type Content struct {
 	Describe    string `json:"describe" xorm:"TEXT"`
 	PreDescribe string `json:"pre_describe" xorm:"TEXT"`                             // 预览内容，临时保存，当修改后调用发布接口，会刷新到Describe，并且记录进历史表
 	PreFlush    int    `json:"status" xorm:"not null comment('1 flush') TINYINT(1)"` // 是否预览内容已经被刷新
+	Version     int    `json:"verson"`                                               // 发布了多少次版本
 	CreateTime  int    `json:"create_time"`
 	UpdateTime  int    `json:"update_time,omitempty"`
 	ImagePath   string `json:"image_path" xorm:"varchar(1000)"`
@@ -65,13 +66,19 @@ type ContentCal struct {
 }
 
 // 统计节点下的内容数量
-// 被删除的内容不会被统计
-func (c *Content) CountNumOfNode() (int, error) {
+func (c *Content) CountNumOfNode() (int64, int64, error) {
 	if c.UserId == 0 || c.NodeId == 0 {
-		return 0, errors.New("where is empty")
+		return 0, 0, errors.New("where is empty")
 	}
 
 	// 非删除状态下的内容
 	num, err := config.FafaRdb.Client.Table(c).Where("user_id=?", c.UserId).And("node_id=?", c.NodeId).And("status<=?", 2).Count()
-	return int(num), err
+	if err != nil {
+		return 0, 0, err
+	}
+	allNum, err := config.FafaRdb.Client.Table(c).Where("user_id=?", c.UserId).And("node_id=?", c.NodeId).Count()
+	if err != nil {
+		return 0, 0, err
+	}
+	return allNum, num, nil
 }
