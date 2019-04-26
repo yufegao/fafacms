@@ -77,13 +77,14 @@ var (
 		"/node/admin/list": {"List Node All", controllers.ListNodeAdmin, GP, true}, // 管理员查看其他用户节点
 
 		// 内容操作
-		"/content/create":       {"Create Content Self", controllers.CreateContent, POST, false},
-		"/content/update":       {"Update Content Self", controllers.UpdateContent, POST, false},
-		"/content/admin/update": {"Update Content All", controllers.UpdateContent, POST, true},
-		"/content/delete":       {"Delete Content Self Logic", controllers.DeleteContent, POST, false},
-		"/content/take":         {"Take Content Self", controllers.TakeContent, GP, false},
-		"/content/list":         {"List Content Self", controllers.ListContent, GP, false},
-		"/content/admin/list":   {"List Content All", controllers.ListContent, GP, true},
+		"/content/create":       {"Create Content Self", controllers.CreateContent, POST, false},       // 创建文章内容
+		"/content/update":       {"Update Content Self", controllers.UpdateContent, POST, false},       // 更新内容，更新会写入预览
+		"/content/publish":      {"Update Content Self", controllers.UpdateContent, POST, false},       // 将预览刷进另外一个字段
+		"/content/admin/update": {"Update Content All", controllers.UpdateContent, POST, true},         // 超级管理员修改文章，比如禁用或者恢复文章
+		"/content/delete":       {"Delete Content Self Logic", controllers.DeleteContent, POST, false}, // 逻辑删除文章
+		"/content/take":         {"Take Content Self", controllers.TakeContent, GP, false},             // 获取文章内容
+		"/content/list":         {"List Content Self", controllers.ListContent, GP, false},             // 列出文章
+		"/content/admin/list":   {"List Content All", controllers.ListContent, GP, true},               // 管理员列出文章
 		//
 		//"/comment/create": {controllers.CreateComment, POST},
 		//"/comment/update": {controllers.UpdateComment, POST},
