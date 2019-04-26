@@ -139,4 +139,4 @@ sudo docker logs -f --tail 10 fafacms
 
 ## Frontend Web
 
-See [https://github.com/hunterhug/fafafront](https://github.com/hunterhug/fafafront)
+See [https://github.com/hunterhug/fafacms_react](https://github.com/hunterhug/fafacms_react)
