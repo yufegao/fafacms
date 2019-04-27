@@ -10,7 +10,7 @@ type File struct {
 	Id             int    `json:"id" xorm:"bigint pk autoincr"`
 	Type           string `json:"type" xorm:"index"`
 	Tag            string `json:"tag" xorm:"index"`
-	UserId         int    `json:"user_id" xorm:"index"`
+	UserId         int    `json:"user_id" xorm:"bigint index"`
 	UserName       string `json:"user_name" xorm:"index"`
 	FileName       string `json:"file_name"`
 	ReallyFileName string `json:"really_file_name"`

@@ -342,8 +342,13 @@ func DeleteNode(c *gin.Context) {
 	if allContentNum == 0 {
 		err = n.Delete()
 	} else {
-		// 逻辑删除
-		err = n.LogicDelete()
+		// 不能逻辑删除
+		//err = n.LogicDelete()
+
+		// 垃圾桶里面有内容
+		flog.Log.Errorf("DeleteNode err:%s", "rubbish has content")
+		resp.Error = Error(DbHookIn, "rubbish has content")
+		return
 	}
 
 	if err != nil {
@@ -411,7 +416,7 @@ type ListNodeRequest struct {
 	Id              int      `json:"id"`
 	Seo             string   `json:"seo" validate:"omitempty,alphanumunicode,gt=3,lt=30"`
 	ParentNodeId    int      `json:"parent_node_id"`
-	Status          int      `json:"status" validate:"oneof=-1 0 1 2"`
+	Status          int      `json:"status" validate:"oneof=-1 0 1"`
 	Level           int      `json:"level" validate:"oneof=-1 0 1"`
 	UserId          int      `json:"user_id"`
 	CreateTimeBegin int64    `json:"create_time_begin"`
@@ -488,10 +493,6 @@ func ListNodeHelper(c *gin.Context, userId int) {
 	}
 
 	if req.Status != -1 {
-		// 保证非管理员，不会查找到被删除的节点的
-		if userId != 0 && req.Status == 2 {
-			req.Status = 0
-		}
 		session.And("status=?", req.Status)
 	}
 

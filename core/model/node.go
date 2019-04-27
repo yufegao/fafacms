@@ -9,15 +9,15 @@ import (
 // 内容节点，最多两层
 type ContentNode struct {
 	Id           int    `json:"id" xorm:"bigint pk autoincr"`
-	UserId       int    `json:"user_id" xorm:"index"`
+	UserId       int    `json:"user_id" xorm:"bigint index"`
 	Seo          string `json:"seo" xorm:"index"`
-	Status       int    `json:"status" xorm:"not null comment('0 normal,1 hide,2 deleted') TINYINT(1) index"` //  逻辑删除为2，SEO要置空
+	Status       int    `json:"status" xorm:"not null comment('0 normal,1 hide,2 deleted') TINYINT(1) index"` //  逻辑删除为2，SEO要置空，现在不允许逻辑删除了
 	Name         string `json:"name" xorm:"varchar(100) notnull"`
 	Describe     string `json:"describe" xorm:"TEXT"`
 	CreateTime   int64  `json:"create_time"`
 	UpdateTime   int64  `json:"update_time,omitempty"`
 	ImagePath    string `json:"image_path" xorm:"varchar(1000)"`
-	ParentNodeId int    `json:"parent_node_id"`
+	ParentNodeId int    `json:"parent_node_id" xorm:"bigint"`
 	Level        int    `json:"level"`
 	Aa           string `json:"aa,omitempty"`
 	Ab           string `json:"ab,omitempty"`

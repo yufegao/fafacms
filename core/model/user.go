@@ -26,7 +26,7 @@ type User struct {
 	ActivateMd5     string `json:"activate_md5,omitempty"`     // register and reset md5 to email
 	ActivateExpired int64  `json:"activate_expired,omitempty"` // md5 expired time
 	Status          int    `json:"status" xorm:"not null comment('0 unactive, 1 normal, 2 black') TINYINT(1) index"`
-	GroupId         int    `json:"group_id,omitempty" xorm:"index"`
+	GroupId         int    `json:"group_id,omitempty" xorm:"bigint index"`
 	Code            string `json:"code,omitempty"`         // forget password code
 	CodeExpired     int64  `json:"code_expired,omitempty"` // forget password code expired
 	Aa              string `json:"aa,omitempty"`
