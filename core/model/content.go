@@ -81,7 +81,7 @@ func (c *Content) CountNumOfNode() (int64, int64, error) {
 	}
 
 	// 非删除状态下的内容
-	num, err := config.FafaRdb.Client.Table(c).Where("user_id=?", c.UserId).And("node_id=?", c.NodeId).And("status<=?", 2).Count()
+	num, err := config.FafaRdb.Client.Table(c).Where("user_id=?", c.UserId).And("node_id=?", c.NodeId).And("status!=?", 2).Count()
 	if err != nil {
 		return 0, 0, err
 	}
