@@ -13,7 +13,7 @@ type Content struct {
 	UserId      int    `json:"user_id" xorm:"bigint index"`                                                   // 内容所属用户
 	UserName    string `json:"user_name" xorm:"index"`                                                        // 冗余字段 内容所属用户名字
 	NodeId      int    `json:"node_id" xorm:"bigint index"`                                                   // 节点ID
-	Status      int    `json:"status" xorm:"not null comment('0 normal, 1 hide，2 rubbish') TINYINT(1) index"` // 2表示送入了垃圾桶
+	Status      int    `json:"status" xorm:"not null comment('0 normal, 1 hide，2 rubbish') TINYINT(1) index"` // 2表示送入了垃圾桶，需增加一个从回收站恢复和真正删除的接口
 	Describe    string `json:"describe" xorm:"TEXT"`
 	PreDescribe string `json:"pre_describe" xorm:"TEXT"`                             // 预览内容，临时保存，当修改后调用发布接口，会刷新到Describe，并且记录进历史表
 	PreFlush    int    `json:"status" xorm:"not null comment('1 flush') TINYINT(1)"` // 是否预览内容已经被刷新
@@ -29,9 +29,11 @@ type Content struct {
 	Ad          string `json:"ad,omitempty"`
 }
 
-// 违规内容表
+// 违规内容表，在这里记录，但是原表不删除，需增加申请撤销违规操作
 type Content110 struct {
 	Id        int    `json:"id" xorm:"bigint pk autoincr"`
+	UserId    int    `json:"user_id" xorm:"bigint index"`    // 内容所属的用户ID
+	UserName  string `json:"user_name" xorm:"index"`         // 内容所属的用户名字
 	ContentId int    `json:"content_id" xorm:"bigint index"` // 违禁的内容ID
 	Seo       string `json:"seo" xorm:"index"`
 }
