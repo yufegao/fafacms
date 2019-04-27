@@ -16,7 +16,7 @@
 
 是一个使用 `Golang` 开发的前后端分离 --> 内容管理系统(CMS)，支持不同用户登录，并且可以发布文章，在首页可以看到不同用户的文章。本项目愿景是希望使用较简洁较规范的企业开发模式，可以给初学者一个示例。你可以把它当作弱化的博客园或简书。
 
-后端主要返回JSON API，前端可用任意框架开发界面。 该项目架构可扩展为不同业务的Web项目。
+后端主要返回JSON API，前端可用任意框架开发界面(由于作者不擅长前端所以用了server side render SSR模式集成前端)。 该项目架构可扩展为不同业务的Web项目。
 
 依赖以下项目:
 
@@ -155,9 +155,6 @@ sudo docker logs -f --tail 10 fafacms
 
 ## 前端网站
 
-查看 
-
-1. [https://github.com/hunterhug/fafacms_react](https://github.com/hunterhug/fafacms_react)
 
 ## 支持
 

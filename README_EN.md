@@ -138,5 +138,3 @@ sudo docker logs -f --tail 10 fafacms
 `/root/fafacms` is persistent volume, please put `config.json` under the folder.
 
 ## Frontend Web
-
-See [https://github.com/hunterhug/fafacms_react](https://github.com/hunterhug/fafacms_react)
