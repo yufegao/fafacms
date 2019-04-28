@@ -324,14 +324,14 @@ func DeleteNode(c *gin.Context) {
 	content.NodeId = n.Id
 
 	// 删除节点时，节点下不能有内容
-	allContentNum, contentNum, err := content.CountNumOfNode()
+	allContentNum, normalContentNum, err := content.CountNumOfNode()
 	if err != nil {
 		flog.Log.Errorf("DeleteNode err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
 	}
 
-	if contentNum >= 1 {
+	if normalContentNum >= 1 {
 		// 有内容，不能删除
 		flog.Log.Errorf("DeleteNode err:%s", "has content child")
 		resp.Error = Error(DbHookIn, "has content child")
@@ -342,13 +342,8 @@ func DeleteNode(c *gin.Context) {
 	if allContentNum == 0 {
 		err = n.Delete()
 	} else {
-		// 不能逻辑删除
-		//err = n.LogicDelete()
-
-		// 垃圾桶里面有内容
-		flog.Log.Errorf("DeleteNode err:%s", "rubbish has content")
-		resp.Error = Error(DbHookIn, "rubbish has content")
-		return
+		//逻辑删除
+		err = n.LogicDelete()
 	}
 
 	if err != nil {
@@ -416,7 +411,7 @@ type ListNodeRequest struct {
 	Id              int      `json:"id"`
 	Seo             string   `json:"seo" validate:"omitempty,alphanumunicode,gt=3,lt=30"`
 	ParentNodeId    int      `json:"parent_node_id"`
-	Status          int      `json:"status" validate:"oneof=-1 0 1"`
+	Status          int      `json:"status" validate:"oneof=-1 0 1 2"`
 	Level           int      `json:"level" validate:"oneof=-1 0 1"`
 	UserId          int      `json:"user_id"`
 	CreateTimeBegin int64    `json:"create_time_begin"`
@@ -486,6 +481,10 @@ func ListNodeHelper(c *gin.Context, userId int) {
 
 	if userId != 0 {
 		session.And("user_id=?", userId)
+		if req.Status > 1 {
+			// 用户不能让他查找到逻辑删除的节点
+			req.Status = 0
+		}
 	} else {
 		if req.UserId != 0 {
 			session.And("user_id=?", req.UserId)

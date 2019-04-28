@@ -11,7 +11,7 @@ type ContentNode struct {
 	Id           int    `json:"id" xorm:"bigint pk autoincr"`
 	UserId       int    `json:"user_id" xorm:"bigint index"`
 	Seo          string `json:"seo" xorm:"index"`
-	Status       int    `json:"status" xorm:"not null comment('0 normal,1 hide,2 deleted') TINYINT(1) index"` //  逻辑删除为2，SEO要置空，现在不允许逻辑删除了
+	Status       int    `json:"status" xorm:"not null comment('0 normal,1 hide,2 deleted') TINYINT(1) index"` //  逻辑删除为2，SEO要置空，悬挂着
 	Name         string `json:"name" xorm:"varchar(100) notnull"`
 	Describe     string `json:"describe" xorm:"TEXT"`
 	CreateTime   int64  `json:"create_time"`
@@ -79,11 +79,12 @@ func (n *ContentNode) InsertOne() error {
 }
 
 // 节点常规获取，ID和SEO必须存在一者
+// 逻辑删除的不能拿到
 func (n *ContentNode) Get() (bool, error) {
 	if n.Id == 0 && n.Seo == "" {
 		return false, errors.New("where is empty")
 	}
-	return config.FafaRdb.Client.Get(n)
+	return config.FafaRdb.Client.Where("status!=?", 2).Get(n)
 }
 
 // 更新节点
