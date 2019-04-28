@@ -9,6 +9,7 @@ import (
 )
 
 // GetGUID 生成GUID
+// todo
 func GetGUID() (valueGUID string) {
 	objID, _ := uuid.NewV4()
 	objidStr := objID.String()
@@ -17,6 +18,7 @@ func GetGUID() (valueGUID string) {
 	return valueGUID
 }
 
+// todo MD5变成数字来索引
 func Md5(raw []byte) (string, error) {
 	h := md5.New()
 	num, err := h.Write(raw)
