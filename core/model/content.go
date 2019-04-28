@@ -72,3 +72,19 @@ func (c *Content) CountNumOfNode() (int64, int64, error) {
 	}
 	return allNum, normalNum, nil
 }
+
+func (c *Content) CheckSeoValid() (bool, error) {
+	// 用户ID和SEO必须同时存在
+	if c.UserId == 0 || c.Seo == "" {
+		return false, errors.New("where is empty")
+	}
+
+	// 常规统计
+	num, err := config.FafaRdb.Client.Table(c).Where("user_id=?", c.UserId).And("seo=?", c.Seo).Count()
+
+	// 如果大于1表示存在
+	if num >= 1 {
+		return true, nil
+	}
+	return false, err
+}
