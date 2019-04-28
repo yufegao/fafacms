@@ -25,7 +25,7 @@ var GroupSortName = []string{"=id", "=name", "-create_time", "=update_time"}
 type Resource struct {
 	Id       int    `json:"id" xorm:"bigint pk autoincr"`
 	Name     string `json:"name"`
-	Url      string `json:"url" xorm:"unique"` // 该路由比较短，可以不用布隆过滤器
+	Url      string `json:"url" xorm:"unique"` // 该路由比较短，可以直接varchar(255)建索引
 	Describe string `json:"describe" xorm:"TEXT"`
 	Admin    bool   `json:"admin"`
 	Aa       string `json:"aa,omitempty"`

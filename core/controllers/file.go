@@ -127,8 +127,8 @@ func UploadFile(c *gin.Context) {
 		return
 	}
 
-	// 加盐的MD5
-	fileMd5, err := myutil.Md5(raw)
+	// HashCode
+	fileHashCode, err := myutil.Sha256(raw)
 	if err != nil {
 		Log.Errorf("upload err:%s", err.Error())
 		resp.Error = Error(UploadFileError, err.Error())
@@ -136,12 +136,12 @@ func UploadFile(c *gin.Context) {
 	}
 
 	// MD5需要再加上用户唯一标志，方便不同用户可以上传一样的文件
-	fileMd5 = fileMd5 + "_" + uName
-	fileName := fileMd5 + "." + fileSuffix
+	fileHashCode = uName + fileHashCode
+	fileName := fileHashCode + "." + fileSuffix
 
 	// 判断数据库文件是否存在
 	p := new(model.File)
-	p.Md5 = fileMd5
+	p.HashCode = fileHashCode
 	exist, err := p.Get()
 	if err != nil {
 		resp.Error = Error(DBError, err.Error())

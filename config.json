@@ -28,7 +28,7 @@
     "Email": "gdccmcm14@live.com",
     "Password": "",
     "Subject": "Welcome register FaFa CMS",
-    "Body": "<a href='%s'>click to active</a>"
+    "Body": "your activate code is %s, please enter <a href='/xxxxxx'>Here</a>"
   },
   "SessionConfig": {
     "RedisHost": "127.0.0.1:6379",

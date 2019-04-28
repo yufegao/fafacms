@@ -7,8 +7,8 @@ import (
 	"github.com/hunterhug/fafacms/core/config"
 	"github.com/hunterhug/fafacms/core/flog"
 	"github.com/hunterhug/fafacms/core/model"
+	"github.com/hunterhug/fafacms/core/util"
 	"github.com/hunterhug/fafacms/core/util/mail"
-	"github.com/hunterhug/parrot/util"
 	"math"
 	"time"
 )
@@ -106,8 +106,8 @@ func RegisterUser(c *gin.Context) {
 	}
 
 	// 激活验证码
-	u.ActivateMd5 = util.Md5(u.Email)
-	u.ActivateExpired = time.Now().Add(48 * time.Hour).Unix()
+	u.ActivateCode = util.GetGUID()
+	u.ActivateCodeExpired = time.Now().Add(48 * time.Hour).Unix()
 
 	u.Describe = req.Describe
 	u.NickName = req.NickName
@@ -123,7 +123,7 @@ func RegisterUser(c *gin.Context) {
 	mm.Sender = config.FafaConfig.MailConfig
 	mm.To = u.Email
 	mm.ToName = u.NickName
-	mm.Body = fmt.Sprintf(mm.Body, config.FafaConfig.Domain+"/verify?code="+u.ActivateMd5)
+	mm.Body = fmt.Sprintf(mm.Body, u.ActivateCode)
 	err = mm.Sent()
 	if err != nil {
 		flog.Log.Errorf("RegisterUser err:%s", err.Error())
@@ -236,17 +236,14 @@ func CreateUser(c *gin.Context) {
 	}
 
 	resp.Flag = true
-
-	if AuthDebug {
-		resp.Data = u
-	}
-
+	resp.Data = u
 }
 
 // 用户自己激活自己
 func ActivateUser(c *gin.Context) {
 	resp := new(Resp)
 	code := c.Query("code")
+	email := c.Query("email")
 	defer func() {
 		LogAlone(c, nil, resp)
 	}()
@@ -258,8 +255,10 @@ func ActivateUser(c *gin.Context) {
 		return
 	}
 
+	// 必须邮箱和激活码一起来
 	u := new(model.User)
-	u.ActivateMd5 = code
+	u.ActivateCode = code
+	u.Email = email
 
 	// 判断激活码是否存在
 	exist, err := u.IsActivateCodeExist()
@@ -286,10 +285,10 @@ func ActivateUser(c *gin.Context) {
 	}
 
 	// 验证码过期，要重新生成验证码，需要用户手动请求另外的API
-	if u.ActivateExpired < time.Now().Unix() {
+	if u.ActivateCodeExpired < time.Now().Unix() {
 		flog.Log.Errorf("ActivateUser err:%s", "code expired")
 		resp.Error = Error(LazyError, "code expired")
-		c.String(200, "code expired, resent email:<a href='%s/activate/code?code=%s'>Here</a>", config.FafaConfig.Domain, code)
+		c.String(200, "code expired, resent email:<a href='%s/activate/resent?code=%s&email=%s'>Here</a>", config.FafaConfig.Domain, code, email)
 		return
 	} else {
 		// 更新用户的状态
@@ -313,15 +312,14 @@ func ActivateUser(c *gin.Context) {
 	}
 
 	resp.Flag = true
-	// 最后重定位到首页
-	c.Redirect(302, config.FafaConfig.Domain)
-
+	c.String(200, "ok")
 }
 
 // 用户激活验证码失效了，重新生成并发送邮件
 func ResendActivateCodeToUser(c *gin.Context) {
 	resp := new(Resp)
 	code := c.Query("code")
+	email := c.Query("email")
 	defer func() {
 		LogAlone(c, nil, resp)
 	}()
@@ -333,7 +331,8 @@ func ResendActivateCodeToUser(c *gin.Context) {
 	}
 
 	u := new(model.User)
-	u.ActivateMd5 = code
+	u.ActivateCode = code
+	u.Email = email
 
 	// 要生成新的验证码必须携带之前的验证码才行
 	exist, err := u.IsActivateCodeExist()
@@ -356,7 +355,7 @@ func ResendActivateCodeToUser(c *gin.Context) {
 		resp.Error = Error(LazyError, "already active")
 		c.String(200, "already active")
 		return
-	} else if u.ActivateExpired > time.Now().Unix() {
+	} else if u.ActivateCodeExpired > time.Now().Unix() {
 		// 验证码过期时间还没到，要等一下
 		flog.Log.Errorf("ResendUser err:%s", "code not expired")
 		resp.Error = Error(LazyError, "code not expired")
@@ -378,7 +377,7 @@ func ResendActivateCodeToUser(c *gin.Context) {
 	mm.Sender = config.FafaConfig.MailConfig
 	mm.To = u.Email
 	mm.ToName = u.NickName
-	mm.Body = fmt.Sprintf(mm.Body, config.FafaConfig.Domain+"/activate?code="+u.ActivateMd5)
+	mm.Body = fmt.Sprintf(mm.Body, u.ActivateCode)
 	err = mm.Sent()
 	if err != nil {
 		flog.Log.Errorf("ResendUser err:%s", err.Error())
@@ -394,7 +393,7 @@ type ForgetPasswordRequest struct {
 	Email string `json:"email" validate:"required,email"`
 }
 
-// 用户忘记了密码，需要发充值密码验证码
+// 用户忘记了密码，需要发重置密码验证码
 func ForgetPasswordOfUser(c *gin.Context) {
 	resp := new(Resp)
 	req := new(ForgetPasswordRequest)
@@ -431,7 +430,7 @@ func ForgetPasswordOfUser(c *gin.Context) {
 	}
 
 	// 重设密码验证码过期的话重新设置
-	if u.CodeExpired < time.Now().Unix() {
+	if u.ResetCodeExpired < time.Now().Unix() {
 		// 验证码300秒内有效
 		err = u.UpdateCode()
 		if err != nil {
@@ -445,7 +444,7 @@ func ForgetPasswordOfUser(c *gin.Context) {
 		mm.Sender = config.FafaConfig.MailConfig
 		mm.To = u.Email
 		mm.ToName = u.NickName
-		mm.Body = "code is: " + u.Code
+		mm.Body = "reset password code is: " + u.ResetCode
 		err = mm.Sent()
 		if err != nil {
 			flog.Log.Errorf("ForgetPassword err:%s", err.Error())
@@ -506,7 +505,7 @@ func ChangePasswordOfUser(c *gin.Context) {
 	}
 
 	// 验证码一致，可以修改
-	if u.Code == req.Code {
+	if u.ResetCode == req.Code {
 		u.Password = req.Password
 		err = u.UpdatePassword()
 		if err != nil {

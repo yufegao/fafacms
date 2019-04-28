@@ -26,4 +26,13 @@ func TestMd5(t *testing.T) {
 		return
 	}
 	fmt.Println(Md5(raw))
+
+	raw, err = util.ReadfromFile("./timg.jpeg")
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	d, _ := Sha256(raw)
+	fmt.Println(len(d))
 }

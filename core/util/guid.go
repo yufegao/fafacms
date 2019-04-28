@@ -2,6 +2,7 @@ package util
 
 import (
 	"crypto/md5"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"github.com/satori/go.uuid"
@@ -9,7 +10,6 @@ import (
 )
 
 // GetGUID 生成GUID
-// todo
 func GetGUID() (valueGUID string) {
 	objID, _ := uuid.NewV4()
 	objidStr := objID.String()
@@ -18,8 +18,20 @@ func GetGUID() (valueGUID string) {
 	return valueGUID
 }
 
-// todo MD5变成数字来索引
 // sha256  256 bit防止碰撞
+func Sha256(raw []byte) (string, error) {
+	h := sha256.New()
+	num, err := h.Write(raw)
+	if err != nil {
+		return "", err
+	}
+	if num == 0 {
+		return "", errors.New("num 0")
+	}
+	data := h.Sum([]byte(""))
+	return fmt.Sprintf("%x", data), nil
+}
+
 func Md5(raw []byte) (string, error) {
 	h := md5.New()
 	num, err := h.Write(raw)

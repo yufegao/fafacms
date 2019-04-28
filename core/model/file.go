@@ -3,6 +3,7 @@ package model
 import (
 	"errors"
 	"github.com/hunterhug/fafacms/core/config"
+	"github.com/hunterhug/fafacms/core/util"
 	"time"
 )
 
@@ -14,12 +15,13 @@ type File struct {
 	UserName       string `json:"user_name" xorm:"index"`
 	FileName       string `json:"file_name"`
 	ReallyFileName string `json:"really_file_name"`
-	Md5            string `json:"md5" xorm:"unique"`
-	Url            string `json:"url" xorm:"varchar(700) index"` // index too long todo 布隆过滤器 字符串型的字段最好不要直接建索引,MD5可以产生出一个128位（16字节）的散列值（hash value）
+	HashCode       string `json:"hash_code" xorm:"unique"`
+	Url            string `json:"url" xorm:"varchar(700)"` // index too long  布隆过滤器/字符串型的字段最好不要直接建索引
+	UrlHashCode    string `json:"url_hash_code" xorm:"index"`
 	Describe       string `json:"describe" xorm:"TEXT"`
 	CreateTime     int64  `json:"create_time"`
 	UpdateTime     int64  `json:"update_time,omitempty"`
-	Status         int    `json:"status" xorm:"not null comment('0 normal，1 hide but can use') TINYINT(1)"` // 逻辑隐藏为1，MD5仍有效
+	Status         int    `json:"status" xorm:"not null comment('0 normal，1 hide but can use') TINYINT(1)"` // 逻辑隐藏为1，HashCode仍有效
 	StoreType      int    `json:"store_type" xorm:"not null comment('0 local，1 oss') TINYINT(1)"`
 	IsPicture      int    `json:"is_picture"`
 	Size           int64  `json:"size"`
@@ -33,7 +35,7 @@ var FileSortName = []string{"=id", "-update_time", "-create_time", "=user_id", "
 
 // 判断文件是否存在，被隐藏的文件也可以找到
 func (f *File) Exist() (bool, error) {
-	if f.Id == 0 && f.Url == "" && f.Md5 == "" {
+	if f.Id == 0 && f.Url == "" && f.HashCode == "" {
 		return false, errors.New("where is empty")
 	}
 	s := config.FafaRdb.Client.Table(f)
@@ -43,11 +45,15 @@ func (f *File) Exist() (bool, error) {
 		s.And("id=?", f.Id)
 	}
 	if f.Url != "" {
-		s.And("url=?", f.Url)
+		h, err := util.Sha256([]byte(f.Url))
+		if err != nil {
+			return false, err
+		}
+		s.And("url_hash_code=?", h)
 	}
 
-	if f.Md5 != "" {
-		s.And("md5=?", f.Md5)
+	if f.HashCode != "" {
+		s.And("hash_code=?", f.HashCode)
 	}
 
 	c, err := s.Count(f)
@@ -61,7 +67,7 @@ func (f *File) Exist() (bool, error) {
 
 // 获取文件信息
 func (f *File) Get() (bool, error) {
-	if f.Id == 0 && f.Url == "" && f.Md5 == "" {
+	if f.Id == 0 && f.Url == "" && f.HashCode == "" {
 		return false, errors.New("where is empty")
 	}
 	s := config.FafaRdb.Client.NewSession()
@@ -72,12 +78,17 @@ func (f *File) Get() (bool, error) {
 	if f.Id != 0 {
 		s.And("id=?", f.Id)
 	}
+
 	if f.Url != "" {
-		s.And("url=?", f.Url)
+		h, err := util.Sha256([]byte(f.Url))
+		if err != nil {
+			return false, err
+		}
+		s.And("url_hash_code=?", h)
 	}
 
-	if f.Md5 != "" {
-		s.And("md5=?", f.Md5)
+	if f.HashCode != "" {
+		s.And("hash_code=?", f.HashCode)
 	}
 
 	return s.Get(f)

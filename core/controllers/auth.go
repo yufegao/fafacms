@@ -174,8 +174,8 @@ func SetUserSession(c *gin.Context, user *model.User) error {
 
 	// 核心信息不能暴露出去
 	user.Password = ""
-	user.ActivateExpired = 0
-	user.ActivateMd5 = ""
+	user.ActivateCodeExpired = 0
+	user.ActivateCode = ""
 	err := s.PutObject(c.Writer, "user", user)
 	return err
 }

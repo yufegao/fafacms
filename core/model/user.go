@@ -8,35 +8,37 @@ import (
 	"time"
 )
 
+// 用户表
 type User struct {
-	Id              int    `json:"id" xorm:"bigint pk autoincr"`
-	Name            string `json:"name" xorm:"varchar(100) notnull unique"`
-	NickName        string `json:"nick_name" xorm:"varchar(100) notnull"`
-	Email           string `json:"email" xorm:"varchar(100) notnull unique"`
-	WeChat          string `json:"wechat" xorm:"varchar(100)"`
-	WeiBo           string `json:"weibo" xorm:"TEXT"`
-	Github          string `json:"github" xorm:"TEXT"`
-	QQ              string `json:"qq" xorm:"varchar(100)"`
-	Password        string `json:"password,omitempty" xorm:"varchar(100)"`
-	Gender          int    `json:"gender" xorm:"not null comment('0 unknow,1 boy,2 girl') TINYINT(1)"`
-	Describe        string `json:"describe" xorm:"TEXT"`
-	HeadPhoto       string `json:"head_photo" xorm:"varchar(700)"`
-	CreateTime      int64  `json:"create_time"`
-	UpdateTime      int64  `json:"update_time,omitempty"`
-	ActivateMd5     string `json:"activate_md5,omitempty"`     // register and reset md5 to email
-	ActivateExpired int64  `json:"activate_expired,omitempty"` // md5 expired time
-	Status          int    `json:"status" xorm:"not null comment('0 unactive, 1 normal, 2 black') TINYINT(1) index"`
-	GroupId         int    `json:"group_id,omitempty" xorm:"bigint index"`
-	Code            string `json:"code,omitempty"`         // forget password code
-	CodeExpired     int64  `json:"code_expired,omitempty"` // forget password code expired
-	Aa              string `json:"aa,omitempty"`
-	Ab              string `json:"ab,omitempty"`
-	Ac              string `json:"ac,omitempty"`
-	Ad              string `json:"ad,omitempty"`
+	Id                  int    `json:"id" xorm:"bigint pk autoincr"`
+	Name                string `json:"name" xorm:"varchar(100) notnull unique"`  // 独一无二的标志
+	NickName            string `json:"nick_name" xorm:"varchar(100) notnull"`    // 昵称，如小花花，随便改
+	Email               string `json:"email" xorm:"varchar(100) notnull unique"` // 邮箱，独一无二
+	WeChat              string `json:"wechat" xorm:"varchar(100)"`
+	WeiBo               string `json:"weibo" xorm:"TEXT"`
+	Github              string `json:"github" xorm:"TEXT"`
+	QQ                  string `json:"qq" xorm:"varchar(100)"`
+	Password            string `json:"password,omitempty" xorm:"varchar(100)"` // 明文的密码，就是这么强
+	Gender              int    `json:"gender" xorm:"not null comment('0 unknow,1 boy,2 girl') TINYINT(1)"`
+	Describe            string `json:"describe" xorm:"TEXT"`
+	HeadPhoto           string `json:"head_photo" xorm:"varchar(700)"`
+	CreateTime          int64  `json:"create_time"`
+	UpdateTime          int64  `json:"update_time,omitempty"`
+	ActivateCode        string `json:"activate_code,omitempty" xorm:"index"` // activate code
+	ActivateCodeExpired int64  `json:"activate_code_expired,omitempty"`      // activate code expired time
+	Status              int    `json:"status" xorm:"not null comment('0 unactive, 1 normal, 2 black') TINYINT(1) index"`
+	GroupId             int    `json:"group_id,omitempty" xorm:"bigint index"`
+	ResetCode           string `json:"reset_code,omitempty" xorm:"index"` // forget password code
+	ResetCodeExpired    int64  `json:"reset_code_expired,omitempty"`      // forget password code expired
+	Aa                  string `json:"aa,omitempty"`
+	Ab                  string `json:"ab,omitempty"`
+	Ac                  string `json:"ac,omitempty"`
+	Ad                  string `json:"ad,omitempty"`
 }
 
 var UserSortName = []string{"=id", "=name", "-update_time", "-create_time", "-gender"}
 
+// 获取用户信息，不存在用户报错
 func (u *User) Get() (err error) {
 	var exist bool
 	exist, err = config.FafaRdb.Client.Get(u)
@@ -49,6 +51,7 @@ func (u *User) Get() (err error) {
 	return
 }
 
+// 原生获取用户信息
 func (u *User) GetRaw() (bool, error) {
 	return config.FafaRdb.Client.Get(u)
 }
@@ -115,7 +118,7 @@ func (u *User) InsertOne() error {
 }
 
 func (u *User) IsActivateCodeExist() (bool, error) {
-	if u.ActivateMd5 == "" {
+	if u.ActivateCode == "" || u.Email == "" {
 		return false, errors.New("where is empty")
 	}
 	c, err := config.FafaRdb.Client.Get(u)
@@ -136,9 +139,9 @@ func (u *User) UpdateActivateCode() error {
 		return errors.New("where is empty")
 	}
 	u.UpdateTime = time.Now().Unix()
-	u.ActivateMd5 = util.GetGUID()
-	u.ActivateExpired = time.Now().Add(48 * time.Hour).Unix()
-	_, err := config.FafaRdb.Client.Where("id=?", u.Id).Cols("activate_md5", "activate_expired", "update_time").Update(u)
+	u.ActivateCode = util.GetGUID()
+	u.ActivateCodeExpired = time.Now().Add(48 * time.Hour).Unix()
+	_, err := config.FafaRdb.Client.Where("id=?", u.Id).Cols("activate_code", "activate_code_expired", "update_time").Update(u)
 	return err
 }
 
@@ -155,9 +158,9 @@ func (u *User) UpdateCode() error {
 		return errors.New("where is empty")
 	}
 	u.UpdateTime = time.Now().Unix()
-	u.Code = util.GetGUID()[0:6]
-	u.CodeExpired = time.Now().Unix() + 300
-	_, err := config.FafaRdb.Client.Where("id=?", u.Id).Cols("code", "code_expired", "update_time").Update(u)
+	u.ResetCode = util.GetGUID()[0:6]
+	u.ResetCodeExpired = time.Now().Unix() + 300
+	_, err := config.FafaRdb.Client.Where("id=?", u.Id).Cols("reset_code", "reset_code_expired", "update_time").Update(u)
 	return err
 }
 
@@ -166,9 +169,9 @@ func (u *User) UpdatePassword() error {
 		return errors.New("where is empty")
 	}
 	u.UpdateTime = time.Now().Unix()
-	u.Code = ""
-	u.CodeExpired = 0
-	_, err := config.FafaRdb.Client.Where("id=?", u.Id).Cols("code", "code_expired", "update_time", "password").Update(u)
+	u.ResetCode = ""
+	u.ResetCodeExpired = 0
+	_, err := config.FafaRdb.Client.Where("id=?", u.Id).Cols("reset_code", "reset_code_expired", "update_time", "password").Update(u)
 	return err
 }
 
