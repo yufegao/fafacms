@@ -9,15 +9,15 @@ import (
 type Content struct {
 	Id                int    `json:"id" xorm:"bigint pk autoincr"`
 	Seo               string `json:"seo" xorm:"index"`
-	Title             string `json:"name" xorm:"varchar(200) notnull"`
+	Title             string `json:"title" xorm:"varchar(200) notnull"`
 	UserId            int    `json:"user_id" xorm:"bigint index"`                                                                         // 内容所属用户
 	NodeId            int    `json:"node_id" xorm:"bigint index"`                                                                         // 节点ID
 	Status            int    `json:"status" xorm:"not null comment('0 normal, 1 hide，2 ban, 3 rubbish，4 login delete') TINYINT(1) index"` // 0-1-2-3为正常
 	Describe          string `json:"describe" xorm:"TEXT"`
 	PreDescribe       string `json:"pre_describe" xorm:"TEXT"`                                            // 预览内容，临时保存，当修改后调用发布接口，会刷新到Describe，并且记录进历史表
-	PreFlush          int    `json:"status" xorm:"not null comment('1 flush') TINYINT(1)"`                // 是否预览内容已经被刷新
+	PreFlush          int    `json:"pre_flush" xorm:"not null comment('1 flush') TINYINT(1)"`                // 是否预览内容已经被刷新
 	CloseComment      int    `json:"close_comment" xorm:"not null comment('0 close, 1 open') TINYINT(1)"` // 关闭评论开关，默认关闭
-	Version           int    `json:"version"`                                                             // 发布了多少次版本
+	Version           int    `json:"version"`                                                             // 0表示什么都没发布                                                      // 发布了多少次版本
 	CreateTime        int    `json:"create_time"`
 	UpdateTime        int    `json:"update_time,omitempty"`
 	ImagePath         string `json:"image_path" xorm:"varchar(700)"`
@@ -38,7 +38,7 @@ type ContentHistory struct {
 	Id         int    `json:"id" xorm:"bigint pk autoincr"`
 	ContentId  int    `json:"content_id" xorm:"bigint index"` // 内容ID
 	Seo        string `json:"seo" xorm:"index"`
-	Title      string `json:"name" xorm:"varchar(200) notnull"`
+	Title      string `json:"title" xorm:"varchar(200) notnull"`
 	UserId     int    `json:"user_id" xorm:"bigint index"` // 内容所属的用户ID
 	NodeId     int    `json:"node_id" xorm:"bigint index"` // 内容所属的节点
 	Describe   string `json:"describe" xorm:"TEXT"`
@@ -87,4 +87,8 @@ func (c *Content) CheckSeoValid() (bool, error) {
 		return true, nil
 	}
 	return false, err
+}
+
+func (c *Content) Insert() (int64, error) {
+	return config.FafaRdb.InsertOne(c)
 }

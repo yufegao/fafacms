@@ -61,6 +61,55 @@ func CreateContent(c *gin.Context) {
 		}
 	}
 
+	if req.NodeId != 0 {
+		content.NodeId = req.NodeId
+		contentNode := new(model.ContentNode)
+		contentNode.Id = req.NodeId
+		exist, err := contentNode.Exist()
+		if err != nil {
+			flog.Log.Errorf("CreateContent err: %s", err.Error())
+			resp.Error = Error(DBError, "")
+			return
+		}
+		if !exist {
+			flog.Log.Errorf("CreateContent err: %s", "node not found")
+			resp.Error = Error(DbNotFound, "node_id")
+			return
+		}
+	}
+
+	if req.ImagePath != "" {
+		p := new(model.File)
+		p.Url = req.ImagePath
+		ok, err := p.Exist()
+		if err != nil {
+			flog.Log.Errorf("CreateContent err:%s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+
+		if !ok {
+			flog.Log.Errorf("CreateContent err: image not exist")
+			resp.Error = Error(ParasError, "image url not exist")
+			return
+		}
+
+		content.ImagePath = req.ImagePath
+	}
+
+	content.Status = req.Status
+	content.PreDescribe = req.Describe
+	content.Title = req.Title
+	content.Password = req.Password
+	_, err = content.Insert()
+	if err != nil {
+		flog.Log.Errorf("CreateContent err:%s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	resp.Data = content
+	resp.Flag = true
 }
 
 func UpdateContent(c *gin.Context) {

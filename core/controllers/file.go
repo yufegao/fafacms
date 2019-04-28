@@ -173,6 +173,8 @@ func UploadFile(c *gin.Context) {
 			// todo here
 		}
 
+		p.UrlHashCode, _ = myutil.Sha256([]byte(p.Url))
+
 		// 如果是图片进行裁剪
 		if util.InArray(scaleType, fileSuffix) {
 			p.IsPicture = 1

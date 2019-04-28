@@ -87,6 +87,20 @@ func (n *ContentNode) Get() (bool, error) {
 	return config.FafaRdb.Client.Where("status!=?", 2).Get(n)
 }
 
+// 判断节点是否存在
+// 逻辑删除的不能拿到
+func (n *ContentNode) Exist() (bool, error) {
+	if n.Id == 0 {
+		return false, errors.New("where is empty")
+	}
+	num, err := config.FafaRdb.Client.Table(n).Where("id=?", n.Id).And("status!=?", 2).Count()
+	if err != nil {
+		return false, err
+	}
+
+	return num >= 1, nil
+}
+
 // 更新节点
 func (n *ContentNode) Update() error {
 	if n.UserId == 0 || n.Id == 0 {
