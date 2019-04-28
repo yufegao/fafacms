@@ -20,7 +20,7 @@ type User struct {
 	Password        string `json:"password,omitempty" xorm:"varchar(100)"`
 	Gender          int    `json:"gender" xorm:"not null comment('0 unknow,1 boy,2 girl') TINYINT(1)"`
 	Describe        string `json:"describe" xorm:"TEXT"`
-	HeadPhoto       string `json:"head_photo" xorm:"varchar(1000)"`
+	HeadPhoto       string `json:"head_photo" xorm:"varchar(700)"`
 	CreateTime      int64  `json:"create_time"`
 	UpdateTime      int64  `json:"update_time,omitempty"`
 	ActivateMd5     string `json:"activate_md5,omitempty"`     // register and reset md5 to email

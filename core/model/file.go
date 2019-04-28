@@ -8,14 +8,14 @@ import (
 
 type File struct {
 	Id             int    `json:"id" xorm:"bigint pk autoincr"`
-	Type           string `json:"type" xorm:"index"`
-	Tag            string `json:"tag" xorm:"index"`
+	Type           string `json:"type" xorm:"index"` // 这个字段可以作为索引，因为类型不长
+	Tag            string `json:"tag" xorm:"index"`  // 这个用户打标签就不能太长了
 	UserId         int    `json:"user_id" xorm:"bigint index"`
 	UserName       string `json:"user_name" xorm:"index"`
 	FileName       string `json:"file_name"`
 	ReallyFileName string `json:"really_file_name"`
 	Md5            string `json:"md5" xorm:"unique"`
-	Url            string `json:"url" xorm:"varchar(1000) index"`
+	Url            string `json:"url" xorm:"varchar(700) index"` // index too long todo 布隆过滤器 字符串型的字段最好不要直接建索引,MD5可以产生出一个128位（16字节）的散列值（hash value）
 	Describe       string `json:"describe" xorm:"TEXT"`
 	CreateTime     int64  `json:"create_time"`
 	UpdateTime     int64  `json:"update_time,omitempty"`

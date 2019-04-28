@@ -78,7 +78,7 @@ func CreateTable(tables []interface{}) {
 		err = config.FafaRdb.Client.CreateIndexes(table)
 		if err != nil {
 			fmt.Println(err.Error())
-			continue
+			//continue
 		}
 		err = config.FafaRdb.Client.CreateUniques(table)
 		if err != nil {

@@ -13,7 +13,7 @@ type Group struct {
 	Describe   string `json:"describe" xorm:"TEXT"`
 	CreateTime int64  `json:"create_time"`
 	UpdateTime int64  `json:"update_time,omitempty"`
-	ImagePath  string `json:"image_path" xorm:"varchar(1000)"`
+	ImagePath  string `json:"image_path" xorm:"varchar(700)"`
 	Aa         string `json:"aa,omitempty"`
 	Ab         string `json:"ab,omitempty"`
 	Ac         string `json:"ac,omitempty"`
@@ -25,7 +25,7 @@ var GroupSortName = []string{"=id", "=name", "-create_time", "=update_time"}
 type Resource struct {
 	Id       int    `json:"id" xorm:"bigint pk autoincr"`
 	Name     string `json:"name"`
-	Url      string `json:"url" xorm:"varchar(1000) unique"`
+	Url      string `json:"url" xorm:"unique"` // 该路由比较短，可以不用布隆过滤器
 	Describe string `json:"describe" xorm:"TEXT"`
 	Admin    bool   `json:"admin"`
 	Aa       string `json:"aa,omitempty"`

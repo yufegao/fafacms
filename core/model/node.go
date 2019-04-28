@@ -16,7 +16,7 @@ type ContentNode struct {
 	Describe     string `json:"describe" xorm:"TEXT"`
 	CreateTime   int64  `json:"create_time"`
 	UpdateTime   int64  `json:"update_time,omitempty"`
-	ImagePath    string `json:"image_path" xorm:"varchar(1000)"`
+	ImagePath    string `json:"image_path" xorm:"varchar(700)"`
 	ParentNodeId int    `json:"parent_node_id" xorm:"bigint"`
 	Level        int    `json:"level"`
 	Aa           string `json:"aa,omitempty"`
