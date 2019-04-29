@@ -8,13 +8,14 @@ import (
 )
 
 type CreateContentRequest struct {
-	Seo       string `json:"seo" validate:"omitempty,alphanumunicode,gt=3,lt=30"` // 内容应该有个好听的标志
-	Title     string `json:"title" validate:"required,lt=100"`                    // 必须有标题吧
-	Status    int    `json:"status" validate:"oneof=0 1"`                         // 隐藏内容
-	Describe  string `json:"describe" validate:"omitempty"`                       // 正文
-	ImagePath string `json:"image_path" validate:"omitempty,lt=100"`              // 内容背景图
-	NodeId    int    `json:"node_id"`                                             // 内容所属节点，可以没有节点
-	Password  string `json:"password"`                                            // 如果非空表示需要密码
+	Seo          string `json:"seo" validate:"omitempty,alphanumunicode,gt=3,lt=30"` // 内容应该有个好听的标志
+	Title        string `json:"title" validate:"required,lt=100"`                    // 必须有标题吧
+	Status       int    `json:"status" validate:"oneof=0 1"`                         // 隐藏内容
+	Describe     string `json:"describe" validate:"omitempty"`                       // 正文
+	ImagePath    string `json:"image_path" validate:"omitempty,lt=100"`              // 内容背景图
+	NodeId       int    `json:"node_id"`                                             // 内容所属节点，可以没有节点
+	Password     string `json:"password"`                                            // 如果非空表示需要密码
+	CloseComment int    `json:"close_comment" validate:"oneof=0 1"`
 }
 
 func CreateContent(c *gin.Context) {
@@ -101,6 +102,7 @@ func CreateContent(c *gin.Context) {
 	content.PreDescribe = req.Describe
 	content.Title = req.Title
 	content.Password = req.Password
+	content.CloseComment = req.CloseComment
 	_, err = content.Insert()
 	if err != nil {
 		flog.Log.Errorf("CreateContent err:%s", err.Error())
