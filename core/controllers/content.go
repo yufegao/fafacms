@@ -15,7 +15,7 @@ type CreateContentRequest struct {
 	ImagePath    string `json:"image_path" validate:"omitempty,lt=100"`              // 内容背景图
 	NodeId       int    `json:"node_id"`                                             // 内容所属节点，可以没有节点
 	Password     string `json:"password"`                                            // 如果非空表示需要密码
-	CloseComment int    `json:"close_comment" validate:"oneof=0 1"`
+	CloseComment int    `json:"close_comment" validate:"oneof=0 1 2"`
 }
 
 func CreateContent(c *gin.Context) {

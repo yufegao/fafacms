@@ -3,6 +3,7 @@ package model
 import (
 	"errors"
 	"github.com/hunterhug/fafacms/core/config"
+	"time"
 )
 
 // 内容表
@@ -14,12 +15,12 @@ type Content struct {
 	NodeId            int    `json:"node_id" xorm:"bigint index"`                                                                         // 节点ID
 	Status            int    `json:"status" xorm:"not null comment('0 normal, 1 hide，2 ban, 3 rubbish，4 login delete') TINYINT(1) index"` // 0-1-2-3为正常
 	Describe          string `json:"describe" xorm:"TEXT"`
-	PreDescribe       string `json:"pre_describe" xorm:"TEXT"`                                            // 预览内容，临时保存，当修改后调用发布接口，会刷新到Describe，并且记录进历史表
-	PreFlush          int    `json:"pre_flush" xorm:"not null comment('1 flush') TINYINT(1)"`                // 是否预览内容已经被刷新
-	CloseComment      int    `json:"close_comment" xorm:"not null comment('0 close, 1 open') TINYINT(1)"` // 关闭评论开关，默认关闭
-	Version           int    `json:"version"`                                                             // 0表示什么都没发布                                                      // 发布了多少次版本
-	CreateTime        int    `json:"create_time"`
-	UpdateTime        int    `json:"update_time,omitempty"`
+	PreDescribe       string `json:"pre_describe" xorm:"TEXT"`                                                           // 预览内容，临时保存，当修改后调用发布接口，会刷新到Describe，并且记录进历史表
+	PreFlush          int    `json:"pre_flush" xorm:"not null comment('1 flush') TINYINT(1)"`                            // 是否预览内容已经被刷新
+	CloseComment      int    `json:"close_comment" xorm:"not null comment('0 close, 1 open, 2 direct open') TINYINT(1)"` // 关闭评论开关，默认关闭
+	Version           int    `json:"version"`                                                                            // 0表示什么都没发布                                                      // 发布了多少次版本
+	CreateTime        int64  `json:"create_time"`
+	UpdateTime        int64  `json:"update_time,omitempty"`
 	ImagePath         string `json:"image_path" xorm:"varchar(700)"`
 	Views             int    `json:"views"`                         // 被点击多少次，弱化
 	SuggestUpdateTime int64  `json:"suggest_update_time,omitempty"` // 建议协程更新时间
@@ -90,5 +91,6 @@ func (c *Content) CheckSeoValid() (bool, error) {
 }
 
 func (c *Content) Insert() (int64, error) {
+	c.CreateTime = time.Now().Unix()
 	return config.FafaRdb.InsertOne(c)
 }
