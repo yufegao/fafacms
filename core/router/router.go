@@ -77,10 +77,11 @@ var (
 		"/node/admin/list": {"List Node All", controllers.ListNodeAdmin, GP, true}, // 管理员查看其他用户节点
 
 		// 内容操作
-		"/content/create":       {"Create Content Self", controllers.CreateContent, POST, false},  // 创建文章内容
-		"/content/update":       {"Update Content Self", controllers.UpdateContent, POST, false},  // 更新内容，更新会写入预览
-		"/content/publish":      {"Publish Content Self", controllers.UpdateContent, POST, false}, // 将预览刷进另外一个字段
-		"/content/cancel":       {"Cancel Content Self", controllers.UpdateContent, POST, false},
+		"/content/create":  {"Create Content Self", controllers.CreateContent, POST, false},   // 创建文章内容
+		"/content/update":  {"Update Content Self", controllers.UpdateContent, POST, false},   // 更新内容，更新会写入预览
+		"/content/publish": {"Publish Content Self", controllers.PublishContent, POST, false}, // 将预览刷进另外一个字段
+		"/content/cancel":  {"Cancel Content Self", controllers.CancelContent, POST, false},   // 取消预览的内容，刷回来
+
 		"/content/admin/update": {"Update Content All", controllers.UpdateContent, POST, true},            // 超级管理员修改文章，比如禁用或者恢复文章
 		"/content/rubbish":      {"Sent Content Self To Rubbish", controllers.DeleteContent, POST, false}, // 逻辑删除文章
 		"/content/delete":       {"Delete Content Self Logic", controllers.DeleteContent, POST, false},    // 逻辑删除文章

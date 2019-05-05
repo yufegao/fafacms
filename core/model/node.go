@@ -93,7 +93,7 @@ func (n *ContentNode) Exist() (bool, error) {
 	if n.Id == 0 {
 		return false, errors.New("where is empty")
 	}
-	num, err := config.FafaRdb.Client.Table(n).Where("id=?", n.Id).And("status!=?", 2).Count()
+	num, err := config.FafaRdb.Client.Table(n).Where("id=?", n.Id).And("user_id=?", n.UserId).And("status!=?", 2).Count()
 	if err != nil {
 		return false, err
 	}

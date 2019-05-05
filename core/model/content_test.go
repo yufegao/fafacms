@@ -71,3 +71,14 @@ func TestResource_Get(t *testing.T) {
 	err := g.Get()
 	fmt.Println(err)
 }
+
+func TestContent_Get(t *testing.T) {
+	Testxx()
+
+	c := new(Content)
+	c.Id = 2
+	c.UserId = 2
+	c.Status = 1
+	c.PreFlush = 1
+	c.Get()
+}

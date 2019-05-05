@@ -66,6 +66,7 @@ func CreateContent(c *gin.Context) {
 		content.NodeId = req.NodeId
 		contentNode := new(model.ContentNode)
 		contentNode.Id = req.NodeId
+		contentNode.UserId = uu.Id
 		exist, err := contentNode.Exist()
 		if err != nil {
 			flog.Log.Errorf("CreateContent err: %s", err.Error())
@@ -114,13 +115,206 @@ func CreateContent(c *gin.Context) {
 	resp.Flag = true
 }
 
-func UpdateContent(c *gin.Context) {
-	resp := new(Resp)
-	defer func() {
-		JSONL(c, 200, nil, resp)
-	}()
+type UpdateContentRequest struct {
+	Id           int    `json:"id" validate:"required"`
+	Seo          string `json:"seo" validate:"omitempty,alphanumunicode,gt=3,lt=30"`
+	Title        string `json:"title" validate:"required,lt=100"`
+	Status       int    `json:"status" validate:"oneof=0 1"`
+	Describe     string `json:"describe" validate:"omitempty"`
+	ImagePath    string `json:"image_path" validate:"omitempty,lt=100"`
+	NodeId       int    `json:"node_id"`
+	Password     string `json:"password"`
+	CloseComment int    `json:"close_comment" validate:"oneof=0 1 2"`
 }
 
+func UpdateContent(c *gin.Context) {
+	resp := new(Resp)
+	req := new(UpdateContentRequest)
+	defer func() {
+		JSONL(c, 200, req, resp)
+	}()
+
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	var validate = validator.New()
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("UpdateContent err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
+		return
+	}
+
+	uu, err := GetUserSession(c)
+	if err != nil {
+		flog.Log.Errorf("UpdateContent err: %s", err.Error())
+		resp.Error = Error(I500, "")
+		return
+	}
+
+	contentBefore := new(model.Content)
+	contentBefore.Id = req.Id
+	contentBefore.UserId = uu.Id
+	exist, err := contentBefore.Get()
+	if err != nil {
+		flog.Log.Errorf("UpdateContent err: %s", err.Error())
+		resp.Error = Error(DBError, "")
+		return
+	}
+
+	if !exist {
+		flog.Log.Errorf("UpdateContent err: %s", "content not found")
+		resp.Error = Error(DbNotFound, "content not found")
+		return
+	}
+
+	content := new(model.Content)
+	content.Id = req.Id
+	content.UserId = uu.Id
+	if req.Seo != "" && req.Seo != contentBefore.Seo {
+		content.Seo = req.Seo
+		exist, err := content.CheckSeoValid()
+		if err != nil {
+			flog.Log.Errorf("UpdateContent err: %s", err.Error())
+			resp.Error = Error(DBError, "")
+			return
+		}
+		if exist {
+			flog.Log.Errorf("UpdateContent err: %s", "seo repeat")
+			resp.Error = Error(DbRepeat, "seo repeat")
+			return
+		}
+	}
+
+	if req.NodeId != 0 && req.NodeId != contentBefore.NodeId {
+		content.NodeId = req.NodeId
+		contentNode := new(model.ContentNode)
+		contentNode.Id = req.NodeId
+		contentNode.UserId = uu.Id
+		exist, err := contentNode.Exist()
+		if err != nil {
+			flog.Log.Errorf("UpdateContent err: %s", err.Error())
+			resp.Error = Error(DBError, "")
+			return
+		}
+		if !exist {
+			flog.Log.Errorf("UpdateContent err: %s", "node not found")
+			resp.Error = Error(DbNotFound, "node_id")
+			return
+		}
+	}
+
+	if req.ImagePath != "" && req.ImagePath != contentBefore.ImagePath {
+		p := new(model.File)
+		p.Url = req.ImagePath
+		ok, err := p.Exist()
+		if err != nil {
+			flog.Log.Errorf("UpdateContent err:%s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+
+		if !ok {
+			flog.Log.Errorf("UpdateContent err: image not exist")
+			resp.Error = Error(ParasError, "image url not exist")
+			return
+		}
+
+		content.ImagePath = req.ImagePath
+	}
+
+	// 只可以修改0-1状态的内容，即正常和不显示的内容
+	if contentBefore.Status <= 1 && req.Status != contentBefore.Status {
+		content.Status = req.Status
+	}
+
+	// 已经刷新，状态保留
+	content.PreFlush = contentBefore.PreFlush
+
+	//  如果内容更新，重置
+	if content.PreDescribe != req.Describe {
+		content.PreFlush = 0
+		content.PreDescribe = req.Describe
+	}
+
+	if content.Title != contentBefore.Title {
+		content.Title = req.Title
+	}
+
+	if req.Password != contentBefore.Password {
+		content.Password = req.Password
+	}
+
+	if req.CloseComment != contentBefore.CloseComment {
+		content.CloseComment = req.CloseComment
+	}
+	_, err = content.Update()
+	if err != nil {
+		flog.Log.Errorf("UpdateContent err:%s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+	resp.Flag = true
+}
+
+type PublishContentRequest struct {
+	Id int `json:"id" validate:"required"`
+}
+
+func PublishContent(c *gin.Context) {
+	resp := new(Resp)
+	req := new(PublishContentRequest)
+	defer func() {
+		JSONL(c, 200, req, resp)
+	}()
+
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	var validate = validator.New()
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("PublishContent err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
+		return
+	}
+
+	uu, err := GetUserSession(c)
+	if err != nil {
+		flog.Log.Errorf("PublishContent err: %s", err.Error())
+		resp.Error = Error(I500, "")
+		return
+	}
+
+	content := new(model.Content)
+	content.Id = req.Id
+	content.UserId = uu.Id
+	exist, err := content.Get()
+	if err != nil {
+		flog.Log.Errorf("PublishContent err: %s", err.Error())
+		resp.Error = Error(DBError, "")
+		return
+	}
+
+	if !exist {
+		flog.Log.Errorf("PublishContent err: %s", "content not found")
+		resp.Error = Error(DbNotFound, "content not found")
+		return
+	}
+
+	if content.PreFlush == 1 {
+		resp.Flag = true
+		return
+	}
+
+	content.Describe =content.PreDescribe
+	content.UpdateDescribe()
+
+}
 func DeleteContent(c *gin.Context) {
 	resp := new(Resp)
 	defer func() {

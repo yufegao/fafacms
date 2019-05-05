@@ -94,3 +94,44 @@ func (c *Content) Insert() (int64, error) {
 	c.CreateTime = time.Now().Unix()
 	return config.FafaRdb.InsertOne(c)
 }
+
+func (c *Content) Get() (bool, error) {
+	if c.UserId == 0 || c.Id == 0 {
+		return false, errors.New("where is empty")
+	}
+
+	// 逻辑删除的内容不能获取到
+	return config.FafaRdb.Client.Where("status!=", 4).Get(c)
+}
+
+// 更新前都会调用 Get 接口
+func (c *Content) Update() (int64, error) {
+	if c.UserId == 0 || c.Id == 0 {
+		return 0, errors.New("where is empty")
+	}
+	c.UpdateTime = time.Now().Unix()
+	return config.FafaRdb.Client.MustCols("status", "close_comment", "pre_flush").Omit("user_id").Where("id=?", c.Id).Update(c)
+}
+
+func (c *Content) UpdateDescribe() error {
+	if c.UserId == 0 || c.Id == 0 {
+		return errors.New("where is empty")
+	}
+
+	s := config.FafaRdb.Client.NewSession()
+	if err := s.Begin(); err != nil {
+		return err
+	}
+
+	c.UpdateTime = time.Now().Unix()
+	c.Version = c.Version + 1
+	c.PreFlush = 1
+	_, err := s.Cols("describe", "pre_flush", "update_time", "version").Where("id=?", c.Id).And("user_id", c.UserId).Update(c)
+	if err != nil {
+		s.Rollback()
+		return err
+	}
+
+	//new(ContentHistory)
+	return nil
+}
