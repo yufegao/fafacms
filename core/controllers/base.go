@@ -125,7 +125,7 @@ func (page *PageHelp) build(s *xorm.Session, sort []string, base []string) {
 		page.Page = 1
 	}
 
-	if page.Limit <= 0 || page.Limit > 1000 {
+	if page.Limit <= 0 || page.Limit > 20 {
 		page.Limit = 20
 	}
 	s.Limit(page.Limit, (page.Page-1)*page.Limit)

@@ -13,7 +13,7 @@ type Content struct {
 	Title             string `json:"title" xorm:"varchar(200) notnull"`
 	UserId            int    `json:"user_id" xorm:"bigint index"`                                                                         // 内容所属用户
 	NodeId            int    `json:"node_id" xorm:"bigint index"`                                                                         // 节点ID
-	Status            int    `json:"status" xorm:"not null comment('0 normal, 1 hide，2 ban, 3 rubbish，4 login delete') TINYINT(1) index"` // 0-1-2-3为正常
+	Status            int    `json:"status" xorm:"not null comment('0 normal, 1 hide，2 ban, 3 rubbish，4 logic delete') TINYINT(1) index"` // 0-1-2-3为正常
 	Describe          string `json:"describe" xorm:"TEXT"`
 	PreDescribe       string `json:"pre_describe" xorm:"TEXT"`                                                           // 预览内容，临时保存，当修改后调用发布接口，会刷新到Describe，并且记录进历史表
 	PreFlush          int    `json:"pre_flush" xorm:"not null comment('1 flush') TINYINT(1)"`                            // 是否预览内容已经被刷新
@@ -34,6 +34,8 @@ type Content struct {
 	Ad                string `json:"ad,omitempty"`
 }
 
+var ContentSortName = []string{"=id", "-create_time", "-update_time", "-good", "=bad", "=ha", "-views", "=version", "+status", "=seo"}
+
 // 内容历史表
 type ContentHistory struct {
 	Id         int    `json:"id" xorm:"bigint pk autoincr"`
@@ -45,6 +47,8 @@ type ContentHistory struct {
 	Describe   string `json:"describe" xorm:"TEXT"`
 	CreateTime int64  `json:"create_time"`
 }
+
+var ContentHistorySortName = []string{"-create_time"}
 
 // 内容建议表，哪个用户对哪个内容进行了点评
 type ContentSupport struct {

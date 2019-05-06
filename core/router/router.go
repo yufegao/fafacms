@@ -82,13 +82,22 @@ var (
 		"/content/publish": {"Publish Content Self", controllers.PublishContent, POST, false}, // 将预览刷进另外一个字段
 		"/content/cancel":  {"Cancel Content Self", controllers.CancelContent, POST, false},   // 取消预览的内容，刷回来
 
-		"/content/list":       {"List Content Self", controllers.ListContent, GP, false}, // 列出文章
-		"/content/admin/list": {"List Content All", controllers.ListContent, GP, true},   // 管理员列出文章
-		"/content/take":       {"Take Content Self", controllers.TakeContent, GP, false}, // 获取文章内容
+		"/content/list":               {"List Content Self", controllers.ListContent, GP, false},                   // 列出文章
+		"/content/admin/list":         {"List Content All", controllers.ListContentAdmin, GP, true},                // 管理员列出文章，什么类型都可以
+		"/content/history/list":       {"List Content History Self", controllers.ListContentHistory, GP, false},    // 列出文章的历史记录
+		"/content/history/admin/list": {"List Content History All", controllers.ListContentHistoryAdmin, GP, true}, // 管理员列出文章的历史纪录
 
-		"/content/admin/update": {"Update Content All", controllers.UpdateContent, POST, true},            // 超级管理员修改文章，比如禁用或者逻辑删除/恢复文章
-		"/content/rubbish":      {"Sent Content Self To Rubbish", controllers.DeleteContent, POST, false}, // 一般回收站
-		"/content/delete":       {"Delete Content Self Logic", controllers.DeleteContent, POST, false},    // 逻辑删除文章
+		// doing
+
+		"/content/take":               {"Take Content Self", controllers.TakeContent, GP, false},         // 获取文章内容
+		"/content/admin/take":         {"Take Content Self", controllers.TakeContent, GP, true},          // 管理员获取文章内容
+		"/content/history/take":       {"Take Content History Self", controllers.TakeContent, GP, false}, // 获取文章历史内容
+		"/content/history/admin/take": {"Take Content History Self", controllers.TakeContent, GP, true},  // 管理员获取文章历史内容
+
+		"/content/admin/update": {"Update Content All", controllers.UpdateContent, POST, true}, // 超级管理员修改文章，比如禁用或者逻辑删除/恢复文章
+
+		"/content/rubbish": {"Sent Content Self To Rubbish", controllers.DeleteContent, POST, false}, // 一般回收站
+		"/content/delete":  {"Delete Content Self Logic", controllers.DeleteContent, POST, false},    // 逻辑删除文章
 
 		//
 		//"/comment/create": {controllers.CreateComment, POST},

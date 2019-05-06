@@ -3,8 +3,10 @@ package controllers
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator"
+	"github.com/hunterhug/fafacms/core/config"
 	"github.com/hunterhug/fafacms/core/flog"
 	"github.com/hunterhug/fafacms/core/model"
+	"math"
 )
 
 type CreateContentRequest struct {
@@ -382,6 +384,259 @@ func CancelContent(c *gin.Context) {
 	resp.Flag = true
 }
 
+type ListContentRequest struct {
+	Id              int      `json:"id"`
+	Seo             string   `json:"seo" validate:"omitempty,alphanumunicode,gt=3,lt=30"`
+	NodeId          int      `json:"node_id"`
+	Status          int      `json:"status" validate:"oneof=-1 0 1 2 3 4"`
+	CloseComment    int      `json:"close_comment" validate:"oneof=-1 0 1 2"`
+	UserId          int      `json:"user_id"`
+	CreateTimeBegin int64    `json:"create_time_begin"`
+	CreateTimeEnd   int64    `json:"create_time_end"`
+	UpdateTimeBegin int64    `json:"update_time_begin"`
+	UpdateTimeEnd   int64    `json:"update_time_end"`
+	Sort            []string `json:"sort" validate:"dive,lt=100"`
+	PageHelp
+}
+
+type ListContentResponse struct {
+	Contents []model.Content `json:"contents"`
+	PageHelp
+}
+
+func ListContent(c *gin.Context) {
+	resp := new(Resp)
+	uu, err := GetUserSession(c)
+	if err != nil {
+		flog.Log.Errorf("ListContent err: %s", err.Error())
+		resp.Error = Error(I500, "")
+		JSONL(c, 200, nil, resp)
+		return
+	}
+
+	uid := uu.Id
+	ListContentHelper(c, uid)
+}
+
+func ListContentAdmin(c *gin.Context) {
+	ListContentHelper(c, 0)
+}
+
+func ListContentHelper(c *gin.Context, userId int) {
+	resp := new(Resp)
+
+	respResult := new(ListContentResponse)
+	req := new(ListContentRequest)
+	defer func() {
+		JSONL(c, 200, req, resp)
+	}()
+
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	var validate = validator.New()
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("ListContent err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
+		return
+	}
+
+	// new query list session
+	session := config.FafaRdb.Client.NewSession()
+	defer session.Close()
+
+	// group list where prepare
+	session.Table(new(model.Content)).Where("1=1")
+
+	// query prepare
+	if req.Id != 0 {
+		session.And("id=?", req.Id)
+	}
+
+	if userId != 0 {
+		session.And("user_id=?", userId)
+		if req.Status > 3 {
+			// 用户不能让他查找到逻辑删除的内容
+			req.Status = 0
+		}
+		session.And("status<?", 4)
+	} else {
+		if req.UserId != 0 {
+			session.And("user_id=?", req.UserId)
+		}
+	}
+
+	if req.Status != -1 {
+		session.And("status=?", req.Status)
+	}
+
+	if req.Seo != "" {
+		session.And("seo=?", req.Seo)
+	}
+
+	if req.CloseComment != -1 {
+		session.And("close_comment=?", req.CloseComment)
+	}
+
+	if req.NodeId != 0 {
+		session.And("node_id=?", req.NodeId)
+	}
+	if req.CreateTimeBegin > 0 {
+		session.And("create_time>=?", req.CreateTimeBegin)
+	}
+
+	if req.CreateTimeEnd > 0 {
+		session.And("create_time<?", req.CreateTimeBegin)
+	}
+
+	if req.UpdateTimeBegin > 0 {
+		session.And("update_time>=?", req.UpdateTimeBegin)
+	}
+
+	if req.UpdateTimeEnd > 0 {
+		session.And("update_time<?", req.UpdateTimeEnd)
+	}
+
+	// count num
+	countSession := session.Clone()
+	defer countSession.Close()
+	total, err := countSession.Count()
+	if err != nil {
+		flog.Log.Errorf("ListContent err:%s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	// if count>0 start list
+	cs := make([]model.Content, 0)
+	p := &req.PageHelp
+	if total == 0 {
+	} else {
+		// sql build
+		p.build(session, req.Sort, model.ContentSortName)
+		// do query
+		err = session.Omit("describe", "pre_describe").Find(&cs)
+		if err != nil {
+			flog.Log.Errorf("ListContent err:%s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+	}
+
+	// result
+	respResult.Contents = cs
+	p.Pages = int(math.Ceil(float64(total) / float64(p.Limit)))
+	respResult.PageHelp = *p
+	resp.Data = respResult
+	resp.Flag = true
+}
+
+type ListContentHistoryRequest struct {
+	Id     int      `json:"id" validate:"required"`
+	UserId int      `json:"user_id"`
+	Sort   []string `json:"sort" validate:"dive,lt=100"`
+	PageHelp
+}
+
+type ListContentHistoryResponse struct {
+	Contents []model.ContentHistory `json:"contents"`
+	PageHelp
+}
+
+func ListContentHistory(c *gin.Context) {
+	resp := new(Resp)
+	uu, err := GetUserSession(c)
+	if err != nil {
+		flog.Log.Errorf("ListContentHistory err: %s", err.Error())
+		resp.Error = Error(I500, "")
+		JSONL(c, 200, nil, resp)
+		return
+	}
+
+	uid := uu.Id
+	ListContentHistoryHelper(c, uid)
+}
+
+func ListContentHistoryAdmin(c *gin.Context) {
+	ListContentHistoryHelper(c, 0)
+}
+
+func ListContentHistoryHelper(c *gin.Context, userId int) {
+	resp := new(Resp)
+
+	respResult := new(ListContentHistoryResponse)
+	req := new(ListContentHistoryRequest)
+	defer func() {
+		JSONL(c, 200, req, resp)
+	}()
+
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	var validate = validator.New()
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("ListContentHistory err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
+		return
+	}
+
+	// new query list session
+	session := config.FafaRdb.Client.NewSession()
+	defer session.Close()
+
+	// group list where prepare
+	session.Table(new(model.ContentHistory)).Where("1=1")
+
+	session.And("content_id=?", req.Id)
+
+	if userId != 0 {
+		session.And("user_id=?", userId)
+	} else {
+		if req.UserId != 0 {
+			session.And("user_id=?", req.UserId)
+		}
+	}
+
+	// count num
+	countSession := session.Clone()
+	defer countSession.Close()
+	total, err := countSession.Count()
+	if err != nil {
+		flog.Log.Errorf("ListContentHistory err:%s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	// if count>0 start list
+	cs := make([]model.ContentHistory, 0)
+	p := &req.PageHelp
+	if total == 0 {
+	} else {
+		// sql build
+		p.build(session, req.Sort, model.ContentHistorySortName)
+		// do query
+		err = session.Omit("describe").Find(&cs)
+		if err != nil {
+			flog.Log.Errorf("ListContentHistory err:%s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+	}
+
+	// result
+	respResult.Contents = cs
+	p.Pages = int(math.Ceil(float64(total) / float64(p.Limit)))
+	respResult.PageHelp = *p
+	resp.Data = respResult
+	resp.Flag = true
+}
+
 func DeleteContent(c *gin.Context) {
 	resp := new(Resp)
 	defer func() {
@@ -390,13 +645,6 @@ func DeleteContent(c *gin.Context) {
 }
 
 func TakeContent(c *gin.Context) {
-	resp := new(Resp)
-	defer func() {
-		JSONL(c, 200, nil, resp)
-	}()
-}
-
-func ListContent(c *gin.Context) {
 	resp := new(Resp)
 	defer func() {
 		JSONL(c, 200, nil, resp)
