@@ -88,7 +88,6 @@ var (
 		"/content/history/admin/list": {"List Content History All", controllers.ListContentHistoryAdmin, GP, true}, // 管理员列出文章的历史纪录
 
 		// doing
-
 		"/content/take":               {"Take Content Self", controllers.TakeContent, GP, false},         // 获取文章内容
 		"/content/admin/take":         {"Take Content Self", controllers.TakeContent, GP, true},          // 管理员获取文章内容
 		"/content/history/take":       {"Take Content History Self", controllers.TakeContent, GP, false}, // 获取文章历史内容
