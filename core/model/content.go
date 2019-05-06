@@ -8,11 +8,12 @@ import (
 
 // 内容表
 type Content struct {
-	Id                int    `json:"id" xorm:"bigint pk autoincr"`
-	Seo               string `json:"seo" xorm:"index"`
-	Title             string `json:"title" xorm:"varchar(200) notnull"`
-	UserId            int    `json:"user_id" xorm:"bigint index"`                                                                         // 内容所属用户
-	NodeId            int    `json:"node_id" xorm:"bigint index"`                                                                         // 节点ID
+	Id     int    `json:"id" xorm:"bigint pk autoincr"`
+	Seo    string `json:"seo" xorm:"index"`
+	Title  string `json:"title" xorm:"varchar(200) notnull"`
+	UserId int    `json:"user_id" xorm:"bigint index"` // 内容所属用户
+	NodeId int    `json:"node_id" xorm:"bigint index"` // 节点ID
+	// 0/1 ->3   2/3 -> 4
 	Status            int    `json:"status" xorm:"not null comment('0 normal, 1 hide，2 ban, 3 rubbish，4 logic delete') TINYINT(1) index"` // 0-1-2-3为正常
 	Describe          string `json:"describe" xorm:"TEXT"`
 	PreDescribe       string `json:"pre_describe" xorm:"TEXT"`                                                           // 预览内容，临时保存，当修改后调用发布接口，会刷新到Describe，并且记录进历史表
@@ -108,6 +109,19 @@ func (c *Content) Get() (bool, error) {
 	return config.FafaRdb.Client.Where("status!=?", 4).Get(c)
 }
 
+func (c *Content) GetByAdmin() (bool, error) {
+	if c.Id == 0 {
+		return false, errors.New("where is empty")
+	}
+
+	if c.UserId != 0 {
+		return c.Get()
+	}
+
+	// 逻辑删除的内容不能获取到
+	return config.FafaRdb.Client.Get(c)
+}
+
 // 更新前都会调用 Get 接口
 func (c *Content) Update() (int64, error) {
 	if c.UserId == 0 || c.Id == 0 {
@@ -171,4 +185,49 @@ func (c *Content) ResetDescribe() error {
 	}
 
 	return nil
+}
+
+// 0/1 ->3   2/3 -> 4
+func (c *Content) UpdateStatusTo3() (int64, error) {
+	if c.UserId == 0 || c.Id == 0 {
+		return 0, errors.New("where is empty")
+	}
+	c.UpdateTime = time.Now().Unix()
+	c.Status = 3
+	return config.FafaRdb.Client.Cols("status", "update_time").Where("status<=?", 1).Where("id=?", c.Id).And("user_id=?", c.UserId).Update(c)
+}
+
+func (c *Content) UpdateStatusTo3Reverse() (int64, error) {
+	if c.UserId == 0 || c.Id == 0 {
+		return 0, errors.New("where is empty")
+	}
+	c.UpdateTime = time.Now().Unix()
+	c.Status = 0
+	return config.FafaRdb.Client.Cols("status", "update_time").Where("status=?", 3).Where("id=?", c.Id).And("user_id=?", c.UserId).Update(c)
+}
+
+func (c *Content) UpdateStatusTo4() (int64, error) {
+	if c.UserId == 0 || c.Id == 0 {
+		return 0, errors.New("where is empty")
+	}
+	c.UpdateTime = time.Now().Unix()
+	c.Status = 4
+	return config.FafaRdb.Client.Cols("status", "update_time").Where("status>=?", 2).Where("id=?", c.Id).And("user_id=?", c.UserId).Update(c)
+}
+
+func (c *Content) UpdateStatus() (int64, error) {
+	if c.Id == 0 {
+		return 0, errors.New("where is empty")
+	}
+	c.UpdateTime = time.Now().Unix()
+	return config.FafaRdb.Client.Cols("status", "update_time").Where("id=?", c.Id).Update(c)
+}
+
+func (c *ContentHistory) GetByAdmin() (bool, error) {
+	if c.Id == 0 {
+		return false, errors.New("where is empty")
+	}
+
+	// 逻辑删除的内容不能获取到
+	return config.FafaRdb.Client.Get(c)
 }

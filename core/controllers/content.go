@@ -637,16 +637,214 @@ func ListContentHistoryHelper(c *gin.Context, userId int) {
 	resp.Flag = true
 }
 
-func DeleteContent(c *gin.Context) {
+type TakeContentRequest struct {
+	Id int `json:"id" validate:"required"`
+}
+
+func TakeContentHelper(c *gin.Context, userId int) {
 	resp := new(Resp)
+	req := new(TakeContentRequest)
 	defer func() {
-		JSONL(c, 200, nil, resp)
+		JSONL(c, 200, req, resp)
 	}()
+
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	var validate = validator.New()
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("TakeContent err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
+		return
+	}
+
+	content := new(model.Content)
+	content.Id = req.Id
+	content.UserId = userId
+	exist, err := content.GetByAdmin()
+	if err != nil {
+		flog.Log.Errorf("TakeContent err: %s", err.Error())
+		resp.Error = Error(DBError, "")
+		return
+	}
+
+	if !exist {
+		flog.Log.Errorf("TakeContent err: %s", "content not found")
+		resp.Error = Error(DbNotFound, "content not found")
+		return
+	}
+
+	resp.Data = content
+	resp.Flag = true
 }
 
 func TakeContent(c *gin.Context) {
 	resp := new(Resp)
-	defer func() {
+	uu, err := GetUserSession(c)
+	if err != nil {
+		flog.Log.Errorf("TakeContent err: %s", err.Error())
+		resp.Error = Error(I500, "")
 		JSONL(c, 200, nil, resp)
+		return
+	}
+
+	uid := uu.Id
+	TakeContentHelper(c, uid)
+}
+
+func TakeContentAdmin(c *gin.Context) {
+	TakeContentHelper(c, 0)
+}
+
+type TakeContentHistoryRequest struct {
+	Id int `json:"id" validate:"required"`
+}
+
+func TakeContentHistoryHelper(c *gin.Context, userId int) {
+	resp := new(Resp)
+	req := new(TakeContentHistoryRequest)
+	defer func() {
+		JSONL(c, 200, req, resp)
 	}()
+
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	var validate = validator.New()
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("TakeContentHistory err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
+		return
+	}
+
+	content := new(model.ContentHistory)
+	content.Id = req.Id
+	content.UserId = userId
+	exist, err := content.GetByAdmin()
+	if err != nil {
+		flog.Log.Errorf("TakeContentHistory err: %s", err.Error())
+		resp.Error = Error(DBError, "")
+		return
+	}
+
+	if !exist {
+		flog.Log.Errorf("TakeContentHistory err: %s", "content not found")
+		resp.Error = Error(DbNotFound, "content not found")
+		return
+	}
+
+	resp.Data = content
+	resp.Flag = true
+}
+
+func TakeContentHistory(c *gin.Context) {
+	resp := new(Resp)
+	uu, err := GetUserSession(c)
+	if err != nil {
+		flog.Log.Errorf("TakeContentHistory err: %s", err.Error())
+		resp.Error = Error(I500, "")
+		JSONL(c, 200, nil, resp)
+		return
+	}
+
+	uid := uu.Id
+	TakeContentHistoryHelper(c, uid)
+}
+
+func TakeContentHistoryAdmin(c *gin.Context) {
+	TakeContentHistoryHelper(c, 0)
+}
+
+type DeleteContentRequest struct {
+	Id     int `json:"id" validate:"required"`
+	Status int `json:"status" validate:"oneof=0 1 2 3 4"`
+}
+
+func DeleteContentHelper(c *gin.Context, userId int, typeDelete int) {
+	resp := new(Resp)
+	req := new(DeleteContentRequest)
+	defer func() {
+		JSONL(c, 200, req, resp)
+	}()
+
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	var validate = validator.New()
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("DeleteContent err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
+		return
+	}
+
+	content := new(model.Content)
+	content.Id = req.Id
+	content.UserId = userId
+	if typeDelete == 0 {
+		_, err = content.UpdateStatusTo3()
+	} else if typeDelete == 1 {
+		_, err = content.UpdateStatusTo4()
+	} else if typeDelete == 2 {
+		_, err = content.UpdateStatusTo3Reverse()
+	} else {
+		content.Status = req.Status
+		_, err = content.UpdateStatus()
+	}
+	resp.Flag = true
+	return
+}
+
+func DeleteContent(c *gin.Context) {
+	resp := new(Resp)
+	uu, err := GetUserSession(c)
+	if err != nil {
+		flog.Log.Errorf("DeleteContent err: %s", err.Error())
+		resp.Error = Error(I500, "")
+		JSONL(c, 200, nil, resp)
+		return
+	}
+
+	uid := uu.Id
+	DeleteContentHelper(c, uid, 0)
+}
+
+func DeleteContentRedo(c *gin.Context) {
+	resp := new(Resp)
+	uu, err := GetUserSession(c)
+	if err != nil {
+		flog.Log.Errorf("DeleteContent err: %s", err.Error())
+		resp.Error = Error(I500, "")
+		JSONL(c, 200, nil, resp)
+		return
+	}
+
+	uid := uu.Id
+	DeleteContentHelper(c, uid, 2)
+}
+
+func DeleteContentAdmin(c *gin.Context) {
+	DeleteContentHelper(c, 0, 3)
+}
+
+func DeleteContent2(c *gin.Context) {
+	resp := new(Resp)
+	uu, err := GetUserSession(c)
+	if err != nil {
+		flog.Log.Errorf("DeleteContent err: %s", err.Error())
+		resp.Error = Error(I500, "")
+		JSONL(c, 200, nil, resp)
+		return
+	}
+
+	uid := uu.Id
+	DeleteContentHelper(c, uid, 1)
 }
