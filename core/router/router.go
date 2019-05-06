@@ -84,11 +84,12 @@ var (
 
 		"/content/list":       {"List Content Self", controllers.ListContent, GP, false}, // 列出文章
 		"/content/admin/list": {"List Content All", controllers.ListContent, GP, true},   // 管理员列出文章
+		"/content/take":       {"Take Content Self", controllers.TakeContent, GP, false}, // 获取文章内容
 
-		"/content/admin/update": {"Update Content All", controllers.UpdateContent, POST, true},            // 超级管理员修改文章，比如禁用或者恢复文章
-		"/content/rubbish":      {"Sent Content Self To Rubbish", controllers.DeleteContent, POST, false}, // 逻辑删除文章
+		"/content/admin/update": {"Update Content All", controllers.UpdateContent, POST, true},            // 超级管理员修改文章，比如禁用或者逻辑删除/恢复文章
+		"/content/rubbish":      {"Sent Content Self To Rubbish", controllers.DeleteContent, POST, false}, // 一般回收站
 		"/content/delete":       {"Delete Content Self Logic", controllers.DeleteContent, POST, false},    // 逻辑删除文章
-		"/content/take":         {"Take Content Self", controllers.TakeContent, GP, false},                // 获取文章内容
+
 		//
 		//"/comment/create": {controllers.CreateComment, POST},
 		//"/comment/update": {controllers.UpdateComment, POST},
