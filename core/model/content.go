@@ -43,7 +43,7 @@ type ContentHistory struct {
 	UserId     int    `json:"user_id" xorm:"bigint index"` // 内容所属的用户ID
 	NodeId     int    `json:"node_id" xorm:"bigint index"` // 内容所属的节点
 	Describe   string `json:"describe" xorm:"TEXT"`
-	CreateTime int    `json:"create_time"`
+	CreateTime int64  `json:"create_time"`
 }
 
 // 内容建议表，哪个用户对哪个内容进行了点评
@@ -101,7 +101,7 @@ func (c *Content) Get() (bool, error) {
 	}
 
 	// 逻辑删除的内容不能获取到
-	return config.FafaRdb.Client.Where("status!=", 4).Get(c)
+	return config.FafaRdb.Client.Where("status!=?", 4).Get(c)
 }
 
 // 更新前都会调用 Get 接口
@@ -110,7 +110,7 @@ func (c *Content) Update() (int64, error) {
 		return 0, errors.New("where is empty")
 	}
 	c.UpdateTime = time.Now().Unix()
-	return config.FafaRdb.Client.MustCols("status", "close_comment", "pre_flush").Omit("user_id").Where("id=?", c.Id).Update(c)
+	return config.FafaRdb.Client.MustCols("status", "close_comment", "pre_flush", "password").Omit("user_id").Where("id=?", c.Id).And("user_id=?", c.UserId).Update(c)
 }
 
 func (c *Content) UpdateDescribe() error {
@@ -123,15 +123,48 @@ func (c *Content) UpdateDescribe() error {
 		return err
 	}
 
+	defer s.Close()
+
 	c.UpdateTime = time.Now().Unix()
 	c.Version = c.Version + 1
 	c.PreFlush = 1
-	_, err := s.Cols("describe", "pre_flush", "update_time", "version").Where("id=?", c.Id).And("user_id", c.UserId).Update(c)
+	_, err := s.Cols("describe", "pre_flush", "update_time", "version").Where("id=?", c.Id).And("user_id=?", c.UserId).Update(c)
 	if err != nil {
 		s.Rollback()
 		return err
 	}
 
-	//new(ContentHistory)
+	ch := new(ContentHistory)
+	ch.Seo = c.Seo
+	ch.Describe = c.Describe
+	ch.UserId = c.UserId
+	ch.Title = c.Title
+	ch.NodeId = c.NodeId
+	ch.ContentId = c.Id
+	ch.CreateTime = time.Now().Unix()
+	_, err = s.InsertOne(ch)
+	if err != nil {
+		s.Rollback()
+		return err
+	}
+
+	if err := s.Commit(); err != nil {
+		s.Rollback()
+		return err
+	}
+	return nil
+}
+
+func (c *Content) ResetDescribe() error {
+	if c.UserId == 0 || c.Id == 0 {
+		return errors.New("where is empty")
+	}
+
+	c.UpdateTime = time.Now().Unix()
+	_, err := config.FafaRdb.Client.Cols("pre_describe", "update_time").Where("id=?", c.Id).And("user_id=?", c.UserId).Update(c)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

@@ -226,30 +226,29 @@ func UpdateContent(c *gin.Context) {
 	}
 
 	// 只可以修改0-1状态的内容，即正常和不显示的内容
-	if contentBefore.Status <= 1 && req.Status != contentBefore.Status {
-		content.Status = req.Status
+	if contentBefore.Status <= 1 {
+		if req.Status != contentBefore.Status {
+			content.Status = req.Status
+		} else {
+			content.Status = contentBefore.Status
+		}
 	}
 
 	// 已经刷新，状态保留
 	content.PreFlush = contentBefore.PreFlush
 
 	//  如果内容更新，重置
-	if content.PreDescribe != req.Describe {
+	if contentBefore.PreDescribe != req.Describe {
 		content.PreFlush = 0
 		content.PreDescribe = req.Describe
 	}
 
-	if content.Title != contentBefore.Title {
+	if contentBefore.Title != req.Title {
 		content.Title = req.Title
 	}
 
-	if req.Password != contentBefore.Password {
-		content.Password = req.Password
-	}
-
-	if req.CloseComment != contentBefore.CloseComment {
-		content.CloseComment = req.CloseComment
-	}
+	content.Password = req.Password
+	content.CloseComment = req.CloseComment
 	_, err = content.Update()
 	if err != nil {
 		flog.Log.Errorf("UpdateContent err:%s", err.Error())
@@ -311,10 +310,78 @@ func PublishContent(c *gin.Context) {
 		return
 	}
 
-	content.Describe =content.PreDescribe
-	content.UpdateDescribe()
-
+	content.Describe = content.PreDescribe
+	err = content.UpdateDescribe()
+	if err != nil {
+		flog.Log.Errorf("PublishContent err: %s", err.Error())
+		resp.Error = Error(DBError, "")
+		return
+	}
+	resp.Flag = true
 }
+
+type CancelContentRequest struct {
+	Id int `json:"id" validate:"required"`
+}
+
+func CancelContent(c *gin.Context) {
+	resp := new(Resp)
+	req := new(PublishContentRequest)
+	defer func() {
+		JSONL(c, 200, req, resp)
+	}()
+
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	var validate = validator.New()
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("CancelContent err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
+		return
+	}
+
+	uu, err := GetUserSession(c)
+	if err != nil {
+		flog.Log.Errorf("CancelContent err: %s", err.Error())
+		resp.Error = Error(I500, "")
+		return
+	}
+
+	content := new(model.Content)
+	content.Id = req.Id
+	content.UserId = uu.Id
+	exist, err := content.Get()
+	if err != nil {
+		flog.Log.Errorf("CancelContent err: %s", err.Error())
+		resp.Error = Error(DBError, "")
+		return
+	}
+
+	if !exist {
+		flog.Log.Errorf("CancelContent err: %s", "content not found")
+		resp.Error = Error(DbNotFound, "content not found")
+		return
+	}
+
+	if content.PreFlush == 1 {
+		resp.Flag = true
+		return
+	}
+
+	content.PreDescribe = content.Describe
+	err = content.ResetDescribe()
+	if err != nil {
+		flog.Log.Errorf("CancelContent err: %s", err.Error())
+		resp.Error = Error(DBError, "")
+		return
+	}
+	resp.Flag = true
+}
+
 func DeleteContent(c *gin.Context) {
 	resp := new(Resp)
 	defer func() {

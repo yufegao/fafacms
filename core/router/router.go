@@ -82,12 +82,13 @@ var (
 		"/content/publish": {"Publish Content Self", controllers.PublishContent, POST, false}, // 将预览刷进另外一个字段
 		"/content/cancel":  {"Cancel Content Self", controllers.CancelContent, POST, false},   // 取消预览的内容，刷回来
 
+		"/content/list":       {"List Content Self", controllers.ListContent, GP, false}, // 列出文章
+		"/content/admin/list": {"List Content All", controllers.ListContent, GP, true},   // 管理员列出文章
+
 		"/content/admin/update": {"Update Content All", controllers.UpdateContent, POST, true},            // 超级管理员修改文章，比如禁用或者恢复文章
 		"/content/rubbish":      {"Sent Content Self To Rubbish", controllers.DeleteContent, POST, false}, // 逻辑删除文章
 		"/content/delete":       {"Delete Content Self Logic", controllers.DeleteContent, POST, false},    // 逻辑删除文章
 		"/content/take":         {"Take Content Self", controllers.TakeContent, GP, false},                // 获取文章内容
-		"/content/list":         {"List Content Self", controllers.ListContent, GP, false},                // 列出文章
-		"/content/admin/list":   {"List Content All", controllers.ListContent, GP, true},                  // 管理员列出文章
 		//
 		//"/comment/create": {controllers.CreateComment, POST},
 		//"/comment/update": {controllers.UpdateComment, POST},
