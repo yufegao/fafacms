@@ -5,6 +5,7 @@ import (
 	"github.com/hunterhug/fafacms/core/config"
 	"github.com/hunterhug/fafacms/core/flog"
 	"github.com/hunterhug/fafacms/core/model"
+	"github.com/hunterhug/parrot/util"
 	"math"
 	"time"
 )
@@ -296,8 +297,86 @@ func UserInfo(c *gin.Context) {
 
 }
 
-func UserCount(c *gin.Context) {
+type UserCountRequest struct {
+	UserId   int    `json:"id"`
+	UserName string `json:"user_name"`
+}
 
+type UserCountX struct {
+	Count           int    `json:"count"`
+	Days            string `json:"days"`
+	CreateTimeBegin int64  `json:"create_time_begin"`
+	CreateTimeEnd   int64  `json:"create_time_end"`
+}
+type UserCountResponse struct {
+	Info     []UserCountX `json:"info"`
+	UserId   int          `json:"user_id"`
+	UserName string       `json:"user_name"`
+}
+
+func UserCount(c *gin.Context) {
+	resp := new(Resp)
+
+	defer func() {
+		JSON(c, 200, resp)
+	}()
+
+	req := new(UserCountRequest)
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	if req.UserId == 0 && req.UserName == "" {
+		resp.Error = Error(ParasError, "where is empty")
+		return
+	}
+
+	user := new(model.User)
+	user.Id = req.UserId
+	user.Name = req.UserName
+	user.Status = 1
+	err := user.Get()
+	if err != nil {
+		flog.Log.Errorf("UserCount err:%s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	if user.Status != 1 {
+		flog.Log.Errorf("UserCount err:%s", "not activate")
+		resp.Error = Error(DBError, "not activate")
+		return
+	}
+
+	req.UserId = user.Id
+
+	sql := "SELECT DATE_FORMAT(from_unixtime(create_time),'%Y%m%d') days,count(id) count FROM `fafacms_content` WHERE user_id=? group by days;"
+	result, err := config.FafaRdb.Client.QueryString(sql, req.UserId)
+	if err != nil {
+		flog.Log.Errorf("UserCount err:%s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	back := make([]UserCountX, 0)
+	for _, v := range result {
+		t := UserCountX{}
+		t.Count, _ = util.SI(v["count"])
+		t.Days = v["days"]
+		begin, _ := time.Parse("20060102", t.Days)
+		end := begin.AddDate(0, 0, 1)
+		t.CreateTimeBegin = begin.Unix()
+		t.CreateTimeEnd = end.Unix()
+		back = append(back, t)
+	}
+
+	resp.Flag = true
+	resp.Data = UserCountResponse{
+		Info:     back,
+		UserId:   user.Id,
+		UserName: user.Name,
+	}
 }
 
 func Contents(c *gin.Context) {

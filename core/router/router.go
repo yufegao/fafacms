@@ -22,12 +22,10 @@ var (
 var (
 	HomeRouter = map[string]HttpHandle{
 		// 前端路由
-		"/":       {"Home", controllers.Home, GP, false},
-		"/p":      {"List Peoples", controllers.Peoples, GP, false},    // 列出用户
-		"/u/node": {"List User Nodes", controllers.Nodes, GP, false},   // 列出某用户下的节点
-		"/u/info": {"List User Info", controllers.UserInfo, GP, false}, // 获取某用户信息
-
-		// todo
+		"/":          {"Home", controllers.Home, GP, false},
+		"/p":         {"List Peoples", controllers.Peoples, GP, false},         // 列出用户
+		"/u/node":    {"List User Nodes", controllers.Nodes, GP, false},        // 列出某用户下的节点
+		"/u/info":    {"List User Info", controllers.UserInfo, GP, false},      // 获取某用户信息
 		"/u/count":   {"Count User Content", controllers.UserCount, GP, false}, // 统计某用户文章情况（某用户可留空）
 		"/u/content": {"List User Content", controllers.Contents, GP, false},   // 列出某用户下文章
 		"/c":         {"Get Content", controllers.Content, GP, false},          // 获取文章
