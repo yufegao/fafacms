@@ -104,9 +104,7 @@ func main() {
 			model.Content{},        // 内容表
 			model.ContentHistory{}, // 内容历史表
 			model.ContentNode{},    // 内容节点表，内容必须拥有一个节点
-			model.ContentSupport{}, // 内容建议表，内容被支持或者反对，一对一
 			model.Comment{},        // 评论表
-			model.CommentSupport{}, // 评论建议表，内容被支持或者反对，一对一
 			model.Log{},            // 日志表
 			model.File{},           // 文件表
 		})

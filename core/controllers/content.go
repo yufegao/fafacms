@@ -13,11 +13,12 @@ type CreateContentRequest struct {
 	Seo          string `json:"seo" validate:"omitempty,alphanumunicode,gt=3,lt=30"` // 内容应该有个好听的标志
 	Title        string `json:"title" validate:"required,lt=100"`                    // 必须有标题吧
 	Status       int    `json:"status" validate:"oneof=0 1"`                         // 隐藏内容
+	Top          int    `json:"top" validate:"oneof=0 1"`                            // 置顶
 	Describe     string `json:"describe" validate:"omitempty"`                       // 正文
 	ImagePath    string `json:"image_path" validate:"omitempty,lt=100"`              // 内容背景图
 	NodeId       int    `json:"node_id"`                                             // 内容所属节点，可以没有节点
 	Password     string `json:"password"`                                            // 如果非空表示需要密码
-	CloseComment int    `json:"close_comment" validate:"oneof=0 1 2"`
+	CloseComment int    `json:"close_comment" validate:"oneof=0 1 2"`                // 评论设置
 }
 
 func CreateContent(c *gin.Context) {
@@ -106,6 +107,7 @@ func CreateContent(c *gin.Context) {
 	content.Title = req.Title
 	content.Password = req.Password
 	content.CloseComment = req.CloseComment
+	content.Top = req.Top
 	_, err = content.Insert()
 	if err != nil {
 		flog.Log.Errorf("CreateContent err:%s", err.Error())
@@ -122,6 +124,7 @@ type UpdateContentRequest struct {
 	Seo          string `json:"seo" validate:"omitempty,alphanumunicode,gt=3,lt=30"`
 	Title        string `json:"title" validate:"required,lt=100"`
 	Status       int    `json:"status" validate:"oneof=0 1"`
+	Top          int    `json:"top" validate:"oneof=0 1"`
 	Describe     string `json:"describe" validate:"omitempty"`
 	ImagePath    string `json:"image_path" validate:"omitempty,lt=100"`
 	NodeId       int    `json:"node_id"`
@@ -229,11 +232,9 @@ func UpdateContent(c *gin.Context) {
 
 	// 只可以修改0-1状态的内容，即正常和不显示的内容
 	if contentBefore.Status <= 1 {
-		if req.Status != contentBefore.Status {
-			content.Status = req.Status
-		} else {
-			content.Status = contentBefore.Status
-		}
+		content.Status = req.Status
+	} else {
+		content.Status = contentBefore.Status
 	}
 
 	// 已经刷新，状态保留
@@ -251,6 +252,7 @@ func UpdateContent(c *gin.Context) {
 
 	content.Password = req.Password
 	content.CloseComment = req.CloseComment
+	content.Top = req.Top
 	_, err = content.Update()
 	if err != nil {
 		flog.Log.Errorf("UpdateContent err:%s", err.Error())
@@ -388,6 +390,7 @@ type ListContentRequest struct {
 	Id              int      `json:"id"`
 	Seo             string   `json:"seo" validate:"omitempty,alphanumunicode,gt=3,lt=30"`
 	NodeId          int      `json:"node_id"`
+	Top             int      `json:"top" validate:"oneof=-1 0 1"`
 	Status          int      `json:"status" validate:"oneof=-1 0 1 2 3 4"`
 	CloseComment    int      `json:"close_comment" validate:"oneof=-1 0 1 2"`
 	UserId          int      `json:"user_id"`
@@ -471,6 +474,10 @@ func ListContentHelper(c *gin.Context, userId int) {
 
 	if req.Status != -1 {
 		session.And("status=?", req.Status)
+	}
+
+	if req.Top != -1 {
+		session.And("top=?", req.Top)
 	}
 
 	if req.Seo != "" {
@@ -766,6 +773,7 @@ type DeleteContentRequest struct {
 	Status int `json:"status" validate:"oneof=0 1 2 3 4"`
 }
 
+// 文章状态操作
 func DeleteContentHelper(c *gin.Context, userId int, typeDelete int) {
 	resp := new(Resp)
 	req := new(DeleteContentRequest)
@@ -790,12 +798,16 @@ func DeleteContentHelper(c *gin.Context, userId int, typeDelete int) {
 	content.Id = req.Id
 	content.UserId = userId
 	if typeDelete == 0 {
+		// 送去垃圾站
 		_, err = content.UpdateStatusTo3()
 	} else if typeDelete == 1 {
+		// 逻辑删除
 		_, err = content.UpdateStatusTo4()
 	} else if typeDelete == 2 {
+		// 垃圾恢复
 		_, err = content.UpdateStatusTo3Reverse()
 	} else {
+		// 管理员权限
 		content.Status = req.Status
 		_, err = content.UpdateStatus()
 	}
@@ -803,6 +815,7 @@ func DeleteContentHelper(c *gin.Context, userId int, typeDelete int) {
 	return
 }
 
+// 垃圾回收，假删除
 func DeleteContent(c *gin.Context) {
 	resp := new(Resp)
 	uu, err := GetUserSession(c)
@@ -817,6 +830,22 @@ func DeleteContent(c *gin.Context) {
 	DeleteContentHelper(c, uid, 0)
 }
 
+// 逻辑删除
+func DeleteContent2(c *gin.Context) {
+	resp := new(Resp)
+	uu, err := GetUserSession(c)
+	if err != nil {
+		flog.Log.Errorf("DeleteContent err: %s", err.Error())
+		resp.Error = Error(I500, "")
+		JSONL(c, 200, nil, resp)
+		return
+	}
+
+	uid := uu.Id
+	DeleteContentHelper(c, uid, 1)
+}
+
+// 垃圾恢复
 func DeleteContentRedo(c *gin.Context) {
 	resp := new(Resp)
 	uu, err := GetUserSession(c)
@@ -831,20 +860,7 @@ func DeleteContentRedo(c *gin.Context) {
 	DeleteContentHelper(c, uid, 2)
 }
 
+// 管理员超大权限
 func DeleteContentAdmin(c *gin.Context) {
 	DeleteContentHelper(c, 0, 3)
-}
-
-func DeleteContent2(c *gin.Context) {
-	resp := new(Resp)
-	uu, err := GetUserSession(c)
-	if err != nil {
-		flog.Log.Errorf("DeleteContent err: %s", err.Error())
-		resp.Error = Error(I500, "")
-		JSONL(c, 200, nil, resp)
-		return
-	}
-
-	uid := uu.Id
-	DeleteContentHelper(c, uid, 1)
 }

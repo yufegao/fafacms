@@ -19,6 +19,7 @@ type ContentNode struct {
 	ImagePath    string `json:"image_path" xorm:"varchar(700)"`
 	ParentNodeId int    `json:"parent_node_id" xorm:"bigint"`
 	Level        int    `json:"level"`
+	SortNum      int    `json:"sort_num"` //  排序，数字越大排越前
 	Aa           string `json:"aa,omitempty"`
 	Ab           string `json:"ab,omitempty"`
 	Ac           string `json:"ac,omitempty"`
@@ -26,7 +27,7 @@ type ContentNode struct {
 }
 
 // 内容节点排序专用，内容节点按更新时间降序，接着创建时间
-var ContentNodeSortName = []string{"=id", "-update_time", "-create_time", "+status", "=seo"}
+var ContentNodeSortName = []string{"=id", "-sort_num", "-create_time", "-update_time", "+status", "=seo"}
 
 // 节点检查SEO的子路径是否有效
 func (n *ContentNode) CheckSeoValid() (bool, error) {
@@ -107,7 +108,7 @@ func (n *ContentNode) Update() error {
 		return errors.New("where is empty")
 	}
 	n.UpdateTime = time.Now().Unix()
-	_, err := config.FafaRdb.Client.Where("id=?", n.Id).And("user_id=?", n.UserId).Cols("seo", "level", "parent_node_id", "name", "describe", "update_time", "status", "image_path").Update(n)
+	_, err := config.FafaRdb.Client.Where("id=?", n.Id).And("user_id=?", n.UserId).Cols("seo", "level", "parent_node_id", "name", "describe", "update_time", "status", "image_path", "sort_num").Update(n)
 	return err
 }
 

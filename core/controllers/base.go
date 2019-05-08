@@ -75,7 +75,7 @@ func Error(code int, detail string) *ErrorResp {
 	if detail == "" {
 		str = fmt.Sprintf("%s", ErrorMap[code])
 	}
-	
+
 	return &ErrorResp{
 		ErrorID:  code,
 		ErrorMsg: str,
@@ -90,6 +90,19 @@ type PageHelp struct {
 }
 
 func (page *PageHelp) build(s *xorm.Session, sort []string, base []string) {
+	Build(s, sort, base)
+
+	if page.Page == 0 {
+		page.Page = 1
+	}
+
+	if page.Limit <= 0 || page.Limit > 20 {
+		page.Limit = 20
+	}
+	s.Limit(page.Limit, (page.Page-1)*page.Limit)
+}
+
+func Build(s *xorm.Session, sort []string, base []string) {
 	for _, v := range base {
 		a := v[1:]
 
@@ -118,15 +131,5 @@ func (page *PageHelp) build(s *xorm.Session, sort []string, base []string) {
 
 			}
 		}
-
 	}
-
-	if page.Page == 0 {
-		page.Page = 1
-	}
-
-	if page.Limit <= 0 || page.Limit > 20 {
-		page.Limit = 20
-	}
-	s.Limit(page.Limit, (page.Page-1)*page.Limit)
 }

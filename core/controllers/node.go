@@ -15,6 +15,7 @@ type CreateNodeRequest struct {
 	Describe     string `json:"describe" validate:"omitempty,lt=200"`
 	ImagePath    string `json:"image_path" validate:"omitempty,lt=100"`
 	ParentNodeId int    `json:"parent_node_id"`
+	SortNum      int    `json:"sort_num"`
 }
 
 func CreateNode(c *gin.Context) {
@@ -102,6 +103,7 @@ func CreateNode(c *gin.Context) {
 	n.Name = req.Name
 	n.Describe = req.Describe
 	n.ParentNodeId = req.ParentNodeId
+	n.SortNum = req.SortNum
 	err = n.InsertOne()
 	if err != nil {
 		flog.Log.Errorf("CreateNode err:%s", err.Error())
@@ -120,7 +122,8 @@ type UpdateNodeRequest struct {
 	Describe     string `json:"describe" validate:"omitempty,lt=200"`
 	ImagePath    string `json:"image_path" validate:"omitempty,lt=100"`
 	ParentNodeId int    `json:"parent_node_id"`
-	Status       int    `json:"status" validate:"oneof=0 1"`
+	Status       int    `json:"status" validate:"oneof=-1 0 1"`
+	SortNum      int    `json:"sort_num"`
 }
 
 func UpdateNode(c *gin.Context) {
@@ -200,7 +203,7 @@ func UpdateNode(c *gin.Context) {
 	}
 
 	// 指定了父亲节点
-	if req.ParentNodeId != 0 {
+	if req.ParentNodeId > 0 {
 		// 和之前的父亲节点不一样
 		if req.ParentNodeId != n.ParentNodeId {
 			n.ParentNodeId = req.ParentNodeId
@@ -218,6 +221,7 @@ func UpdateNode(c *gin.Context) {
 			// 有了父亲节点，级别为1
 			n.Level = 1
 		}
+	} else if req.ParentNodeId == -1 {
 	} else {
 		// 没有指定父亲节点，归零
 		n.Level = 0
@@ -247,16 +251,28 @@ func UpdateNode(c *gin.Context) {
 	}
 
 	// 以下只要存在不一致性才替换
-	if req.Name != n.Name {
-		n.Name = req.Name
+	if req.Name != "" {
+		if req.Name != n.Name {
+			n.Name = req.Name
+		}
 	}
 
-	if req.Describe != n.Describe {
-		n.Describe = req.Describe
+	if req.Describe != "" {
+		if req.Describe != n.Describe {
+			n.Describe = req.Describe
+		}
 	}
 
-	if n.Status != req.Status {
-		n.Status = req.Status
+	if n.Status != -1 {
+		if n.Status != req.Status {
+			n.Status = req.Status
+		}
+	}
+
+	if n.SortNum != -1 {
+		if n.SortNum != req.SortNum {
+			n.SortNum = req.SortNum
+		}
 	}
 
 	// 更新

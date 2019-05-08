@@ -14,28 +14,25 @@ type Content struct {
 	UserId int    `json:"user_id" xorm:"bigint index"` // 内容所属用户
 	NodeId int    `json:"node_id" xorm:"bigint index"` // 节点ID
 	// 0/1 ->3   2/3 -> 4
-	Status            int    `json:"status" xorm:"not null comment('0 normal, 1 hide，2 ban, 3 rubbish，4 logic delete') TINYINT(1) index"` // 0-1-2-3为正常
-	Describe          string `json:"describe" xorm:"TEXT"`
-	PreDescribe       string `json:"pre_describe" xorm:"TEXT"`                                                           // 预览内容，临时保存，当修改后调用发布接口，会刷新到Describe，并且记录进历史表
-	PreFlush          int    `json:"pre_flush" xorm:"not null comment('1 flush') TINYINT(1)"`                            // 是否预览内容已经被刷新
-	CloseComment      int    `json:"close_comment" xorm:"not null comment('0 close, 1 open, 2 direct open') TINYINT(1)"` // 关闭评论开关，默认关闭
-	Version           int    `json:"version"`                                                                            // 0表示什么都没发布                                                      // 发布了多少次版本
-	CreateTime        int64  `json:"create_time"`
-	UpdateTime        int64  `json:"update_time,omitempty"`
-	ImagePath         string `json:"image_path" xorm:"varchar(700)"`
-	Views             int    `json:"views"`                         // 被点击多少次，弱化
-	SuggestUpdateTime int64  `json:"suggest_update_time,omitempty"` // 建议协程更新时间
-	Good              int    `json:"good"`                          // 建议支持数量
-	Bad               int    `json:"bad"`                           // 建议反对
-	Ha                int    `json:"ha"`                            // 建议无所谓
-	Password          string `json:"password,omitempty"`
-	Aa                string `json:"aa,omitempty"`
-	Ab                string `json:"ab,omitempty"`
-	Ac                string `json:"ac,omitempty"`
-	Ad                string `json:"ad,omitempty"`
+	Status       int    `json:"status" xorm:"not null comment('0 normal, 1 hide，2 ban, 3 rubbish，4 logic delete') TINYINT(1) index"` // 0-1-2-3为正常
+	Top          int    `json:"top" xorm:"not null comment('0 normal, 1 top') TINYINT(1) index"`                                     // 置顶
+	Describe     string `json:"describe" xorm:"TEXT"`
+	PreDescribe  string `json:"pre_describe" xorm:"TEXT"`                                                           // 预览内容，临时保存，当修改后调用发布接口，会刷新到Describe，并且记录进历史表
+	PreFlush     int    `json:"pre_flush" xorm:"not null comment('1 flush') TINYINT(1)"`                            // 是否预览内容已经被刷新
+	CloseComment int    `json:"close_comment" xorm:"not null comment('0 close, 1 open, 2 direct open') TINYINT(1)"` // 关闭评论开关，默认关闭
+	Version      int    `json:"version"`                                                                            // 0表示什么都没发布                                                      // 发布了多少次版本
+	CreateTime   int64  `json:"create_time"`
+	UpdateTime   int64  `json:"update_time,omitempty"`
+	ImagePath    string `json:"image_path" xorm:"varchar(700)"`
+	Views        int    `json:"views"` // 被点击多少次，弱化
+	Password     string `json:"password,omitempty"`
+	Aa           string `json:"aa,omitempty"`
+	Ab           string `json:"ab,omitempty"`
+	Ac           string `json:"ac,omitempty"`
+	Ad           string `json:"ad,omitempty"`
 }
 
-var ContentSortName = []string{"=id", "-create_time", "-update_time", "-good", "=bad", "=ha", "-views", "=version", "+status", "=seo"}
+var ContentSortName = []string{"=id", "-create_time", "-update_time", "-views", "=version", "+status", "=seo"}
 
 // 内容历史表
 type ContentHistory struct {
@@ -50,16 +47,6 @@ type ContentHistory struct {
 }
 
 var ContentHistorySortName = []string{"-create_time"}
-
-// 内容建议表，哪个用户对哪个内容进行了点评
-type ContentSupport struct {
-	Id            int `json:"id" xorm:"bigint pk autoincr"`
-	UserId        int `json:"user_id" xorm:"bigint index"`         // 评论的客户ID
-	ContentId     int `json:"content_id" xorm:"bigint index"`      // 内容ID
-	ContentUserId int `json:"content_user_id" xorm:"bigint index"` // 内容拥有者的ID
-	CreateTime    int `json:"create_time"`
-	Suggest       int `json:"suggest" xorm:"not null comment('1 good, 0 Ha，2 bad') TINYINT(1) index"` // 评价
-}
 
 // 统计节点下的内容数量
 func (c *Content) CountNumOfNode() (int64, int64, error) {
@@ -118,7 +105,6 @@ func (c *Content) GetByAdmin() (bool, error) {
 		return c.Get()
 	}
 
-	// 逻辑删除的内容不能获取到
 	return config.FafaRdb.Client.Get(c)
 }
 
@@ -128,7 +114,7 @@ func (c *Content) Update() (int64, error) {
 		return 0, errors.New("where is empty")
 	}
 	c.UpdateTime = time.Now().Unix()
-	return config.FafaRdb.Client.MustCols("status", "close_comment", "pre_flush", "password").Omit("user_id").Where("id=?", c.Id).And("user_id=?", c.UserId).Update(c)
+	return config.FafaRdb.Client.MustCols("status", "close_comment", "pre_flush", "password", "top").Omit("user_id").Where("id=?", c.Id).And("user_id=?", c.UserId).Update(c)
 }
 
 func (c *Content) UpdateDescribe() error {
