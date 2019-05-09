@@ -10,8 +10,9 @@ import (
 type ContentNode struct {
 	Id           int    `json:"id" xorm:"bigint pk autoincr"`
 	UserId       int    `json:"user_id" xorm:"bigint index"`
+	UserName     string `json:"user_name" xorm:"index"`
 	Seo          string `json:"seo" xorm:"index"`
-	Status       int    `json:"status" xorm:"not null comment('0 normal,1 hide,2 deleted') TINYINT(1) index"` //  逻辑删除为2，SEO要置空，悬挂着
+	Status       int    `json:"status" xorm:"not null comment('0 normal,1 hide') TINYINT(1) index"`
 	Name         string `json:"name" xorm:"varchar(100) notnull"`
 	Describe     string `json:"describe" xorm:"TEXT"`
 	CreateTime   int64  `json:"create_time"`
@@ -19,7 +20,7 @@ type ContentNode struct {
 	ImagePath    string `json:"image_path" xorm:"varchar(700)"`
 	ParentNodeId int    `json:"parent_node_id" xorm:"bigint"`
 	Level        int    `json:"level"`
-	SortNum      int    `json:"sort_num"` //  排序，数字越大排越前
+	SortNum      int    `json:"sort_num"` //  排序，数字越大排越后
 	Aa           string `json:"aa,omitempty"`
 	Ab           string `json:"ab,omitempty"`
 	Ac           string `json:"ac,omitempty"`
@@ -27,7 +28,17 @@ type ContentNode struct {
 }
 
 // 内容节点排序专用，内容节点按更新时间降序，接着创建时间
-var ContentNodeSortName = []string{"=id", "-sort_num", "-create_time", "-update_time", "+status", "=seo"}
+// https://blog.csdn.net/weixin_33704591/article/details/86892363
+var ContentNodeSortName = []string{"=id", "+sort_num", "-create_time", "-update_time", "+status", "=seo"}
+
+// 检查节点数量
+func (n *ContentNode) CountNodeNum() (int, error) {
+	if n.UserId == 0 {
+		return 0, errors.New("where is empty")
+	}
+	num, err := config.FafaRdb.Client.Table(n).Where("user_id=?", n.UserId).Count()
+	return int(num), err
+}
 
 // 节点检查SEO的子路径是否有效
 func (n *ContentNode) CheckSeoValid() (bool, error) {
@@ -53,8 +64,7 @@ func (n *ContentNode) CheckParentValid() (bool, error) {
 	}
 
 	// 只允许两层节点，Level必须为0
-	// 被删除的节点不能统计
-	c, err := config.FafaRdb.Client.Table(n).Where("user_id=?", n.UserId).And("id=?", n.ParentNodeId).And("level=?", 0).And("status!=?", 2).Count()
+	c, err := config.FafaRdb.Client.Table(n).Where("user_id=?", n.UserId).And("id=?", n.ParentNodeId).And("level=?", 0).Count()
 
 	// 如果大于1表示存在
 	if c >= 1 {
@@ -80,21 +90,27 @@ func (n *ContentNode) InsertOne() error {
 }
 
 // 节点常规获取，ID和SEO必须存在一者
-// 逻辑删除的不能拿到
 func (n *ContentNode) Get() (bool, error) {
 	if n.Id == 0 && n.Seo == "" {
 		return false, errors.New("where is empty")
 	}
-	return config.FafaRdb.Client.Where("status!=?", 2).Get(n)
+	return config.FafaRdb.Client.Get(n)
+}
+
+// 获取某用户一个sort的节点
+func (n *ContentNode) GetSortOneNode() (bool, error) {
+	if n.UserId == 0 {
+		return false, errors.New("where is empty")
+	}
+	return config.FafaRdb.Client.Get(n)
 }
 
 // 判断节点是否存在
-// 逻辑删除的不能拿到
 func (n *ContentNode) Exist() (bool, error) {
 	if n.Id == 0 {
 		return false, errors.New("where is empty")
 	}
-	num, err := config.FafaRdb.Client.Table(n).Where("id=?", n.Id).And("user_id=?", n.UserId).And("status!=?", 2).Count()
+	num, err := config.FafaRdb.Client.Table(n).Where("id=?", n.Id).And("user_id=?", n.UserId).Count()
 	if err != nil {
 		return false, err
 	}
@@ -103,36 +119,36 @@ func (n *ContentNode) Exist() (bool, error) {
 }
 
 // 更新节点
-func (n *ContentNode) Update() error {
+func (n *ContentNode) Update(seoChange bool) error {
 	if n.UserId == 0 || n.Id == 0 {
 		return errors.New("where is empty")
 	}
+
+	session := config.FafaRdb.Client.NewSession()
+	err := session.Begin()
+	if err != nil {
+		return err
+	}
+
+	if seoChange {
+		_, err = session.Exec("update fafacms_content SET node_seo=? where user_id=? and node_id=?", n.Seo, n.UserId, n.Id)
+		if err != nil {
+			session.Rollback()
+			return err
+		}
+	}
+
 	n.UpdateTime = time.Now().Unix()
-	_, err := config.FafaRdb.Client.Where("id=?", n.Id).And("user_id=?", n.UserId).Cols("seo", "level", "parent_node_id", "name", "describe", "update_time", "status", "image_path", "sort_num").Update(n)
-	return err
-}
-
-// 逻辑删除，置空父亲和SEO
-func (n *ContentNode) LogicDelete() error {
-	if n.UserId == 0 || n.Id == 0 {
-		return errors.New("where is empty")
+	_, err = session.Where("id=?", n.Id).And("user_id=?", n.UserId).Omit("id", "user_id").MustCols("level", "parent_node_id", "status").Update(n)
+	if err != nil {
+		session.Rollback()
+		return err
 	}
 
-	n.Status = 2
-	n.UpdateTime = time.Now().Unix()
-	n.Seo = ""
-	n.ParentNodeId = 0
-	n.Level = 0
-	_, err := config.FafaRdb.Client.Where("id=?", n.Id).And("user_id=?", n.UserId).Cols("seo", "level", "parent_node_id", "update_time", "status").Update(n)
-	return err
-}
-
-// 真删除
-func (n *ContentNode) Delete() error {
-	if n.UserId == 0 || n.Id == 0 {
-		return errors.New("where is empty")
+	err = session.Commit()
+	if err != nil {
+		session.Rollback()
+		return err
 	}
-
-	_, err := config.FafaRdb.Client.Where("user_id=?", n.UserId).And("id=?", n.Id).Delete(n)
-	return err
+	return nil
 }

@@ -574,7 +574,6 @@ func UpdateUser(c *gin.Context) {
 		p.Url = req.ImagePath
 		ok, err := p.Exist()
 		if err != nil {
-
 			flog.Log.Errorf("UpdateUser err:%s", err.Error())
 			resp.Error = Error(DBError, err.Error())
 			return

@@ -70,7 +70,7 @@ func CreateContent(c *gin.Context) {
 		contentNode := new(model.ContentNode)
 		contentNode.Id = req.NodeId
 		contentNode.UserId = uu.Id
-		exist, err := contentNode.Exist()
+		exist, err := contentNode.Get()
 		if err != nil {
 			flog.Log.Errorf("CreateContent err: %s", err.Error())
 			resp.Error = Error(DBError, "")
@@ -81,6 +81,8 @@ func CreateContent(c *gin.Context) {
 			resp.Error = Error(DbNotFound, "node_id")
 			return
 		}
+
+		content.NodeSeo = contentNode.Seo
 	}
 
 	if req.ImagePath != "" {
@@ -108,6 +110,7 @@ func CreateContent(c *gin.Context) {
 	content.Password = req.Password
 	content.CloseComment = req.CloseComment
 	content.Top = req.Top
+	content.UserName = uu.Name
 	_, err = content.Insert()
 	if err != nil {
 		flog.Log.Errorf("CreateContent err:%s", err.Error())
@@ -193,12 +196,15 @@ func UpdateContent(c *gin.Context) {
 		}
 	}
 
+	content.NodeSeo = contentBefore.NodeSeo
+	content.NodeId = contentBefore.NodeId
+
 	if req.NodeId != 0 && req.NodeId != contentBefore.NodeId {
 		content.NodeId = req.NodeId
 		contentNode := new(model.ContentNode)
 		contentNode.Id = req.NodeId
 		contentNode.UserId = uu.Id
-		exist, err := contentNode.Exist()
+		exist, err := contentNode.Get()
 		if err != nil {
 			flog.Log.Errorf("UpdateContent err: %s", err.Error())
 			resp.Error = Error(DBError, "")
@@ -209,6 +215,8 @@ func UpdateContent(c *gin.Context) {
 			resp.Error = Error(DbNotFound, "node_id")
 			return
 		}
+
+		content.NodeSeo = contentNode.Seo
 	}
 
 	if req.ImagePath != "" && req.ImagePath != contentBefore.ImagePath {
@@ -390,10 +398,12 @@ type ListContentRequest struct {
 	Id              int      `json:"id"`
 	Seo             string   `json:"seo" validate:"omitempty,alphanumunicode,gt=3,lt=30"`
 	NodeId          int      `json:"node_id"`
+	NodeSeo         string   `json:"node_seo"`
 	Top             int      `json:"top" validate:"oneof=-1 0 1"`
 	Status          int      `json:"status" validate:"oneof=-1 0 1 2 3 4"`
 	CloseComment    int      `json:"close_comment" validate:"oneof=-1 0 1 2"`
 	UserId          int      `json:"user_id"`
+	UserName        string   `json:"user_name"`
 	CreateTimeBegin int64    `json:"create_time_begin"`
 	CreateTimeEnd   int64    `json:"create_time_end"`
 	UpdateTimeBegin int64    `json:"update_time_begin"`
@@ -467,6 +477,9 @@ func ListContentHelper(c *gin.Context, userId int) {
 		}
 		session.And("status<?", 4)
 	} else {
+		if req.UserName != "" {
+			session.And("user_name=?", req.UserName)
+		}
 		if req.UserId != 0 {
 			session.And("user_id=?", req.UserId)
 		}
@@ -491,6 +504,11 @@ func ListContentHelper(c *gin.Context, userId int) {
 	if req.NodeId != 0 {
 		session.And("node_id=?", req.NodeId)
 	}
+
+	if req.NodeSeo != "" {
+		session.And("node_seo=?", req.NodeSeo)
+	}
+
 	if req.CreateTimeBegin > 0 {
 		session.And("create_time>=?", req.CreateTimeBegin)
 	}

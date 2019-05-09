@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator"
 	"github.com/hunterhug/fafacms/core/config"
 	"github.com/hunterhug/fafacms/core/flog"
 	"github.com/hunterhug/fafacms/core/model"
@@ -129,15 +130,18 @@ type Node struct {
 	ImagePath  string `json:"image_path"`
 	CreateTime string `json:"create_time"`
 	UpdateTime string `json:"update_time,omitempty"`
+	UserId     int    `json:"user_id"`
+	UserName   string `json:"user_name"`
 	SortNum    int    `json:"sort_num"`
 	Son        []Node
 }
 
 type NodesRequest struct {
-	Id     int      `json:"id"`
-	UserId int      `json:"user_id"`
-	Seo    string   `json:"seo"`
-	Sort   []string `json:"sort" validate:"dive,lt=100"`
+	Id       int      `json:"id"`
+	UserId   int      `json:"user_id"`
+	UserName string   `json:"user_name"`
+	Seo      string   `json:"seo"`
+	Sort     []string `json:"sort" validate:"dive,lt=100"`
 }
 
 type NodesResponse struct {
@@ -158,13 +162,23 @@ func Nodes(c *gin.Context) {
 		return
 	}
 
+	if req.UserId == 0 && req.UserName == "" {
+		flog.Log.Errorf("ListNode err:%s", "")
+		resp.Error = Error(ParasError, "where is empty")
+		return
+	}
+
 	session := config.FafaRdb.Client.NewSession()
 	defer session.Close()
 
-	session.Table(new(model.ContentNode)).Where("1=1").And("status=?", 0)
+	session.Table(new(model.ContentNode)).Where("1=1").And("status=?", 0).Asc("sort_num").Asc("create_time")
 
 	if req.UserId != 0 {
 		session.And("user_id=?", req.UserId)
+	}
+
+	if req.UserName != "" {
+		session.And("user_name=?", req.UserName)
 	}
 
 	if req.Id != 0 {
@@ -207,6 +221,8 @@ func Nodes(c *gin.Context) {
 		}
 		f.CreateTime = GetSecond2DateTimes(v.CreateTime)
 		f.SortNum = v.SortNum
+		f.UserName = v.UserName
+		f.UserId = v.UserId
 		for _, vv := range son {
 			if vv.ParentNodeId == f.Id {
 				s := Node{}
@@ -220,6 +236,8 @@ func Nodes(c *gin.Context) {
 				}
 				s.CreateTime = GetSecond2DateTimes(vv.CreateTime)
 				s.SortNum = vv.SortNum
+				s.UserId = vv.UserId
+				s.UserName = v.UserName
 				f.Son = append(f.Son, s)
 			}
 		}
@@ -351,7 +369,7 @@ func UserCount(c *gin.Context) {
 
 	req.UserId = user.Id
 
-	sql := "SELECT DATE_FORMAT(from_unixtime(create_time),'%Y%m%d') days,count(id) count FROM `fafacms_content` WHERE user_id=? group by days;"
+	sql := "SELECT DATE_FORMAT(from_unixtime(create_time),'%Y%m%d') days,count(id) count FROM `fafacms_content` WHERE user_id=? and version>0 and status=0 group by days;"
 	result, err := config.FafaRdb.Client.QueryString(sql, req.UserId)
 	if err != nil {
 		flog.Log.Errorf("UserCount err:%s", err.Error())
@@ -379,10 +397,235 @@ func UserCount(c *gin.Context) {
 	}
 }
 
-func Contents(c *gin.Context) {
+type ContentsRequest struct {
+	NodeId          int      `json:"node_id"`
+	NodeSeo         string   `json:"node_seo"`
+	UserId          int      `json:"user_id"`
+	UserName        string   `json:"user_name"`
+	CreateTimeBegin int64    `json:"create_time_begin"`
+	CreateTimeEnd   int64    `json:"create_time_end"`
+	Sort            []string `json:"sort" validate:"dive,lt=100"`
+	PageHelp
+}
 
+type ContentsX struct {
+	Id         int    `json:"id" xorm:"bigint pk autoincr"`
+	Seo        string `json:"seo" xorm:"index"`
+	Title      string `json:"title" xorm:"varchar(200) notnull"`
+	UserId     int    `json:"user_id" xorm:"bigint index"` // 内容所属用户
+	UserName   string `json:"user_name" xorm:"index"`
+	NodeId     int    `json:"node_id" xorm:"bigint index"`                                     // 节点ID
+	NodeSeo    string `json:"node_seo" xorm:"index"`                                           // 节点ID SEO
+	Top        int    `json:"top" xorm:"not null comment('0 normal, 1 top') TINYINT(1) index"` // 置顶
+	CreateTime string `json:"create_time"`
+	UpdateTime string `json:"update_time,omitempty"`
+	ImagePath  string `json:"image_path" xorm:"varchar(700)"`
+	Views      int    `json:"views"` // 被点击多少次，弱化
+	IsLock     bool   `json:"is_lock"`
+	Describe   string `json:"describe"`
+}
+
+type ContentsResponse struct {
+	Contents []ContentsX `json:"contents"`
+	PageHelp
+}
+
+func Contents(c *gin.Context) {
+	resp := new(Resp)
+
+	respResult := new(ContentsResponse)
+	req := new(ContentsRequest)
+	defer func() {
+		JSONL(c, 200, req, resp)
+	}()
+
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	var validate = validator.New()
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("Contents err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
+		return
+	}
+
+	// new query list session
+	session := config.FafaRdb.Client.NewSession()
+	defer session.Close()
+
+	// group list where prepare
+	session.Table(new(model.Content)).Where("1=1")
+
+	if req.UserId != 0 {
+		session.And("user_id=?", req.UserId)
+	}
+
+	if req.UserName != "" {
+		session.And("user_name=?", req.UserName)
+	}
+
+	session.And("status=?", 0).And("version>?", 0)
+
+	if req.NodeId != 0 {
+		session.And("node_id=?", req.NodeId)
+	}
+
+	if req.NodeSeo != "" {
+		session.And("node_seo=?", req.NodeSeo)
+	}
+
+	if req.CreateTimeBegin > 0 {
+		session.And("create_time>=?", req.CreateTimeBegin)
+	}
+
+	if req.CreateTimeEnd > 0 {
+		session.And("create_time<?", req.CreateTimeBegin)
+	}
+
+	// count num
+	countSession := session.Clone()
+	defer countSession.Close()
+	total, err := countSession.Count()
+	if err != nil {
+		flog.Log.Errorf("Contents err:%s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	// if count>0 start list
+	cs := make([]model.Content, 0)
+	p := &req.PageHelp
+	if total == 0 {
+	} else {
+		// sql build
+		p.build(session, req.Sort, model.ContentSortName)
+		// do query
+		err = session.Omit("describe", "pre_describe").Find(&cs)
+		if err != nil {
+			flog.Log.Errorf("Contents err:%s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+	}
+
+	// result
+	bcs := make([]ContentsX, 0, len(cs))
+	for _, c := range cs {
+		temp := ContentsX{}
+		temp.UserId = c.UserId
+		temp.Seo = c.Seo
+		temp.NodeSeo = c.NodeSeo
+		temp.UserName = c.UserName
+		temp.Id = c.Id
+		temp.Top = c.Top
+		temp.Title = c.Title
+		temp.NodeId = c.NodeId
+		temp.Views = c.Views
+		temp.CreateTime = GetSecond2DateTimes(c.CreateTime)
+		temp.UpdateTime = GetSecond2DateTimes(c.UpdateTime)
+		temp.ImagePath = c.ImagePath
+
+		if c.Password != "" {
+			temp.IsLock = true
+		}
+		bcs = append(bcs, temp)
+	}
+
+	respResult.Contents = bcs
+	p.Pages = int(math.Ceil(float64(total) / float64(p.Limit)))
+	respResult.PageHelp = *p
+	resp.Data = respResult
+	resp.Flag = true
+}
+
+type ContentRequest struct {
+	Id       int    `json:"id"`
+	UserId   int    `json:"user_id"`
+	UserName string `json:"user_name"`
+	Seo      string `json:"seo"`
+	Password string `json:"password"`
 }
 
 func Content(c *gin.Context) {
+	resp := new(Resp)
+	req := new(ContentRequest)
+	defer func() {
+		JSONL(c, 200, req, resp)
+	}()
+
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	var validate = validator.New()
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("TakeContent err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
+		return
+	}
+
+	content := new(model.Content)
+	content.Id = req.Id
+	content.UserId = req.UserId
+	content.UserName = req.UserName
+	content.Seo = req.Seo
+	exist, err := content.GetByRaw()
+	if err != nil {
+		flog.Log.Errorf("TakeContent err: %s", err.Error())
+		resp.Error = Error(DBError, "")
+		return
+	}
+
+	if !exist {
+		flog.Log.Errorf("TakeContent err: %s", "content not found")
+		resp.Error = Error(DbNotFound, "content not found")
+		return
+	}
+
+	if content.Status == 0 {
+
+	} else if content.Status == 2 {
+		flog.Log.Errorf("TakeContent err: %s", "content ban")
+		resp.Error = Error(DbNotFound, "content ban")
+		return
+	} else {
+		flog.Log.Errorf("TakeContent err: %s", "content not found")
+		resp.Error = Error(DbNotFound, "content not found")
+		return
+	}
+
+	if content.Password != "" && content.Password != req.Password {
+		flog.Log.Errorf("TakeContent err: %s", "content password")
+		resp.Error = Error(DbNotFound, "content password")
+		return
+	}
+
+	cx := content
+	temp := ContentsX{}
+	temp.UserId = cx.UserId
+	temp.Seo = cx.Seo
+	temp.NodeSeo = cx.NodeSeo
+	temp.UserName = cx.UserName
+	temp.Id = cx.Id
+	temp.Top = cx.Top
+	temp.Title = cx.Title
+	temp.NodeId = cx.NodeId
+	temp.Views = cx.Views
+	temp.CreateTime = GetSecond2DateTimes(cx.CreateTime)
+	temp.UpdateTime = GetSecond2DateTimes(cx.UpdateTime)
+	temp.ImagePath = cx.ImagePath
+
+	if cx.Password != "" {
+		temp.IsLock = true
+	}
+
+	temp.Describe = cx.Describe
+	resp.Flag = true
+	resp.Data = temp
 
 }

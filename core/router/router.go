@@ -74,6 +74,7 @@ var (
 		// 内容节点操作
 		"/node/create":     {"Create Node Self", controllers.CreateNode, POST, false},
 		"/node/update":     {"Update Node Self", controllers.UpdateNode, POST, false},
+		"/node/sort":       {"Sort Node Self", controllers.SortNode, POST, false},
 		"/node/delete":     {"Delete Node Self", controllers.DeleteNode, POST, false},
 		"/node/take":       {"Take Node Self", controllers.TakeNode, GP, false},
 		"/node/list":       {"List Node Self", controllers.ListNode, GP, false},

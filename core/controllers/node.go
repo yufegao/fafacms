@@ -15,7 +15,6 @@ type CreateNodeRequest struct {
 	Describe     string `json:"describe" validate:"omitempty,lt=200"`
 	ImagePath    string `json:"image_path" validate:"omitempty,lt=100"`
 	ParentNodeId int    `json:"parent_node_id"`
-	SortNum      int    `json:"sort_num"`
 }
 
 func CreateNode(c *gin.Context) {
@@ -103,7 +102,8 @@ func CreateNode(c *gin.Context) {
 	n.Name = req.Name
 	n.Describe = req.Describe
 	n.ParentNodeId = req.ParentNodeId
-	n.SortNum = req.SortNum
+	n.UserName = uu.Name
+	n.SortNum, _ = n.CountNodeNum()
 	err = n.InsertOne()
 	if err != nil {
 		flog.Log.Errorf("CreateNode err:%s", err.Error())
@@ -123,7 +123,6 @@ type UpdateNodeRequest struct {
 	ImagePath    string `json:"image_path" validate:"omitempty,lt=100"`
 	ParentNodeId int    `json:"parent_node_id"`
 	Status       int    `json:"status" validate:"oneof=-1 0 1"`
-	SortNum      int    `json:"sort_num"`
 }
 
 func UpdateNode(c *gin.Context) {
@@ -183,13 +182,19 @@ func UpdateNode(c *gin.Context) {
 		return
 	}
 
+	after := new(model.ContentNode)
+	after.UserId = n.UserId
+	after.Id = n.Id
+
+	seoChange := false
 	// SEO不为空
 	if req.Seo != "" {
 		// 和之前的SEO不一样
 		if req.Seo != n.Seo {
-			n.Seo = req.Seo
+			after.Seo = req.Seo
+			seoChange = true
 			// 检查是否存在SEO
-			exist, err := n.CheckSeoValid()
+			exist, err := after.CheckSeoValid()
 			if err != nil {
 				resp.Error = Error(DBError, "")
 				return
@@ -203,12 +208,13 @@ func UpdateNode(c *gin.Context) {
 	}
 
 	// 指定了父亲节点
+	after.ParentNodeId = n.ParentNodeId
 	if req.ParentNodeId > 0 {
 		// 和之前的父亲节点不一样
 		if req.ParentNodeId != n.ParentNodeId {
-			n.ParentNodeId = req.ParentNodeId
+			after.ParentNodeId = req.ParentNodeId
 			// 检查该父亲节点是否存在
-			exist, err := n.CheckParentValid()
+			exist, err := after.CheckParentValid()
 			if err != nil {
 				resp.Error = Error(DBError, "")
 				return
@@ -219,13 +225,14 @@ func UpdateNode(c *gin.Context) {
 				return
 			}
 			// 有了父亲节点，级别为1
-			n.Level = 1
+			after.Level = 1
 		}
 	} else if req.ParentNodeId == -1 {
+		after.Level = n.Level
 	} else {
 		// 没有指定父亲节点，归零
-		n.Level = 0
-		n.ParentNodeId = 0
+		after.Level = 0
+		after.ParentNodeId = 0
 	}
 
 	// if image not empty
@@ -246,44 +253,36 @@ func UpdateNode(c *gin.Context) {
 				return
 			}
 
-			n.ImagePath = req.ImagePath
+			after.ImagePath = req.ImagePath
 		}
 	}
 
 	// 以下只要存在不一致性才替换
 	if req.Name != "" {
 		if req.Name != n.Name {
-			n.Name = req.Name
+			after.Name = req.Name
 		}
 	}
 
 	if req.Describe != "" {
 		if req.Describe != n.Describe {
-			n.Describe = req.Describe
+			after.Describe = req.Describe
 		}
 	}
 
+	after.Status = n.Status
 	if n.Status != -1 {
-		if n.Status != req.Status {
-			n.Status = req.Status
-		}
-	}
-
-	if n.SortNum != -1 {
-		if n.SortNum != req.SortNum {
-			n.SortNum = req.SortNum
-		}
+		after.Status = req.Status
 	}
 
 	// 更新
-	err = n.Update()
+	err = after.Update(seoChange)
 	if err != nil {
 		flog.Log.Errorf("UpdateNode err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
 	}
 	resp.Flag = true
-	resp.Data = n
 }
 
 type DeleteNodeRequest struct {
@@ -320,6 +319,20 @@ func DeleteNode(c *gin.Context) {
 	n.Id = req.Id
 	n.UserId = uu.Id
 
+	// 获取节点，节点会携带所有内容
+	exist, err := n.Get()
+	if err != nil {
+		flog.Log.Errorf("DeleteNode err: %s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+	if !exist {
+		// 不存在节点，报错
+		flog.Log.Errorf("DeleteNode err: %s", "field id not found")
+		resp.Error = Error(DbNotFound, "field id not found")
+		return
+	}
+
 	// 删除节点时节点下不能有节点
 	childNum, err := n.CheckChildrenNum()
 	if err != nil {
@@ -340,7 +353,7 @@ func DeleteNode(c *gin.Context) {
 	content.NodeId = n.Id
 
 	// 删除节点时，节点下不能有内容
-	allContentNum, normalContentNum, err := content.CountNumOfNode()
+	_, normalContentNum, err := content.CountNumUnderNode()
 	if err != nil {
 		flog.Log.Errorf("DeleteNode err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
@@ -354,20 +367,39 @@ func DeleteNode(c *gin.Context) {
 		return
 	}
 
-	// 如果从来没有删除过，请直接删除
-	if allContentNum == 0 {
-		err = n.Delete()
-	} else {
-		//逻辑删除
-		err = n.LogicDelete()
-	}
+	session := config.FafaRdb.Client.NewSession()
+	defer session.Close()
 
+	err = session.Begin()
 	if err != nil {
 		flog.Log.Errorf("DeleteNode err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
 	}
 
+	_, err = session.Exec("update fafacms_content_node SET sort_num=sort_num-1 where sort_num > ? and user_id = ?", n.SortNum, n.UserId)
+	if err != nil {
+		session.Rollback()
+		flog.Log.Errorf("DeleteNode err:%s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	_, err = session.Delete(n)
+	if err != nil {
+		session.Rollback()
+		flog.Log.Errorf("DeleteNode err:%s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	err = session.Commit()
+	if err != nil {
+		session.Rollback()
+		flog.Log.Errorf("DeleteNode err:%s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
 	resp.Flag = true
 }
 
@@ -571,4 +603,166 @@ func ListNodeHelper(c *gin.Context, userId int) {
 	respResult.PageHelp = *p
 	resp.Data = respResult
 	resp.Flag = true
+}
+
+// x->y
+// x>y (x+1,y)-> -1
+// x<y (y,x-1)-> +1
+type SortNodeRequest struct {
+	X int `json:"x"`
+	Y int `json:"y"`
+}
+
+func SortNode(c *gin.Context) {
+	resp := new(Resp)
+	req := new(SortNodeRequest)
+	defer func() {
+		JSONL(c, 200, req, resp)
+	}()
+
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	var validate = validator.New()
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("SortNode err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
+		return
+	}
+
+	uu, err := GetUserSession(c)
+	if err != nil {
+		flog.Log.Errorf("SortNode err: %s", err.Error())
+		resp.Error = Error(I500, "")
+		return
+	}
+
+	if req.X == req.Y || req.X < 0 || req.Y < 0 {
+		flog.Log.Errorf("SortNode err: %s", "x and y wrong")
+
+		resp.Error = Error(ParasError, "x and y wrong")
+		return
+	}
+	x := new(model.ContentNode)
+	x.SortNum = req.X
+	x.UserId = uu.Id
+	exist, err := x.GetSortOneNode()
+	if err != nil {
+		flog.Log.Errorf("SortNode err: %s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	if !exist {
+		flog.Log.Errorf("SortNode err: %s", "x node not found")
+		resp.Error = Error(DbNotFound, "x node not found")
+		return
+	}
+
+	y := new(model.ContentNode)
+	y.SortNum = req.Y
+	y.UserId = uu.Id
+	exist, err = y.GetSortOneNode()
+	if err != nil {
+		flog.Log.Errorf("SortNode err: %s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	if !exist {
+		flog.Log.Errorf("SortNode err: %s", "y node not found")
+		resp.Error = Error(DbNotFound, "y node not found")
+		return
+	}
+
+	children, err := x.CheckChildrenNum()
+	if err != nil {
+		flog.Log.Errorf("SortNode err: %s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	if y.Level == 1 && children > 0 {
+		flog.Log.Errorf("SortNode err: %s", "level 1 has child can not move to level 2")
+		resp.Error = Error(ParasError, "level 1 has child can not move to level 2")
+		return
+	}
+
+	if req.X < req.Y {
+		session := config.FafaRdb.Client.NewSession()
+		defer session.Close()
+
+		err = session.Begin()
+		if err != nil {
+			flog.Log.Errorf("SortNode err: %s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+
+		_, err = session.Exec("update fafacms_content_node SET sort_num=sort_num-1 where sort_num > ? and sort_num <= ? and user_id = ?", req.X, req.Y, uu.Id)
+		if err != nil {
+			session.Rollback()
+			flog.Log.Errorf("SortNode err: %s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+
+		_, err = session.Exec("update fafacms_content_node SET sort_num=?,level=?,parent_node_id=? where id = ?", req.Y, y.Level, y.ParentNodeId, x.Id)
+		if err != nil {
+			session.Rollback()
+			flog.Log.Errorf("SortNode err: %s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+
+		err = session.Commit()
+		if err != nil {
+			session.Rollback()
+			flog.Log.Errorf("SortNode err: %s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+	}
+
+	if req.X > req.Y {
+		session := config.FafaRdb.Client.NewSession()
+		defer session.Close()
+
+		err = session.Begin()
+		if err != nil {
+			flog.Log.Errorf("SortNode err: %s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+
+		_, err = session.Exec("update fafacms_content_node SET sort_num=sort_num+1 where sort_num < ? and sort_num >= ? and user_id = ?", req.X, req.Y, uu.Id)
+		if err != nil {
+			session.Rollback()
+			flog.Log.Errorf("SortNode err: %s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+
+		_, err = session.Exec("update fafacms_content_node SET sort_num=?,level=?,parent_node_id=? where id = ?", req.Y, y.Level, y.ParentNodeId, x.Id)
+		if err != nil {
+			session.Rollback()
+			flog.Log.Errorf("SortNode err: %s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+
+		err = session.Commit()
+		if err != nil {
+			session.Rollback()
+			flog.Log.Errorf("SortNode err: %s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+	}
+
+	resp.Flag = true
+	return
 }

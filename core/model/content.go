@@ -8,11 +8,13 @@ import (
 
 // 内容表
 type Content struct {
-	Id     int    `json:"id" xorm:"bigint pk autoincr"`
-	Seo    string `json:"seo" xorm:"index"`
-	Title  string `json:"title" xorm:"varchar(200) notnull"`
-	UserId int    `json:"user_id" xorm:"bigint index"` // 内容所属用户
-	NodeId int    `json:"node_id" xorm:"bigint index"` // 节点ID
+	Id       int    `json:"id" xorm:"bigint pk autoincr"`
+	Seo      string `json:"seo" xorm:"index"`
+	Title    string `json:"title" xorm:"varchar(200) notnull"`
+	UserId   int    `json:"user_id" xorm:"bigint index"` // 内容所属用户
+	UserName string `json:"user_name" xorm:"index"`
+	NodeId   int    `json:"node_id" xorm:"bigint index"` // 节点ID
+	NodeSeo  string `json:"node_seo" xorm:"index"`       // 节点ID SEO
 	// 0/1 ->3   2/3 -> 4
 	Status       int    `json:"status" xorm:"not null comment('0 normal, 1 hide，2 ban, 3 rubbish，4 logic delete') TINYINT(1) index"` // 0-1-2-3为正常
 	Top          int    `json:"top" xorm:"not null comment('0 normal, 1 top') TINYINT(1) index"`                                     // 置顶
@@ -32,7 +34,7 @@ type Content struct {
 	Ad           string `json:"ad,omitempty"`
 }
 
-var ContentSortName = []string{"=id", "-create_time", "-update_time", "-views", "=version", "+status", "=seo"}
+var ContentSortName = []string{"=id", "-top", "-create_time", "-update_time", "-views", "=version", "+status", "=seo"}
 
 // 内容历史表
 type ContentHistory struct {
@@ -49,7 +51,7 @@ type ContentHistory struct {
 var ContentHistorySortName = []string{"-create_time"}
 
 // 统计节点下的内容数量
-func (c *Content) CountNumOfNode() (int64, int64, error) {
+func (c *Content) CountNumUnderNode() (int64, int64, error) {
 	if c.UserId == 0 || c.NodeId == 0 {
 		return 0, 0, errors.New("where is empty")
 	}
@@ -108,13 +110,17 @@ func (c *Content) GetByAdmin() (bool, error) {
 	return config.FafaRdb.Client.Get(c)
 }
 
+func (c *Content) GetByRaw() (bool, error) {
+	return config.FafaRdb.Client.Get(c)
+}
+
 // 更新前都会调用 Get 接口
 func (c *Content) Update() (int64, error) {
 	if c.UserId == 0 || c.Id == 0 {
 		return 0, errors.New("where is empty")
 	}
 	c.UpdateTime = time.Now().Unix()
-	return config.FafaRdb.Client.MustCols("status", "close_comment", "pre_flush", "password", "top").Omit("user_id").Where("id=?", c.Id).And("user_id=?", c.UserId).Update(c)
+	return config.FafaRdb.Client.MustCols("status", "close_comment", "pre_flush", "password", "top", "node_id", "node_seo").Omit("user_id").Where("id=?", c.Id).And("user_id=?", c.UserId).Update(c)
 }
 
 func (c *Content) UpdateDescribe() error {
