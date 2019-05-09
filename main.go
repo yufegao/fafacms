@@ -42,8 +42,8 @@ func init() {
 
 	// 正式部署时，请全部设置为 false
 	flag.BoolVar(&createTable, "init_db", true, "create db table")
-	flag.BoolVar(&mailDebug, "email_debug", true, "Email debug")
-	flag.BoolVar(&canSkipAuth, "auth_skip_debug", true, "Auth skip debug")
+	flag.BoolVar(&mailDebug, "email_debug", false, "Email debug")
+	flag.BoolVar(&canSkipAuth, "auth_skip_debug", false, "Auth skip debug")
 
 	// Session可以放在内存中
 	flag.BoolVar(&sessionUseRedis, "use_session_redis", false, "Use Redis Session")

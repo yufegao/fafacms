@@ -32,6 +32,7 @@ func InitConfig(configFilePath string) error {
 		return err
 	}
 
+	c.DbConfig.Prefix = "fafacms_"
 	config.FafaConfig = c
 	return nil
 }

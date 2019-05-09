@@ -94,7 +94,6 @@ fafacms -config=./config.json
     "User": "root", 					# 关系型数据库用户(可改)
     "Pass": "123456789", 			# 关系型数据库密码(可改)
     "Port": "3306", 					# 关系型数据库端口(可改)
-    "Prefix": "fafa_", 				# 关系型数据库表前缀(可改)
     "MaxIdleConns": 20, 			# 关系型数据库池闲置连接数(默认保持)
     "MaxOpenConns": 20, 			# 关系型数据库池打开连接数(默认保持)
     "DebugToFile": true, 			# SQL调试是否输出到文件(默认保持)
@@ -152,6 +151,12 @@ sudo docker logs -f --tail 10 fafacms
 ```
 
 其中`/root/fafacms`是挂载的持久化卷, 配置`config.json`放置在该文件夹下.
+
+Debug:
+
+```
+sudo docker run -d --name fafacms -p 8080:8080 -v /root/fafacms:/root/fafacms --env RUN_OPTS="-config=/root/fafacms/config.json -email_debug=true -auth_skip_debug=true -use_session_redis=true" hunterhug/fafacms
+```
 
 ## 前端网站
 

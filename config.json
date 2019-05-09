@@ -15,7 +15,6 @@
     "User": "root",
     "Pass": "123456789",
     "Port": "3306",
-    "Prefix": "fafacms_",
     "MaxIdleConns": 20,
     "MaxOpenConns": 20,
     "DebugToFile": false,

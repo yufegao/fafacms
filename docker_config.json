@@ -6,16 +6,15 @@
     "StoragePath": "/root/fafacms/storage",
     "LogDebug": true,
     "LogPath": "/root/fafacms/log/fafacms_log.log",
-    "CloseRegister": true
+    "CloseRegister": false
   },
   "DbConfig": {
     "DriverName": "mysql",
     "Name": "fafa",
-    "Host": "127.0.0.1",
+    "Host": "172.17.0.1",
     "User": "root",
     "Pass": "123456789",
     "Port": "3306",
-    "Prefix": "fafacms_",
     "MaxIdleConns": 20,
     "MaxOpenConns": 20,
     "DebugToFile": true,
@@ -31,7 +30,7 @@
     "Body": "your activate code is %s, please enter <a href='/'>Here</a>"
   },
   "SessionConfig": {
-    "RedisHost": "127.0.0.1:6379",
+    "RedisHost": "172.17.0.1:6379",
     "RedisMaxIdle": 64,
     "RedisMaxActive": 0,
     "RedisIdleTimeout": 120,

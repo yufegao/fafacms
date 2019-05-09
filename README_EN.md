@@ -78,7 +78,6 @@ description of`config.json`:
     "User": "root", 					# DB user(optional)
     "Pass": "123456789", 			# DB password(optional)
     "Port": "3306", 					# DB port(optional)
-    "Prefix": "fafa_", 				# DB prefix(optional)
     "MaxIdleConns": 20, 			# Max Idle connections(default)
     "MaxOpenConns": 20, 			# Max Idle connections(default)
     "DebugToFile": true, 			# Debug output files(default)
