@@ -123,6 +123,11 @@ func (c *Content) Update() (int64, error) {
 	return config.FafaRdb.Client.MustCols("status", "close_comment", "pre_flush", "password", "top", "node_id", "node_seo").Omit("user_id").Where("id=?", c.Id).And("user_id=?", c.UserId).Update(c)
 }
 
+// 更新前都会调用 Get 接口
+func (c *Content) UpdateView() {
+	config.FafaRdb.Client.Where("id=?", c.Id).Incr("views").Cols("views").Update(c)
+}
+
 func (c *Content) UpdateDescribe() error {
 	if c.UserId == 0 || c.Id == 0 {
 		return errors.New("where is empty")

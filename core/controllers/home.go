@@ -625,6 +625,9 @@ func Content(c *gin.Context) {
 	}
 
 	temp.Describe = cx.Describe
+
+	cx.UpdateView()
+
 	resp.Flag = true
 	resp.Data = temp
 
