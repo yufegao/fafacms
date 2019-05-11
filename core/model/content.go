@@ -51,21 +51,16 @@ type ContentHistory struct {
 var ContentHistorySortName = []string{"-create_time"}
 
 // 统计节点下的内容数量
-func (c *Content) CountNumUnderNode() (int64, int64, error) {
+func (c *Content) CountNumUnderNode() (int64, error) {
 	if c.UserId == 0 || c.NodeId == 0 {
-		return 0, 0, errors.New("where is empty")
+		return 0, errors.New("where is empty")
 	}
 
-	// 不是逻辑删除的都找出来
-	normalNum, err := config.FafaRdb.Client.Table(c).Where("user_id=?", c.UserId).And("node_id=?", c.NodeId).And("status<?", 4).Count()
-	if err != nil {
-		return 0, 0, err
-	}
 	allNum, err := config.FafaRdb.Client.Table(c).Where("user_id=?", c.UserId).And("node_id=?", c.NodeId).Count()
 	if err != nil {
-		return 0, 0, err
+		return 0, err
 	}
-	return allNum, normalNum, nil
+	return allNum, nil
 }
 
 func (c *Content) CheckSeoValid() (bool, error) {
@@ -203,13 +198,34 @@ func (c *Content) UpdateStatusTo3Reverse() (int64, error) {
 	return config.FafaRdb.Client.Cols("status", "update_time").Where("status=?", 3).Where("id=?", c.Id).And("user_id=?", c.UserId).Update(c)
 }
 
-func (c *Content) UpdateStatusTo4() (int64, error) {
+func (c *Content) UpdateStatusTo4() error {
 	if c.UserId == 0 || c.Id == 0 {
-		return 0, errors.New("where is empty")
+		return errors.New("where is empty")
 	}
-	c.UpdateTime = time.Now().Unix()
-	c.Status = 4
-	return config.FafaRdb.Client.Cols("status", "update_time").Where("status>=?", 2).Where("id=?", c.Id).And("user_id=?", c.UserId).Update(c)
+	//c.UpdateTime = time.Now().Unix()
+	//c.Status = 4
+	//return config.FafaRdb.Client.Cols("status", "update_time").Where("status>=?", 2).Where("id=?", c.Id).And("user_id=?", c.UserId).Update(c)
+	session := config.FafaRdb.Client.NewSession()
+	defer session.Close()
+	if err := session.Begin(); err != nil {
+		return err
+	}
+
+	if _, err := session.Where("id=?", c.Id).And("user_id=?", c.UserId).Delete(new(Content)); err != nil {
+		session.Rollback()
+		return err
+	}
+
+	if _, err := session.Where("content_id=?", c.Id).And("user_id=?", c.UserId).Delete(new(ContentHistory)); err != nil {
+		session.Rollback()
+		return err
+	}
+
+	if err := session.Commit(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (c *Content) UpdateStatus() (int64, error) {

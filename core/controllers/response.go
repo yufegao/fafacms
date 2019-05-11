@@ -74,12 +74,13 @@ func JSONL(c *gin.Context, code int, req interface{}, obj *Resp) {
 	cid := util.GetGUID()
 	record.Cid = cid
 
-	Log.Debugf("Monitor:%#v", record)
+	Log.Debugf("FaFa Monitor:%#v", record)
 
-	_, err := config.FafaRdb.InsertOne(record)
-	if err != nil {
-		Log.Errorf("insert log record:%s", err.Error())
-	}
+	// 审计表不写了，打日志就行，不要拉慢速度
+	//_, err := config.FafaRdb.InsertOne(record)
+	//if err != nil {
+	//	Log.Errorf("insert log record:%s", err.Error())
+	//}
 
 	obj.Cid = cid
 	c.Render(code, render.JSON{Data: obj})

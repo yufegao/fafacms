@@ -353,7 +353,7 @@ func DeleteNode(c *gin.Context) {
 	content.NodeId = n.Id
 
 	// 删除节点时，节点下不能有内容
-	_, normalContentNum, err := content.CountNumUnderNode()
+	normalContentNum, err := content.CountNumUnderNode()
 	if err != nil {
 		flog.Log.Errorf("DeleteNode err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
@@ -385,7 +385,7 @@ func DeleteNode(c *gin.Context) {
 		return
 	}
 
-	_, err = session.Delete(n)
+	_, err = session.Where("id=?", n.Id).Delete(new(model.ContentNode))
 	if err != nil {
 		session.Rollback()
 		flog.Log.Errorf("DeleteNode err:%s", err.Error())

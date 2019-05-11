@@ -819,8 +819,8 @@ func DeleteContentHelper(c *gin.Context, userId int, typeDelete int) {
 		// 送去垃圾站
 		_, err = content.UpdateStatusTo3()
 	} else if typeDelete == 1 {
-		// 逻辑删除
-		_, err = content.UpdateStatusTo4()
+		// 逻辑删除 已经修改为真正意义上的删除，毕竟空间有限
+		err = content.UpdateStatusTo4()
 	} else if typeDelete == 2 {
 		// 垃圾恢复
 		_, err = content.UpdateStatusTo3Reverse()
@@ -849,7 +849,7 @@ func DeleteContent(c *gin.Context) {
 }
 
 // 逻辑删除
-func DeleteContent2(c *gin.Context) {
+func ReallyDeleteContent(c *gin.Context) {
 	resp := new(Resp)
 	uu, err := GetUserSession(c)
 	if err != nil {

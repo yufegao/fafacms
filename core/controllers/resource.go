@@ -40,7 +40,6 @@ func ListResource(c *gin.Context) {
 		return
 	}
 
-	
 	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
@@ -179,9 +178,8 @@ func AssignGroupAndResource(c *gin.Context) {
 	if len(req.Resources) > 0 {
 		session.In("resource_id", req.Resources)
 	}
-	gr := new(model.GroupResource)
-	gr.GroupId = req.GroupId
-	_, err = session.Cols("group_id").Delete(gr)
+
+	_, err = session.Where("group_id=?", req.GroupId).Delete(new(model.GroupResource))
 	if err != nil {
 		session.Rollback()
 		flog.Log.Errorf("AssignGroupAndResource err:%s", err.Error())

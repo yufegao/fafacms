@@ -99,8 +99,7 @@ var (
 		"/content/admin/update": {"Update Content All", controllers.DeleteContentAdmin, POST, true},                  // 超级管理员修改文章，比如禁用或者逻辑删除/恢复文章
 		"/content/rubbish":      {"Sent Content Self To Rubbish", controllers.DeleteContent, POST, false},            // 一般回收站
 		"/content/redo":         {"Sent Rubbish Content Self To Origin", controllers.DeleteContentRedo, POST, false}, // 一般回收站恢复
-		"/content/delete":       {"Delete Content Self Logic", controllers.DeleteContent2, POST, false},              // 逻辑删除文章
-
+		"/content/delete":       {"Delete Content Self Logic", controllers.ReallyDeleteContent, POST, false},         // 逻辑删除文章 已经修正为真删除
 		//
 		//"/comment/create": {controllers.CreateComment, POST},
 		//"/comment/update": {controllers.UpdateComment, POST},
