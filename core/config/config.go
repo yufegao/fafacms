@@ -15,7 +15,6 @@ var (
 )
 
 type Config struct {
-	Domain        string `json:"Domain"`
 	DefaultConfig MyConfig
 	DbConfig      rdb.MyDbConfig
 	SessionConfig session.MyRedisConf

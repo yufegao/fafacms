@@ -288,7 +288,7 @@ func ActivateUser(c *gin.Context) {
 	if u.ActivateCodeExpired < time.Now().Unix() {
 		flog.Log.Errorf("ActivateUser err:%s", "code expired")
 		resp.Error = Error(LazyError, "code expired")
-		c.String(200, "code expired, resent email:<a href='%s/activate/resent?code=%s&email=%s'>Here</a>", config.FafaConfig.Domain, code, email)
+		c.String(200, "code expired, resent email: /activate/resent?code=%s&email=%s", code, email)
 		return
 	} else {
 		// 更新用户的状态
