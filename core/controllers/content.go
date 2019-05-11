@@ -788,7 +788,7 @@ func TakeContentHistoryAdmin(c *gin.Context) {
 
 type DeleteContentRequest struct {
 	Id     int `json:"id" validate:"required"`
-	Status int `json:"status" validate:"oneof=0 1 2 3 4"`
+	Status int `json:"status" validate:"oneof=0 1 2 3"`
 }
 
 // 文章状态操作
