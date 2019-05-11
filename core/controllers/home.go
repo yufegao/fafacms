@@ -354,10 +354,16 @@ func UserCount(c *gin.Context) {
 	user.Id = req.UserId
 	user.Name = req.UserName
 	user.Status = 1
-	err := user.Get()
+	exist, err := user.GetRaw()
 	if err != nil {
 		flog.Log.Errorf("UserCount err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	if !exist {
+		flog.Log.Errorf("UserCount err:%s", "user not found")
+		resp.Error = Error(UserNotFound, "")
 		return
 	}
 

@@ -8,40 +8,72 @@ import (
 
 // error code
 var (
-	LazyError         = 11111
-	AuthPermit        = 10000
-	ParseJsonError    = 10001
-	UploadFileError   = 10002
-	LoginWrong        = 10003
-	DBError           = 10004
-	ParasError        = 10005
-	NoLogin           = 10006
-	DbNotFound        = 10007
-	DbRepeat          = 10008
-	DbHookIn          = 10009
-	EmailError        = 10010
-	TimeNotReachError = 10011
-	CodeWrong         = 10012
-	I500              = 99998
-	Unknown           = 99999
+	GetUserSessionError          = 100000
+	SetUserSessionError          = 100001
+	UserNoLogin                  = 100002
+	UserNotFound                 = 100003
+	UserNotActivate              = 100004
+	UserIsInBlack                = 100005
+	UserAuthPermit               = 100006
+	ParasError                   = 100010
+	ParseJsonError               = 100011
+	LoginWrong                   = 100020
+	CloseRegisterError           = 100021
+	UserNameAlreadyBeUsed        = 100022
+	EmailAlreadyBeUsed           = 100023
+	ActivateCodeWrong            = 100024
+	ActivateCodeExpired          = 100025
+	ActivateCodeNotExpired       = 100026
+	EmailNotFound                = 100027
+	ResetCodeExpiredTimeNotReach = 100028
+	RestCodeWrong                = 100029
+	FileCanNotBeFound            = 100030
+	DBError                      = 200001
+	EmailSendError               = 300000
+
+	LazyError = 11111
+
+	UploadFileError = 10002
+
+	DbNotFound = 10007
+	DbRepeat   = 10008
+	DbHookIn   = 10009
+
+	I500    = 99998
+	Unknown = 99999
 )
 
 // error code message map
 var ErrorMap = map[int]string{
-	CodeWrong:         "code wrong",
-	TimeNotReachError: "time not reach",
-	EmailError:        "email error",
-	DbNotFound:        "db not found",
-	DbRepeat:          "db repeat data",
-	DbHookIn:          "db hook in",
-	I500:              "500 error",
-	AuthPermit:        "auth permit",
-	ParseJsonError:    "json parse err",
-	UploadFileError:   "upload file err",
-	LoginWrong:        "username or password wrong",
-	DBError:           "db operation err",
-	ParasError:        "paras not right",
-	NoLogin:           "no login",
+	GetUserSessionError:          "get user session err",
+	SetUserSessionError:          "set user session err",
+	UserNoLogin:                  "user no login",
+	UserNotFound:                 "user not found",
+	UserIsInBlack:                "user is in black",
+	UserAuthPermit:               "user auth permit",
+	ParasError:                   "paras input not right",
+	DBError:                      "db operation err",
+	LoginWrong:                   "username or password wrong",
+	CloseRegisterError:           "register close",
+	ParseJsonError:               "json parse err",
+	UserNameAlreadyBeUsed:        "user name already be used",
+	EmailAlreadyBeUsed:           "email already be used",
+	ActivateCodeWrong:            "activate code wrong",
+	ActivateCodeExpired:          "activate code expired",
+	ActivateCodeNotExpired:       "activate code not expired",
+	FileCanNotBeFound:            "file can not be found",
+	EmailSendError:               "email send error",
+	EmailNotFound:                "email not found",
+	ResetCodeExpiredTimeNotReach: "reset code expired time not reach",
+	RestCodeWrong:                "reset code wrong",
+
+	DbNotFound: "db not found",
+	DbRepeat:   "db repeat data",
+	DbHookIn:   "db hook in",
+	I500:       "500 error",
+
+	UploadFileError: "upload file err",
+
 
 	LazyError: "db not found or err",
 }

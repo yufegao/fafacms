@@ -31,6 +31,7 @@ var (
 		"/c":         {"Get Content", controllers.Content, GP, false},          // 获取文章
 
 		// 前端的用户授权路由，不需要登录即可操作
+		// 已经Review 2019/5/12 chen
 		"/login":           {"User Login", controllers.Login, GP, false},
 		"/logout":          {"User Logout", controllers.Logout, GP, false},
 		"/register":        {"User Register", controllers.RegisterUser, GP, false},

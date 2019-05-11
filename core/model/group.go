@@ -14,10 +14,6 @@ type Group struct {
 	CreateTime int64  `json:"create_time"`
 	UpdateTime int64  `json:"update_time,omitempty"`
 	ImagePath  string `json:"image_path" xorm:"varchar(700)"`
-	Aa         string `json:"aa,omitempty"`
-	Ab         string `json:"ab,omitempty"`
-	Ac         string `json:"ac,omitempty"`
-	Ad         string `json:"ad,omitempty"`
 }
 
 var GroupSortName = []string{"=id", "=name", "-create_time", "=update_time"}
@@ -25,16 +21,13 @@ var GroupSortName = []string{"=id", "=name", "-create_time", "=update_time"}
 type Resource struct {
 	Id       int    `json:"id" xorm:"bigint pk autoincr"`
 	Name     string `json:"name"`
-	Url      string `json:"url" xorm:"unique"` // 该路由比较短，可以直接varchar(255)建索引
+	Url      string `json:"url"`
+	UrlHash  string `json:"url_hash" xorm:"unique"`
 	Describe string `json:"describe" xorm:"TEXT"`
 	Admin    bool   `json:"admin"`
-	Aa       string `json:"aa,omitempty"`
-	Ab       string `json:"ab,omitempty"`
-	Ac       string `json:"ac,omitempty"`
-	Ad       string `json:"ad,omitempty"`
 }
 
-var ResourceSortName = []string{"=id", "=name", "-admin", "-url"}
+var ResourceSortName = []string{"=id", "-admin", "-name",}
 
 type GroupResource struct {
 	Id         int `json:"id" xorm:"bigint pk autoincr"`

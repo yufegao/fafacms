@@ -26,10 +26,7 @@ func ParseJSON(c *gin.Context, req interface{}) *ErrorResp {
 		Log.Debugf("%s ParseJSONErr [%v,line:%v]:%s", ip, f.Name(), line, err.Error())
 		// if parse wrong will not record log
 		c.Set("skipLog", true)
-		return &ErrorResp{
-			ErrorID:  ParseJsonError,
-			ErrorMsg: ErrorMap[ParseJsonError],
-		}
+		return Error(ParseJsonError, "")
 	}
 	return nil
 }

@@ -38,7 +38,7 @@ func RegisterUser(c *gin.Context) {
 
 	// 配置如果关闭注册，那么直接返回
 	if config.FafaConfig.DefaultConfig.CloseRegister {
-		resp.Error = Error(LazyError, "can not register")
+		resp.Error = Error(CloseRegisterError, "")
 		return
 	}
 
@@ -66,7 +66,7 @@ func RegisterUser(c *gin.Context) {
 	}
 	if repeat {
 		flog.Log.Errorf("RegisterUser err: %s", "name already use by other")
-		resp.Error = Error(ParasError, "name already use by other")
+		resp.Error = Error(UserNameAlreadyBeUsed, "")
 		return
 	}
 
@@ -80,17 +80,17 @@ func RegisterUser(c *gin.Context) {
 	}
 	if repeat {
 		flog.Log.Errorf("RegisterUser err: %s", "email already use by other")
-		resp.Error = Error(ParasError, "email already use by other")
+		resp.Error = Error(EmailAlreadyBeUsed, "")
 		return
 	}
 
 	// if image not empty
 	if req.ImagePath != "" {
+		u.HeadPhoto = req.ImagePath
 		p := new(model.File)
 		p.Url = req.ImagePath
 		ok, err := p.Exist()
 		if err != nil {
-
 			flog.Log.Errorf("RegisterUser err:%s", err.Error())
 			resp.Error = Error(DBError, err.Error())
 			return
@@ -98,17 +98,14 @@ func RegisterUser(c *gin.Context) {
 
 		if !ok {
 			flog.Log.Errorf("RegisterUser err: image not exist")
-			resp.Error = Error(ParasError, "image url not exist")
+			resp.Error = Error(FileCanNotBeFound, "")
 			return
 		}
-
-		u.HeadPhoto = req.ImagePath
 	}
 
 	// 激活验证码
 	u.ActivateCode = util.GetGUID()
 	u.ActivateCodeExpired = time.Now().Add(48 * time.Hour).Unix()
-
 	u.Describe = req.Describe
 	u.NickName = req.NickName
 	u.Password = req.Password
@@ -127,7 +124,7 @@ func RegisterUser(c *gin.Context) {
 	err = mm.Sent()
 	if err != nil {
 		flog.Log.Errorf("RegisterUser err:%s", err.Error())
-		resp.Error = Error(EmailError, err.Error())
+		resp.Error = Error(EmailSendError, err.Error())
 		return
 	}
 
@@ -138,13 +135,12 @@ func RegisterUser(c *gin.Context) {
 		return
 	}
 
-	resp.Flag = true
-
 	// 如果不是调试模式，不应该返回信息
 	if AuthDebug {
 		resp.Data = u
 	}
 
+	resp.Flag = true
 }
 
 // 创建用户，管理员权限
@@ -239,56 +235,61 @@ func CreateUser(c *gin.Context) {
 	resp.Data = u
 }
 
+type ActivateUserRequest struct {
+	Email string `json:"email" validate:"required,email"`
+	Code  string `json:"code" validate:"required"`
+}
+
 // 用户自己激活自己
 func ActivateUser(c *gin.Context) {
 	resp := new(Resp)
-	code := c.Query("code")
-	email := c.Query("email")
+	req := new(ActivateUserRequest)
 	defer func() {
-		LogAlone(c, nil, resp)
+		JSONL(c, 200, req, resp)
 	}()
 
-	if code == "" {
-		flog.Log.Errorf("ActivateUser err:%s", "code empty")
-		resp.Error = Error(ParasError, "code empty")
-		c.String(200, "code empty")
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	var validate = validator.New()
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("ActivateUser err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
 		return
 	}
 
 	// 必须邮箱和激活码一起来
 	u := new(model.User)
-	u.ActivateCode = code
-	u.Email = email
+	u.ActivateCode = req.Code
+	u.Email = req.Email
 
 	// 判断激活码是否存在
 	exist, err := u.IsActivateCodeExist()
 	if err != nil {
 		flog.Log.Errorf("ActivateUser err:%s", err.Error())
-		resp.Error = Error(ParasError, "db err")
-		c.String(200, "db err")
+		resp.Error = Error(DBError, err.Error())
 		return
 	}
 
 	if !exist {
 		flog.Log.Errorf("ActivateUser err:%s", "not exist code")
-		resp.Error = Error(LazyError, "code not found")
-		c.String(200, "code not found")
+		resp.Error = Error(ActivateCodeWrong, "")
 		return
 	}
 
 	// 如果用户不是未激活状态
 	if u.Status != 0 {
-		flog.Log.Errorf("ActivateUser err:%s", "already active")
-		resp.Error = Error(LazyError, "already active")
-		c.String(200, "already active")
+		resp.Flag = true
 		return
 	}
 
 	// 验证码过期，要重新生成验证码，需要用户手动请求另外的API
 	if u.ActivateCodeExpired < time.Now().Unix() {
 		flog.Log.Errorf("ActivateUser err:%s", "code expired")
-		resp.Error = Error(LazyError, "code expired")
-		c.String(200, "code expired, resent email: /activate/resent?code=%s&email=%s", code, email)
+		resp.Error = Error(ActivateCodeExpired, "")
 		return
 	} else {
 		// 更新用户的状态
@@ -296,8 +297,7 @@ func ActivateUser(c *gin.Context) {
 		err = u.UpdateStatus()
 		if err != nil {
 			flog.Log.Errorf("ActivateUser err:%s", err.Error())
-			resp.Error = Error(ParasError, "db err")
-			c.String(200, "db err")
+			resp.Error = Error(DBError, err.Error())
 			return
 		}
 
@@ -305,61 +305,64 @@ func ActivateUser(c *gin.Context) {
 		err = SetUserSession(c, u)
 		if err != nil {
 			flog.Log.Errorf("ActivateUser err:%s", err.Error())
-			resp.Error = Error(I500, "")
-			c.String(200, ErrorMap[I500])
+			resp.Error = Error(SetUserSessionError, err.Error())
 			return
 		}
 	}
 
 	resp.Flag = true
-	c.String(200, "ok")
+}
+
+type ResendActivateCodeToUserRequest struct {
+	Email string `json:"email" validate:"required,email"`
+	Code  string `json:"code" validate:"required"`
 }
 
 // 用户激活验证码失效了，重新生成并发送邮件
 func ResendActivateCodeToUser(c *gin.Context) {
 	resp := new(Resp)
-	code := c.Query("code")
-	email := c.Query("email")
+	req := new(ActivateUserRequest)
 	defer func() {
-		LogAlone(c, nil, resp)
+		JSONL(c, 200, req, resp)
 	}()
 
-	if code == "" {
-		resp.Error = Error(ParasError, "code empty")
-		c.String(200, "code empty")
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	var validate = validator.New()
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("ResendActivateCodeToUser err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
 		return
 	}
 
 	u := new(model.User)
-	u.ActivateCode = code
-	u.Email = email
+	u.ActivateCode = req.Code
+	u.Email = req.Email
 
 	// 要生成新的验证码必须携带之前的验证码才行
 	exist, err := u.IsActivateCodeExist()
 	if err != nil {
 		flog.Log.Errorf("ResendUser err:%s", err.Error())
-		resp.Error = Error(ParasError, "db err")
-		c.String(200, "db err")
+		resp.Error = Error(DBError, err.Error())
 		return
 	}
 	if !exist {
 		flog.Log.Errorf("ResendUser err:%s", "not exist code")
-		resp.Error = Error(LazyError, "code not found")
-		c.String(200, "code not found")
+		resp.Error = Error(ActivateCodeWrong, "")
 		return
 	}
 
 	if u.Status != 0 {
-		// 用户不是未激活状态
-		flog.Log.Errorf("ActivateUser err:%s", "already active")
-		resp.Error = Error(LazyError, "already active")
-		c.String(200, "already active")
+		resp.Flag = true
 		return
 	} else if u.ActivateCodeExpired > time.Now().Unix() {
 		// 验证码过期时间还没到，要等一下
 		flog.Log.Errorf("ResendUser err:%s", "code not expired")
-		resp.Error = Error(LazyError, "code not expired")
-		c.String(200, "code not expired")
+		resp.Error = Error(ActivateCodeNotExpired, "")
 		return
 	}
 
@@ -367,8 +370,7 @@ func ResendActivateCodeToUser(c *gin.Context) {
 	err = u.UpdateActivateCode()
 	if err != nil {
 		flog.Log.Errorf("ResendUser err:%s", err.Error())
-		resp.Error = Error(ParasError, "db err")
-		c.String(200, "db err")
+		resp.Error = Error(DBError, err.Error())
 		return
 	}
 
@@ -381,12 +383,10 @@ func ResendActivateCodeToUser(c *gin.Context) {
 	err = mm.Sent()
 	if err != nil {
 		flog.Log.Errorf("ResendUser err:%s", err.Error())
-		resp.Error = Error(EmailError, err.Error())
+		resp.Error = Error(EmailSendError, err.Error())
 		return
 	}
-
 	resp.Flag = true
-	c.String(200, "email code reset")
 }
 
 type ForgetPasswordRequest struct {
@@ -425,7 +425,7 @@ func ForgetPasswordOfUser(c *gin.Context) {
 	}
 	if !ok {
 		flog.Log.Errorf("ForgetPassword err:%s", "email not found")
-		resp.Error = Error(DbNotFound, "email not found")
+		resp.Error = Error(EmailNotFound, "")
 		return
 	}
 
@@ -448,13 +448,13 @@ func ForgetPasswordOfUser(c *gin.Context) {
 		err = mm.Sent()
 		if err != nil {
 			flog.Log.Errorf("ForgetPassword err:%s", err.Error())
-			resp.Error = Error(EmailError, err.Error())
+			resp.Error = Error(EmailSendError, err.Error())
 			return
 		}
 
 	} else {
-		flog.Log.Errorf("ForgetPassword err:%s", "time not reach")
-		resp.Error = Error(TimeNotReachError, "hold on please")
+		flog.Log.Errorf("ForgetPassword err:%s", "reset code expired time not reach")
+		resp.Error = Error(ResetCodeExpiredTimeNotReach, "")
 		return
 	}
 
@@ -500,7 +500,7 @@ func ChangePasswordOfUser(c *gin.Context) {
 	}
 	if !ok {
 		flog.Log.Errorf("ChangePassword err:%s", "email not found")
-		resp.Error = Error(DbNotFound, "email not found")
+		resp.Error = Error(EmailNotFound, "")
 		return
 	}
 
@@ -514,8 +514,8 @@ func ChangePasswordOfUser(c *gin.Context) {
 			return
 		}
 	} else {
-		flog.Log.Errorf("ChangePassword err:%s", "code wrong")
-		resp.Error = Error(CodeWrong, "not valid")
+		flog.Log.Errorf("ChangePassword err:%s", "reset code wrong")
+		resp.Error = Error(RestCodeWrong, "")
 		return
 	}
 

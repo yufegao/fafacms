@@ -6,6 +6,7 @@ import (
 	"github.com/hunterhug/fafacms/core/config"
 	"github.com/hunterhug/fafacms/core/flog"
 	"github.com/hunterhug/fafacms/core/model"
+	util2 "github.com/hunterhug/fafacms/core/util"
 	"github.com/hunterhug/parrot/util"
 	"strconv"
 	"strings"
@@ -14,6 +15,7 @@ import (
 var AuthDebug = false
 
 // auth filter
+// 授权过滤器
 var AuthFilter = func(c *gin.Context) {
 	resp := new(Resp)
 	defer func() {
@@ -24,7 +26,13 @@ var AuthFilter = func(c *gin.Context) {
 	}()
 
 	// get session
-	u, _ := GetUserSession(c)
+	u, err := GetUserSession(c)
+	if err != nil {
+		flog.Log.Errorf("filter err:%s", err.Error())
+		resp.Error = Error(GetUserSessionError, err.Error())
+		return
+	}
+
 	if u == nil {
 		// if not exist session check cookie
 		success, userInfo := CheckCookie(c)
@@ -33,7 +41,7 @@ var AuthFilter = func(c *gin.Context) {
 			err := SetUserSession(c, userInfo)
 			if err != nil {
 				flog.Log.Errorf("filter err:%s", err.Error())
-				resp.Error = Error(I500, "")
+				resp.Error = Error(SetUserSessionError, err.Error())
 				return
 			}
 			u = userInfo
@@ -41,7 +49,7 @@ var AuthFilter = func(c *gin.Context) {
 			// cookie and session not exist, no login
 			// cookie clean
 			c.SetCookie("auth", "", -1, "/", "", false, true)
-			resp.Error = Error(NoLogin, "")
+			resp.Error = Error(UserNoLogin, "")
 			return
 		}
 	}
@@ -61,36 +69,42 @@ var AuthFilter = func(c *gin.Context) {
 	//  get groupId by user
 	nowUser := new(model.User)
 	nowUser.Id = u.Id
-	err := nowUser.Get()
+	exist, err := nowUser.GetRaw()
 	if err != nil {
 		flog.Log.Errorf("filter err:%s", err.Error())
-		resp.Error = Error(AuthPermit, "")
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	if !exist {
+		flog.Log.Errorf("filter err:%s", "user not found")
+		resp.Error = Error(UserNotFound, "")
 		return
 	}
 
 	// 未激活不能进入
 	if nowUser.Status == 0 {
 		flog.Log.Errorf("filter err: not active")
-		resp.Error = Error(AuthPermit, "not active")
+		resp.Error = Error(UserNotActivate, "not active")
 		return
 	}
 
 	// 被加入了黑名单
 	if nowUser.Status == 2 {
 		flog.Log.Errorf("filter err: black lock, contact admin")
-		resp.Error = Error(AuthPermit, "black lock, contact admin")
+		resp.Error = Error(UserIsInBlack, "black lock, contact admin")
 		return
 	}
 
 	// resource is exist
 	r := new(model.Resource)
 	url := c.Request.URL.Path
-	r.Url = url
+	r.Url, _ = util2.Sha256([]byte(url))
 	r.Admin = true
 
 	// resource not found can skip auth
 	if err := r.Get(); err != nil {
-		flog.Log.Warnf("resource found url:%s, auth err:%s", url, err.Error())
+		flog.Log.Debugf("resource found url:%s, auth err:%s", url, err.Error())
 		return
 	}
 
@@ -98,17 +112,17 @@ var AuthFilter = func(c *gin.Context) {
 	gr := new(model.GroupResource)
 	gr.GroupId = nowUser.GroupId
 	gr.ResourceId = r.Id
-	exist, err := config.FafaRdb.Client.Exist(gr)
+	exist, err = config.FafaRdb.Client.Exist(gr)
 	if err != nil {
 		flog.Log.Errorf("filter err:%s", err.Error())
-		resp.Error = Error(AuthPermit, "")
+		resp.Error = Error(DBError, err.Error())
 		return
 	}
 
 	if !exist {
 		// not found
 		flog.Log.Errorf("filter err:%s", "resource not allow")
-		resp.Error = Error(AuthPermit, "")
+		resp.Error = Error(UserAuthPermit, "")
 		return
 	}
 }
@@ -145,10 +159,9 @@ func CheckCookie(c *gin.Context) (success bool, user *model.User) {
 	// if the same
 	if user.Status == 1 && password == util.Md5(c.ClientIP()+"|"+user.Password) {
 		success = true
-		return
-	} else {
-		return
 	}
+
+	return
 }
 
 // 获取用户信息，存于Session中的

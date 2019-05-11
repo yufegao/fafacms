@@ -46,7 +46,7 @@ func Login(c *gin.Context) {
 		err := SetUserSession(c, userInfo)
 		if err != nil {
 			flog.Log.Errorf("login err:%s", err.Error())
-			resp.Error = Error(I500, "")
+			resp.Error = Error(SetUserSessionError, err.Error())
 			return
 		}
 
@@ -76,13 +76,13 @@ func Login(c *gin.Context) {
 	ok, err := uu.GetRaw()
 	if err != nil {
 		flog.Log.Errorf("login err:%s", err.Error())
-		resp.Error = Error(I500, "")
+		resp.Error = Error(DBError, err.Error())
 		return
 	}
 
 	if !ok {
 		flog.Log.Errorf("login err:%s", "user or password wrong")
-		resp.Error = Error(LoginWrong, "user or password wrong")
+		resp.Error = Error(LoginWrong, "")
 		return
 	}
 
@@ -91,12 +91,9 @@ func Login(c *gin.Context) {
 	err = SetUserSession(c, uu)
 	if err != nil {
 		flog.Log.Errorf("login err:%s", err.Error())
-		resp.Error = Error(I500, "")
+		resp.Error = Error(SetUserSessionError, err.Error())
 		return
-
 	}
-
-	resp.Flag = true
 
 	if req.Remember {
 		authKey := util.Md5(c.ClientIP() + "|" + uu.Password)
@@ -106,6 +103,8 @@ func Login(c *gin.Context) {
 		// cookie clean
 		c.SetCookie("auth", "", -1, "/", "", false, true)
 	}
+
+	resp.Flag = true
 }
 
 func Logout(c *gin.Context) {

@@ -10,6 +10,7 @@ import (
 	"github.com/hunterhug/fafacms/core/config"
 	"github.com/hunterhug/fafacms/core/model"
 	"github.com/hunterhug/fafacms/core/router"
+	"github.com/hunterhug/fafacms/core/util"
 	"github.com/hunterhug/fafacms/core/util/rdb"
 	"github.com/hunterhug/fafacms/core/util/session"
 	"io/ioutil"
@@ -95,6 +96,7 @@ func InitResource() {
 	for url, handler := range router.V1Router {
 		r := new(model.Resource)
 		r.Url = fmt.Sprintf("/v1%s", url)
+		r.UrlHash, _ = util.Sha256([]byte(url))
 		r.Name = handler.Name
 		r.Describe = handler.Name
 		r.Admin = handler.Admin
