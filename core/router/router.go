@@ -45,6 +45,7 @@ var (
 	// need login group auth
 	V1Router = map[string]HttpHandle{
 		// 用户组操作
+		// 已经Review 2019/5/12 chen
 		"/group/create":        {"Create Group", controllers.CreateGroup, POST, true},
 		"/group/update":        {"Update Group", controllers.UpdateGroup, POST, true},
 		"/group/delete":        {"Delete Group", controllers.DeleteGroup, POST, true},
@@ -54,6 +55,7 @@ var (
 		"/group/resource/list": {"Group List Resource", controllers.ListGroupResource, GP, true}, // 超级管理员列出组下的资源
 
 		// 用户操作
+		// 已经Review 2019/5/12 chen
 		"/user/list":         {"User List All", controllers.ListUser, GP, true},              // 超级管理员列出用户列表
 		"/user/create":       {"User Create", controllers.CreateUser, GP, true},              // 超级管理员创建用户，默认激活
 		"/user/assign":       {"User Assign Group", controllers.AssignGroupToUser, GP, true}, // 超级管理员给用户分配用户组
@@ -62,8 +64,9 @@ var (
 		"/user/admin/update": {"User Update Admin", controllers.UpdateUserAdmin, GP, true},   // 管理员修改其他用户信息
 
 		// 资源操作
-		"/resource/list":   {"Resource List All", controllers.ListResource, GP, true},               // 列出资源
-		"/resource/assign": {"Resource Assign Group", controllers.AssignGroupAndResource, GP, true}, // 资源分配给组
+		// 已经Review 2019/5/12 chen
+		"/resource/list":   {"Resource List All", controllers.ListResource, GP, true},              // 列出资源
+		"/resource/assign": {"Resource Assign Group", controllers.AssignResourceToGroup, GP, true}, // 资源分配给组
 
 		// 文件操作
 		"/file/upload":       {"File Upload", controllers.UploadFile, POST, false},
@@ -72,6 +75,7 @@ var (
 		"/file/admin/list":   {"File List All", controllers.ListFileAdmin, POST, true},     // 管理员查看所有文件
 		"/file/admin/update": {"File Update All", controllers.UpdateFileAdmin, POST, true}, // 管理员修改文件
 
+		// 比较重要的
 		// 内容节点操作
 		"/node/create":     {"Create Node Self", controllers.CreateNode, POST, false},
 		"/node/update":     {"Update Node Self", controllers.UpdateNode, POST, false},

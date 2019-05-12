@@ -36,7 +36,7 @@ type User struct {
 	Ad                  string `json:"ad,omitempty"`
 }
 
-var UserSortName = []string{"=id", "=name", "-update_time", "-create_time", "-gender"}
+var UserSortName = []string{"=id", "=name", "-create_time", "-update_time", "-gender"}
 
 // 获取用户信息，不存在用户报错
 func (u *User) Get() (err error) {
@@ -181,6 +181,6 @@ func (u *User) UpdateInfo() error {
 	}
 
 	u.UpdateTime = time.Now().Unix()
-	_, err := config.FafaRdb.Client.Where("id=?", u.Id).Update(u)
+	_, err := config.FafaRdb.Client.Where("id=?", u.Id).Omit("id").Update(u)
 	return err
 }

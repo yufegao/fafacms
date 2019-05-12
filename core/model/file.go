@@ -25,13 +25,9 @@ type File struct {
 	StoreType      int    `json:"store_type" xorm:"not null comment('0 local，1 oss') TINYINT(1)"`
 	IsPicture      int    `json:"is_picture"`
 	Size           int64  `json:"size"`
-	Aa             string `json:"aa,omitempty"`
-	Ab             string `json:"ab,omitempty"`
-	Ac             string `json:"ac,omitempty"`
-	Ad             string `json:"ad,omitempty"`
 }
 
-var FileSortName = []string{"=id", "-update_time", "-create_time", "=user_id", "=type", "=tag", "=store_type", "=status", "=size"}
+var FileSortName = []string{"=id", "-create_time", "-update_time", "=user_id", "=type", "=tag", "=store_type", "=status", "=size"}
 
 // 判断文件是否存在，被隐藏的文件也可以找到
 func (f *File) Exist() (bool, error) {
@@ -70,28 +66,16 @@ func (f *File) Get() (bool, error) {
 	if f.Id == 0 && f.Url == "" && f.HashCode == "" {
 		return false, errors.New("where is empty")
 	}
-	s := config.FafaRdb.Client.NewSession()
-	defer s.Close()
-
-	s.Where("1=1")
-
-	if f.Id != 0 {
-		s.And("id=?", f.Id)
-	}
 
 	if f.Url != "" {
 		h, err := util.Sha256([]byte(f.Url))
 		if err != nil {
 			return false, err
 		}
-		s.And("url_hash_code=?", h)
+		f.UrlHashCode = h
 	}
 
-	if f.HashCode != "" {
-		s.And("hash_code=?", f.HashCode)
-	}
-
-	return s.Get(f)
+	return config.FafaRdb.Client.Get(f)
 }
 
 // 可以隐藏文件的更新操作

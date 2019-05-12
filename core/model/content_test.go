@@ -11,7 +11,7 @@ func Testxx() {
 	var err error
 	c := rdb.MyDbConfig{}
 	c.User = "root"
-	c.Host = "127.0.0.1"
+	c.Host = "192.168.91.129"
 	c.Pass = "123456789"
 	c.DriverName = "mysql"
 	c.Prefix = "fafacms_"
@@ -49,7 +49,7 @@ func TestContentNode_InsertOne(t *testing.T) {
 	n.UserId = 1
 	n.Seo = ""
 	n.Status = 1
-	c, err := config.FafaRdb.Client.Cols("status").Cols("seo").Where("user_id=?", n.UserId).Update(n)
+	c, err := config.FafaRdb.Client.MustCols("seo", "status").Omit("user_id").Where("user_id=?", n.UserId).Update(n)
 	fmt.Println(c, err)
 
 }

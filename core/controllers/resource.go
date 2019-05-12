@@ -7,6 +7,7 @@ import (
 	"github.com/hunterhug/fafacms/core/config"
 	"github.com/hunterhug/fafacms/core/flog"
 	"github.com/hunterhug/fafacms/core/model"
+	"github.com/hunterhug/fafacms/core/util"
 	"math"
 )
 
@@ -17,7 +18,6 @@ type ListResourceRequest struct {
 	Url   string   `json:"url"`
 	Admin int      `json:"admin" validate:"required,oneof=-1 0 1"`
 	Sort  []string `json:"sort" validate:"dive,lt=100"`
-
 	PageHelp
 }
 
@@ -26,6 +26,7 @@ type ListResourceResponse struct {
 	PageHelp
 }
 
+// 列出资源
 func ListResource(c *gin.Context) {
 	resp := new(Resp)
 
@@ -68,7 +69,8 @@ func ListResource(c *gin.Context) {
 	}
 
 	if req.Url != "" {
-		session.And("url=?", req.Url)
+		urlHash, _ := util.Sha256([]byte(req.Url))
+		session.And("url_hash=?", urlHash)
 	}
 
 	// count num
@@ -76,7 +78,6 @@ func ListResource(c *gin.Context) {
 	defer countSession.Close()
 	total, err := countSession.Count()
 	if err != nil {
-
 		flog.Log.Errorf("ListResource err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
@@ -106,15 +107,15 @@ func ListResource(c *gin.Context) {
 	resp.Flag = true
 }
 
-type AssignGroupAndResourceRequest struct {
+type AssignResourceToGroupRequest struct {
 	GroupId         int   `json:"group_id"`
 	ResourceRelease int   `json:"resource_release"`
 	Resources       []int `json:"resources"`
 }
 
-func AssignGroupAndResource(c *gin.Context) {
+func AssignResourceToGroup(c *gin.Context) {
 	resp := new(Resp)
-	req := new(AssignGroupAndResourceRequest)
+	req := new(AssignResourceToGroupRequest)
 	defer func() {
 		JSONL(c, 200, req, resp)
 	}()
@@ -127,9 +128,10 @@ func AssignGroupAndResource(c *gin.Context) {
 	resourceNums := len(req.Resources)
 	if resourceNums == 0 && req.ResourceRelease != 1 {
 		flog.Log.Errorf("AssignGroupAndResource err:%s", "resources empty")
-		resp.Error = Error(ParasError, "resources")
+		resp.Error = Error(ParasError, "resources empty")
 		return
 	}
+
 	if req.GroupId == 0 {
 		flog.Log.Errorf("AssignGroupAndResource err:%s", "group id empty")
 		resp.Error = Error(ParasError, "group_id")
@@ -147,12 +149,12 @@ func AssignGroupAndResource(c *gin.Context) {
 
 	if !exist {
 		flog.Log.Errorf("AssignGroupAndResource err:%s", "group not found")
-		resp.Error = Error(DbNotFound, "group")
+		resp.Error = Error(GroupNotFound, "")
 		return
 	}
 
 	if resourceNums > 0 {
-		num, err := config.FafaRdb.Client.In("id", req.Resources).Count(new(model.Resource))
+		num, err := config.FafaRdb.Client.Table(new(model.Resource)).In("id", req.Resources).Count()
 		if err != nil {
 			flog.Log.Errorf("AssignGroupAndResource err:%s", err.Error())
 			resp.Error = Error(DBError, err.Error())
@@ -161,10 +163,11 @@ func AssignGroupAndResource(c *gin.Context) {
 
 		if int(num) != resourceNums {
 			flog.Log.Errorf("AssignGroupAndResource err:%s", "resource wrong")
-			resp.Error = Error(ParasError, fmt.Sprintf("resource wrong:%d!=%d", num, resourceNums))
+			resp.Error = Error(ResourceCountNumNotRight, fmt.Sprintf("resource wrong:%d!=%d", num, resourceNums))
 			return
 		}
 	}
+
 	session := config.FafaRdb.Client.NewSession()
 	defer session.Close()
 
@@ -201,6 +204,7 @@ func AssignGroupAndResource(c *gin.Context) {
 
 	err = session.Commit()
 	if err != nil {
+		session.Rollback()
 		flog.Log.Errorf("AssignGroupAndResource err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return

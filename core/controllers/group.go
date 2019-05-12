@@ -11,7 +11,7 @@ import (
 )
 
 type CreateGroupRequest struct {
-	Name      string `json:"name" validate:"required,gt=1,lt=100"`
+	Name      string `json:"name" validate:"required,gt=5,lt=100"`
 	Describe  string `json:"describe" validate:"lt=100"`
 	ImagePath string `json:"image_path" validate:"lt=100"`
 }
@@ -47,9 +47,8 @@ func CreateGroup(c *gin.Context) {
 	}
 
 	if ok {
-		// found
 		flog.Log.Errorf("CreateGroup err: group name exist")
-		resp.Error = Error(ParasError, "group name exist")
+		resp.Error = Error(GroupNameAlreadyBeUsed, "")
 		return
 	}
 
@@ -67,9 +66,8 @@ func CreateGroup(c *gin.Context) {
 		}
 
 		if !ok {
-			// not found
 			flog.Log.Errorf("CreateGroup err: image not exist")
-			resp.Error = Error(ParasError, "image url not exist")
+			resp.Error = Error(FileCanNotBeFound, "")
 			return
 		}
 
@@ -89,7 +87,7 @@ func CreateGroup(c *gin.Context) {
 }
 
 type UpdateGroupRequest struct {
-	Id        int    `json:"id" validate:"required,gt=0"`
+	Id        int    `json:"id" validate:"required"`
 	Name      string `json:"name" validate:"lt=100"`
 	Describe  string `json:"describe" validate:"lt=100"`
 	ImagePath string `json:"image_path" validate:"lt=100"`
@@ -126,9 +124,8 @@ func UpdateGroup(c *gin.Context) {
 	}
 
 	if !ok {
-		// not found
 		flog.Log.Errorf("UpdateGroup err: group not exist")
-		resp.Error = Error(DbNotFound, "")
+		resp.Error = Error(GroupNotFound, "")
 		return
 	}
 
@@ -140,7 +137,6 @@ func UpdateGroup(c *gin.Context) {
 		g.ImagePath = req.ImagePath
 		p := new(model.File)
 		p.Url = g.ImagePath
-		// find picture table
 		ok, err := p.Exist()
 		if err != nil {
 			flog.Log.Errorf("UpdateGroup err:%s", err.Error())
@@ -149,15 +145,15 @@ func UpdateGroup(c *gin.Context) {
 		}
 
 		if !ok {
-			// not found
 			flog.Log.Errorf("UpdateGroup err: image not exist")
-			resp.Error = Error(ParasError, "image url not exist")
+			resp.Error = Error(FileCanNotBeFound, "image url not exist")
 			return
 		}
 	}
 
 	// if group name change repeat
-	if req.Name != "" && req.Name != g.Name {
+	if req.Name != "" && req.Name != gg.Name {
+		g.Name = req.Name
 		temp := new(model.Group)
 		temp.Name = req.Name
 		// exist the same name
@@ -168,12 +164,10 @@ func UpdateGroup(c *gin.Context) {
 			return
 		}
 		if ok {
-			// found
 			flog.Log.Errorf("UpdateGroup err: group name repeat")
-			resp.Error = Error(DbRepeat, "group name")
+			resp.Error = Error(GroupNameAlreadyBeUsed, "")
 			return
 		}
-		g.Name = req.Name
 	}
 
 	if req.Describe != "" {
@@ -227,9 +221,8 @@ func DeleteGroup(c *gin.Context) {
 		return
 	}
 	if !ok {
-		// not found
 		flog.Log.Errorf("DeleteGroup err:%s", "group not found")
-		resp.Error = Error(DbNotFound, "")
+		resp.Error = Error(GroupNotFound, "")
 		return
 	}
 
@@ -245,7 +238,7 @@ func DeleteGroup(c *gin.Context) {
 	if ok {
 		// found can not delete
 		flog.Log.Errorf("DeleteGroup err:%s", "exist resource")
-		resp.Error = Error(DbHookIn, "exist resource")
+		resp.Error = Error(GroupHasResourceHookIn, "")
 		return
 	}
 
@@ -261,7 +254,7 @@ func DeleteGroup(c *gin.Context) {
 	if ok {
 		// found can not delete
 		flog.Log.Errorf("DeleteGroup err:%s", "exist user")
-		resp.Error = Error(DbHookIn, "exist user")
+		resp.Error = Error(GroupHasUserHookIn, "exist user")
 		return
 	}
 
@@ -315,7 +308,7 @@ func TakeGroup(c *gin.Context) {
 	}
 	if !ok {
 		flog.Log.Errorf("TakeGroup err:%s", "group not found")
-		resp.Error = Error(DbNotFound, "group not found")
+		resp.Error = Error(GroupNotFound, "")
 		return
 	}
 
@@ -427,7 +420,7 @@ func ListGroup(c *gin.Context) {
 }
 
 type ListGroupResourceRequest struct {
-	GroupId int `json:"group_id" validate:"lt=0"`
+	GroupId int `json:"group_id" validate:"required"`
 }
 
 type ListGroupResourceResponse struct {
@@ -464,7 +457,7 @@ func ListGroupResource(c *gin.Context) {
 	grs := make([]model.GroupResource, 0)
 
 	// group list where prepare
-	err = session.Table(new(model.GroupResource)).Where("group_id=?", req.GroupId).Find(&grs)
+	err = session.Table(grs).Where("group_id=?", req.GroupId).Find(&grs)
 	if err != nil {
 		flog.Log.Errorf("ListUser err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())

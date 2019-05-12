@@ -56,7 +56,7 @@ func UploadFile(c *gin.Context) {
 	uu, err := GetUserSession(c)
 	if err != nil {
 		Log.Errorf("upload err: %s", err.Error())
-		resp.Error = Error(I500, "")
+		resp.Error = Error(GetUserSessionError, err.Error())
 		return
 	}
 
@@ -65,7 +65,6 @@ func UploadFile(c *gin.Context) {
 	fileType := c.DefaultPostForm("type", "other")
 	if fileType == "" {
 		fileType = "other"
-
 	}
 
 	tag := c.DefaultPostForm("tag", "other")
@@ -84,20 +83,20 @@ func UploadFile(c *gin.Context) {
 	fileAllowArray, ok := FileAllow[fileType]
 	if !ok {
 		Log.Errorf("upload err: type not permit")
-		resp.Error = Error(UploadFileError, "type not permit")
+		resp.Error = Error(UploadFileTypeNotPermit, "")
 		return
 	}
 
 	fileSuffix := util.GetFileSuffix(h.Filename)
 	if !util.InArray(fileAllowArray, fileSuffix) {
 		Log.Errorf("upload err: file suffix: %s not permit", fileSuffix)
-		resp.Error = Error(UploadFileError, fmt.Sprintf(" file suffix: %s not permit", fileSuffix))
+		resp.Error = Error(UploadFileTypeNotPermit, fmt.Sprintf("file suffix: %s not permit", fileSuffix))
 		return
 	}
 
 	if h.Size > int64(FileBytes) {
 		Log.Errorf("upload err: file size too big: %d", h.Size)
-		resp.Error = Error(UploadFileError, fmt.Sprintf(" file size too big: %d", h.Size))
+		resp.Error = Error(UploadFileTooMaxLimit, fmt.Sprintf(" file size too big: %d", h.Size))
 		return
 	}
 

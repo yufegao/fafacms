@@ -100,6 +100,7 @@ func InitResource() {
 		r.Name = handler.Name
 		r.Describe = handler.Name
 		r.Admin = handler.Admin
+		r.CreateTime = time.Now().Unix()
 		err := r.InsertOne()
 		if err != nil {
 			fmt.Println(err.Error())

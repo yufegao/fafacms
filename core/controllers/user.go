@@ -174,7 +174,7 @@ func CreateUser(c *gin.Context) {
 	}
 	if repeat {
 		flog.Log.Errorf("CreateUser err: %s", "name already use by other")
-		resp.Error = Error(ParasError, "name already use by other")
+		resp.Error = Error(UserNameAlreadyBeUsed, "")
 		return
 	}
 
@@ -188,12 +188,13 @@ func CreateUser(c *gin.Context) {
 	}
 	if repeat {
 		flog.Log.Errorf("CreateUser err: %s", "email already use by other")
-		resp.Error = Error(ParasError, "email already use by other")
+		resp.Error = Error(EmailAlreadyBeUsed, "")
 		return
 	}
 
 	// if image not empty
 	if req.ImagePath != "" {
+		u.HeadPhoto = req.ImagePath
 		p := new(model.File)
 		p.Url = req.ImagePath
 		ok, err := p.Exist()
@@ -205,11 +206,9 @@ func CreateUser(c *gin.Context) {
 
 		if !ok {
 			flog.Log.Errorf("CreateUser err: image not exist")
-			resp.Error = Error(ParasError, "image url not exist")
+			resp.Error = Error(FileCanNotBeFound, "")
 			return
 		}
-
-		u.HeadPhoto = req.ImagePath
 	}
 
 	u.Describe = req.Describe
@@ -223,7 +222,6 @@ func CreateUser(c *gin.Context) {
 
 	// 默认激活
 	u.Status = 1
-
 	err = u.InsertOne()
 	if err != nil {
 		flog.Log.Errorf("CreateUser err:%s", err.Error())
@@ -561,7 +559,7 @@ func UpdateUser(c *gin.Context) {
 	uu, err := GetUserSession(c)
 	if err != nil {
 		flog.Log.Errorf("UpdateUser err: %s", err.Error())
-		resp.Error = Error(I500, "")
+		resp.Error = Error(GetUserSessionError, err.Error())
 		return
 	}
 
@@ -570,6 +568,7 @@ func UpdateUser(c *gin.Context) {
 
 	// if image not empty
 	if req.ImagePath != "" {
+		u.HeadPhoto = req.ImagePath
 		p := new(model.File)
 		p.Url = req.ImagePath
 		ok, err := p.Exist()
@@ -581,11 +580,9 @@ func UpdateUser(c *gin.Context) {
 
 		if !ok {
 			flog.Log.Errorf("UpdateUser err: image not exist")
-			resp.Error = Error(ParasError, "image url not exist")
+			resp.Error = Error(FileCanNotBeFound, "")
 			return
 		}
-
-		u.HeadPhoto = req.ImagePath
 	}
 
 	u.Describe = req.Describe
@@ -604,7 +601,6 @@ func UpdateUser(c *gin.Context) {
 
 	resp.Flag = true
 	resp.Data = u
-
 }
 
 // 用户获取自己的信息
@@ -617,7 +613,7 @@ func TakeUser(c *gin.Context) {
 	u, err := GetUserSession(c)
 	if err != nil {
 		flog.Log.Errorf("TakeUser err:%s", err.Error())
-		resp.Error = Error(I500, "")
+		resp.Error = Error(GetUserSessionError, err.Error())
 		return
 	}
 	resp.Flag = true
@@ -763,7 +759,7 @@ func ListUser(c *gin.Context) {
 }
 
 type ListGroupUserRequest struct {
-	GroupId int `json:"group_id" validate:"lt=0"`
+	GroupId int `json:"group_id" validate:"required"`
 }
 
 type ListGroupUserResponse struct {
@@ -800,7 +796,7 @@ func ListGroupUser(c *gin.Context) {
 	users := make([]model.User, 0)
 
 	// group list where prepare
-	err = session.Table(new(model.User)).Where("group_id=?", req.GroupId).Find(&users)
+	err = session.Table(users).Where("group_id=?", req.GroupId).Find(&users)
 	if err != nil {
 		flog.Log.Errorf("ListUser err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
@@ -833,14 +829,14 @@ func AssignGroupToUser(c *gin.Context) {
 
 	if len(req.Users) == 0 {
 		flog.Log.Errorf("AssignGroupToUser err:%s", "users empty")
-		resp.Error = Error(ParasError, "users")
+		resp.Error = Error(ParasError, "users empty")
 		return
 	}
 
 	// 为用户移除组
 	if req.GroupRelease == 1 {
 		u := new(model.User)
-		num, err := config.FafaRdb.Client.Table(new(model.User)).Cols("group_id").In("id", req.Users).Update(u)
+		num, err := config.FafaRdb.Client.Cols("group_id").In("id", req.Users).Update(u)
 		if err != nil {
 			flog.Log.Errorf("AssignGroupToUser err:%s", err.Error())
 			resp.Error = Error(DBError, err.Error())
@@ -850,7 +846,7 @@ func AssignGroupToUser(c *gin.Context) {
 	} else {
 		if req.GroupId == 0 {
 			flog.Log.Errorf("AssignGroupToUser err:%s", "group id empty")
-			resp.Error = Error(ParasError, "group_id")
+			resp.Error = Error(ParasError, "group_id empty")
 			return
 		}
 
@@ -865,13 +861,13 @@ func AssignGroupToUser(c *gin.Context) {
 
 		if !exist {
 			flog.Log.Errorf("AssignGroupToUser err:%s", "group not found")
-			resp.Error = Error(DbNotFound, "group")
+			resp.Error = Error(GroupNotFound, "")
 			return
 		}
 
 		u := new(model.User)
 		u.GroupId = req.GroupId
-		num, err := config.FafaRdb.Client.Table(new(model.User)).Cols("group_id").In("id", req.Users).Update(u)
+		num, err := config.FafaRdb.Client.Cols("group_id").In("id", req.Users).Update(u)
 		if err != nil {
 			flog.Log.Errorf("AssignGroupToUser err:%s", err.Error())
 			resp.Error = Error(DBError, err.Error())
@@ -881,11 +877,10 @@ func AssignGroupToUser(c *gin.Context) {
 	}
 
 	resp.Flag = true
-
 }
 
 type UpdateUserAdminRequest struct {
-	Id       int    `json:"id" validate:"required,gt=0"`
+	Id       int    `json:"id" validate:"required"`
 	NickName string `json:"nick_name" validate:"omitempty,gt=1,lt=50"`
 	Password string `json:"password,omitempty"`
 	Status   int    `json:"status" validate:"oneof=0 1 2"`
@@ -926,6 +921,6 @@ func UpdateUserAdmin(c *gin.Context) {
 		return
 	}
 
-	resp.Flag = true
 	resp.Data = u
+	resp.Flag = true
 }

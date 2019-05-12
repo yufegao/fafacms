@@ -104,9 +104,9 @@ func main() {
 			model.Content{},        // 内容表
 			model.ContentHistory{}, // 内容历史表
 			model.ContentNode{},    // 内容节点表，内容必须拥有一个节点
-			model.Comment{},        // 评论表
-			model.Log{},            // 日志表
 			model.File{},           // 文件表
+			//model.Comment{},        // 评论表
+			//model.Log{},            // 日志表
 		})
 	}
 

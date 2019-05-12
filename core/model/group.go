@@ -19,15 +19,16 @@ type Group struct {
 var GroupSortName = []string{"=id", "=name", "-create_time", "=update_time"}
 
 type Resource struct {
-	Id       int    `json:"id" xorm:"bigint pk autoincr"`
-	Name     string `json:"name"`
-	Url      string `json:"url"`
-	UrlHash  string `json:"url_hash" xorm:"unique"`
-	Describe string `json:"describe" xorm:"TEXT"`
-	Admin    bool   `json:"admin"`
+	Id         int    `json:"id" xorm:"bigint pk autoincr"`
+	Name       string `json:"name"`
+	Url        string `json:"url"`
+	UrlHash    string `json:"url_hash" xorm:"unique"`
+	Describe   string `json:"describe" xorm:"TEXT"`
+	Admin      bool   `json:"admin"`
+	CreateTime int64  `json:"create_time"`
 }
 
-var ResourceSortName = []string{"=id", "-admin", "-name",}
+var ResourceSortName = []string{"=id", "-admin", "+create_time", "-name",}
 
 type GroupResource struct {
 	Id         int `json:"id" xorm:"bigint pk autoincr"`
@@ -49,7 +50,7 @@ func (g *Group) Update() error {
 	}
 
 	g.UpdateTime = time.Now().Unix()
-	_, err := config.FafaRdb.Client.Where("id=?", g.Id).Update(g)
+	_, err := config.FafaRdb.Client.Where("id=?", g.Id).Omit("id").Update(g)
 	return err
 }
 

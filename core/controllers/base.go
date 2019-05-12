@@ -28,12 +28,19 @@ var (
 	ResetCodeExpiredTimeNotReach = 100028
 	RestCodeWrong                = 100029
 	FileCanNotBeFound            = 100030
-	DBError                      = 200001
-	EmailSendError               = 300000
+
+	GroupNameAlreadyBeUsed   = 100040
+	GroupNotFound            = 100041
+	GroupHasResourceHookIn   = 100042
+	GroupHasUserHookIn       = 100043
+	ResourceCountNumNotRight = 100050
+	UploadFileError          = 100100
+	UploadFileTypeNotPermit  = 100101
+	UploadFileTooMaxLimit    = 100102
+	DBError                  = 200001
+	EmailSendError           = 300000
 
 	LazyError = 11111
-
-	UploadFileError = 10002
 
 	DbNotFound = 10007
 	DbRepeat   = 10008
@@ -66,16 +73,19 @@ var ErrorMap = map[int]string{
 	EmailNotFound:                "email not found",
 	ResetCodeExpiredTimeNotReach: "reset code expired time not reach",
 	RestCodeWrong:                "reset code wrong",
-
-	DbNotFound: "db not found",
-	DbRepeat:   "db repeat data",
-	DbHookIn:   "db hook in",
-	I500:       "500 error",
-
-	UploadFileError: "upload file err",
-
-
-	LazyError: "db not found or err",
+	GroupNameAlreadyBeUsed:       "group name already be used",
+	GroupNotFound:                "group not found",
+	GroupHasResourceHookIn:       "group has resource hook in",
+	GroupHasUserHookIn:           "group has user hook in",
+	ResourceCountNumNotRight:     "resource count not right",
+	UploadFileError:              "upload file err",
+	UploadFileTypeNotPermit:      "upload file type not permit",
+	UploadFileTooMaxLimit:        "upload file too max limit",
+	DbNotFound:                   "db not found",
+	DbRepeat:                     "db repeat data",
+	DbHookIn:                     "db hook in",
+	I500:                         "500 error",
+	LazyError:                    "db not found or err",
 }
 
 // common response
