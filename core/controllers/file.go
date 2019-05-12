@@ -7,11 +7,13 @@ import (
 	"github.com/hunterhug/fafacms/core/config"
 	. "github.com/hunterhug/fafacms/core/flog"
 	"github.com/hunterhug/fafacms/core/model"
+	"github.com/hunterhug/fafacms/core/util/oss"
 	"github.com/hunterhug/go_image"
 	"github.com/hunterhug/parrot/util"
 	"io/ioutil"
 	"math"
 	"path/filepath"
+	"strings"
 	"time"
 	myutil "github.com/hunterhug/fafacms/core/util"
 )
@@ -34,11 +36,13 @@ var FileAllow = map[string][]string{
 var FileBytes = 1 << 25 // (1<<25)/1000.0/1000.0 33.54 不能超出33M
 
 type UploadResponse struct {
-	FileName string `json:"file_name"`
-	Size     int64  `json:"size"`
-	Url      string `json:"url"`
-	Addon    string `json:"addon"`
-	Oss      bool   `json:"oss"`
+	FileName  string `json:"file_name"`
+	Size      int64  `json:"size"`
+	Url       string `json:"url"`
+	Url_X     string `json:"url_x"`
+	IsPicture bool   `json:"is_picture"`
+	Addon     string `json:"addon"`
+	Oss       bool   `json:"oss"`
 }
 
 /*
@@ -135,7 +139,7 @@ func UploadFile(c *gin.Context) {
 	}
 
 	// MD5需要再加上用户唯一标志，方便不同用户可以上传一样的文件
-	fileHashCode = uName + fileHashCode
+	fileHashCode = uName + "_" + fileHashCode
 	fileName := fileHashCode + "." + fileSuffix
 
 	// 判断数据库文件是否存在
@@ -148,6 +152,7 @@ func UploadFile(c *gin.Context) {
 	}
 
 	// 文件不存在
+	helpPath := fmt.Sprintf("storage/%s/%s", uName, fileType)
 	if !exist {
 		fileDir := filepath.Join(config.FafaConfig.DefaultConfig.StoragePath, uName, fileType)
 		fileAbName := filepath.Join(fileDir, fileName)
@@ -155,7 +160,13 @@ func UploadFile(c *gin.Context) {
 		// 本地存储模式
 		if config.FafaConfig.DefaultConfig.StorageOss != true {
 			// 磁盘模式
-			util.MakeDir(fileDir)
+			err := util.MakeDir(fileDir)
+			if err != nil {
+				Log.Errorf("upload err:%s", err.Error())
+				resp.Error = Error(UploadFileError, err.Error())
+				return
+			}
+
 			err = util.SaveToFile(fileAbName, raw)
 			if err != nil {
 				Log.Errorf("upload err:%s", err.Error())
@@ -163,13 +174,17 @@ func UploadFile(c *gin.Context) {
 				return
 			}
 
-			p.Url = fmt.Sprintf("/%s/%s/%s", uName, fileType, fileName)
+			p.Url = fmt.Sprintf("/%s/%s", helpPath, fileName)
 		} else {
 			// 阿里OSS模式
 			p.StoreType = 1
-			p.Url = fmt.Sprintf("oss://%s/%s/%s", uName, fileType, fileName)
-
-			// todo here
+			p.Url = fmt.Sprintf("%s.%s/%s/%s", config.FafaConfig.OssConfig.BucketName, config.FafaConfig.OssConfig.Endpoint, helpPath, fileName)
+			err = oss.SaveFile(config.FafaConfig.OssConfig, p.Url, raw)
+			if err != nil {
+				Log.Errorf("upload err:%s", err.Error())
+				resp.Error = Error(UploadFileError, err.Error())
+				return
+			}
 		}
 
 		p.UrlHashCode, _ = myutil.Sha256([]byte(p.Url))
@@ -184,7 +199,12 @@ func UploadFile(c *gin.Context) {
 				fileScaleAbName := filepath.Join(fileScaleDir, fileName)
 
 				// 裁剪
-				util.MakeDir(fileScaleDir)
+				err = util.MakeDir(fileScaleDir)
+				if err != nil {
+					Log.Errorf("upload err:%s", err.Error())
+					resp.Error = Error(UploadFileError, err.Error())
+					return
+				}
 				err := go_image.ScaleF2F(fileAbName, fileScaleAbName, 100)
 				if err != nil {
 					Log.Errorf("upload err:%s", err.Error())
@@ -193,7 +213,19 @@ func UploadFile(c *gin.Context) {
 				}
 			} else {
 				// 阿里OSS模式
-				// todo here
+				outRaw, err := go_image.ScaleB2B(raw, 100)
+				if err != nil {
+					Log.Errorf("upload err:%s", err.Error())
+					resp.Error = Error(UploadFileError, err.Error())
+					return
+				}
+
+				err = oss.SaveFile(config.FafaConfig.OssConfig, strings.Replace(helpPath, "storage/", "storage_x/", -1)+"/"+fileName, outRaw)
+				if err != nil {
+					Log.Errorf("upload err:%s", err.Error())
+					resp.Error = Error(UploadFileError, err.Error())
+					return
+				}
 			}
 		}
 
@@ -209,7 +241,7 @@ func UploadFile(c *gin.Context) {
 		_, err = config.FafaRdb.InsertOne(p)
 		if err != nil {
 			Log.Errorf("upload err:%s", err.Error())
-			resp.Error = Error(UploadFileError, err.Error())
+			resp.Error = Error(DBError, err.Error())
 			return
 		}
 	} else {
@@ -223,13 +255,17 @@ func UploadFile(c *gin.Context) {
 	}
 
 	// 返回基本信息
-	resp.Flag = true
 	data.FileName = p.FileName
+	data.IsPicture = p.IsPicture == 1
 	data.Size = p.Size
 	data.Url = p.Url
 	data.Oss = p.StoreType == 1
-
 	resp.Data = data
+	if data.IsPicture {
+		data.Url_X = strings.Replace(p.Url, "/storage", "/storage_x", -1)
+	}
+
+	resp.Flag = true
 	return
 }
 
@@ -241,7 +277,7 @@ type ListFileAdminRequest struct {
 	SizeBegin       int64    `json:"size_begin"`
 	SizeEnd         int64    `json:"size_end"`
 	Sort            []string `json:"sort" validate:"dive,lt=100"`
-	Md5             string   `json:"md5"`
+	HashCode        string   `json:"hash_code"`
 	Url             string   `json:"url"`
 	StoreType       int      `json:"store_type" validate:"oneof=-1 0 1"`
 	Status          int      `json:"status" validate:"oneof=-1 0 1"`
@@ -291,8 +327,8 @@ func ListFileAdminHelper(c *gin.Context, userId int) {
 	if req.Id != 0 {
 		session.And("id=?", req.Id)
 	}
-	if req.Md5 != "" {
-		session.And("md5=?", req.Md5)
+	if req.HashCode != "" {
+		session.And("hash_code=?", req.HashCode)
 	}
 
 	if req.Status != -1 {
@@ -301,7 +337,8 @@ func ListFileAdminHelper(c *gin.Context, userId int) {
 	}
 
 	if req.Url != "" {
-		session.And("url=?", req.Url)
+		urlHashCode, _ := myutil.Sha256([]byte(req.Url))
+		session.And("url_hash_code=?", urlHashCode)
 	}
 
 	if req.IsPicture != -1 {
@@ -357,7 +394,6 @@ func ListFileAdminHelper(c *gin.Context, userId int) {
 	defer countSession.Close()
 	total, err := countSession.Count()
 	if err != nil {
-
 		Log.Errorf("ListFileAdmin err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
@@ -398,7 +434,7 @@ func ListFile(c *gin.Context) {
 	uu, err := GetUserSession(c)
 	if err != nil {
 		Log.Errorf("ListFile err: %s", err.Error())
-		resp.Error = Error(I500, "")
+		resp.Error = Error(GetUserSessionError, err.Error())
 		JSONL(c, 200, nil, resp)
 		return
 	}
@@ -408,9 +444,9 @@ func ListFile(c *gin.Context) {
 }
 
 type UpdateFileRequest struct {
-	Id       int    `json:"id"`
+	Id       int    `json:"id" validate:"required"`
 	Tag      string `json:"tag"`
-	Hide     int    `json:"status" validate:"oneof=0 1"`
+	Hide     bool   `json:"hide"`
 	Describe string `json:"describe"`
 }
 
@@ -434,12 +470,6 @@ func UpdateFileAdminHelper(c *gin.Context, userId int) {
 		return
 	}
 
-	if req.Id == 0 {
-		Log.Errorf("UpdateFileAdmin err: %s", "id empty")
-		resp.Error = Error(ParasError, "id empty")
-		return
-	}
-
 	// 可以修改文件Tag和描述，方便分组
 	f := new(model.File)
 	f.Id = req.Id
@@ -448,7 +478,7 @@ func UpdateFileAdminHelper(c *gin.Context, userId int) {
 	f.UserId = userId
 
 	// 更改文件，可以将文件设置为隐藏，文件一旦上传，不能删除
-	ok, err := f.Update(req.Hide == 1)
+	ok, err := f.Update(req.Hide)
 	if err != nil {
 		Log.Errorf("UpdateFileAdmin err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
@@ -470,7 +500,7 @@ func UpdateFile(c *gin.Context) {
 	uu, err := GetUserSession(c)
 	if err != nil {
 		Log.Errorf("UpdateFile err: %s", err.Error())
-		resp.Error = Error(I500, "")
+		resp.Error = Error(GetUserSessionError, err.Error())
 		JSONL(c, 200, nil, resp)
 		return
 	}

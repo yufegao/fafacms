@@ -29,7 +29,7 @@ type ContentNode struct {
 
 // 内容节点排序专用，内容节点按更新时间降序，接着创建时间
 // https://blog.csdn.net/weixin_33704591/article/details/86892363
-var ContentNodeSortName = []string{"=id", "+sort_num", "-create_time", "-update_time", "+status", "=seo"}
+var ContentNodeSortName = []string{"=id", "-sort_num", "-create_time", "-update_time", "+status", "=seo"}
 
 // 检查节点数量
 func (n *ContentNode) CountNodeNum() (int, error) {

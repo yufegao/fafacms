@@ -17,7 +17,7 @@ type File struct {
 	ReallyFileName string `json:"really_file_name"`
 	HashCode       string `json:"hash_code" xorm:"unique"`
 	Url            string `json:"url" xorm:"varchar(700)"` // index too long  布隆过滤器/字符串型的字段最好不要直接建索引
-	UrlHashCode    string `json:"url_hash_code" xorm:"index"`
+	UrlHashCode    string `json:"url_hash_code" xorm:"unique"`
 	Describe       string `json:"describe" xorm:"TEXT"`
 	CreateTime     int64  `json:"create_time"`
 	UpdateTime     int64  `json:"update_time,omitempty"`
@@ -31,7 +31,7 @@ var FileSortName = []string{"=id", "-create_time", "-update_time", "=user_id", "
 
 // 判断文件是否存在，被隐藏的文件也可以找到
 func (f *File) Exist() (bool, error) {
-	if f.Id == 0 && f.Url == "" && f.HashCode == "" {
+	if f.Id == 0 && f.Url == "" {
 		return false, errors.New("where is empty")
 	}
 	s := config.FafaRdb.Client.Table(f)
@@ -48,11 +48,7 @@ func (f *File) Exist() (bool, error) {
 		s.And("url_hash_code=?", h)
 	}
 
-	if f.HashCode != "" {
-		s.And("hash_code=?", f.HashCode)
-	}
-
-	c, err := s.Count(f)
+	c, err := s.Count()
 
 	if c >= 1 {
 		return true, nil
@@ -63,7 +59,7 @@ func (f *File) Exist() (bool, error) {
 
 // 获取文件信息
 func (f *File) Get() (bool, error) {
-	if f.Id == 0 && f.Url == "" && f.HashCode == "" {
+	if f.Id == 0 && f.Url == "" && f.UrlHashCode == "" && f.HashCode == "" {
 		return false, errors.New("where is empty")
 	}
 
@@ -73,6 +69,7 @@ func (f *File) Get() (bool, error) {
 			return false, err
 		}
 		f.UrlHashCode = h
+		f.Url = ""
 	}
 
 	return config.FafaRdb.Client.Get(f)

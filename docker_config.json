@@ -7,6 +7,12 @@
     "LogPath": "/root/fafacms/log/fafacms_log.log",
     "CloseRegister": false
   },
+  "OssConfig": {
+    "Endpoint": "oss-cn-qingdao.aliyuncs.com",
+    "BucketName": "syoss",
+    "AccessKeyId": "",
+    "AccessKeySecret": ""
+  },
   "DbConfig": {
     "DriverName": "mysql",
     "Name": "fafa",

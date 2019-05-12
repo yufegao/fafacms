@@ -171,7 +171,7 @@ func Nodes(c *gin.Context) {
 	session := config.FafaRdb.Client.NewSession()
 	defer session.Close()
 
-	session.Table(new(model.ContentNode)).Where("1=1").And("status=?", 0).Asc("sort_num").Asc("create_time")
+	session.Table(new(model.ContentNode)).Where("1=1").And("status=?", 0)
 
 	if req.UserId != 0 {
 		session.And("user_id=?", req.UserId)
