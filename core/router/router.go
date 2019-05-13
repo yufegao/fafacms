@@ -26,7 +26,7 @@ var (
 		"/":  {"Home", controllers.Home, GP, false},
 		"/p": {"List Peoples", controllers.Peoples, GP, false}, // 列出用户
 
-		// review
+		// review  2019/05/13
 		"/u/nodes": {"List User Nodes", controllers.NodesInfo, GP, false},    // 列出某用户下的节点
 		"/u/node":  {"List User Nodes One", controllers.NodeInfo, GP, false}, // 查找某用户下的某一个节点
 

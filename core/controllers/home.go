@@ -206,6 +206,7 @@ func NodeInfo(c *gin.Context) {
 		resp.Error = Error(ParasError, "id or seo empty")
 		return
 	}
+
 	v := new(model.ContentNode)
 	exist, err := session.Get(v)
 	if err != nil {
