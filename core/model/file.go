@@ -30,6 +30,7 @@ type File struct {
 var FileSortName = []string{"=id", "-create_time", "-update_time", "=user_id", "=type", "=tag", "=store_type", "=status", "=size"}
 
 // 判断文件是否存在，被隐藏的文件也可以找到
+// 必须是图片，毕竟我们的系统目前只会上传图片
 func (f *File) Exist() (bool, error) {
 	if f.Id == 0 && f.Url == "" {
 		return false, errors.New("where is empty")
@@ -48,7 +49,7 @@ func (f *File) Exist() (bool, error) {
 		s.And("url_hash_code=?", h)
 	}
 
-	c, err := s.Count()
+	c, err := s.Where("is_picture=?", 1).Count()
 
 	if c >= 1 {
 		return true, nil

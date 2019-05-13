@@ -7,38 +7,44 @@ import (
 )
 
 // error code
-var (
-	GetUserSessionError          = 100000
-	SetUserSessionError          = 100001
-	UserNoLogin                  = 100002
-	UserNotFound                 = 100003
-	UserNotActivate              = 100004
-	UserIsInBlack                = 100005
-	UserAuthPermit               = 100006
-	ParasError                   = 100010
-	ParseJsonError               = 100011
-	LoginWrong                   = 100020
-	CloseRegisterError           = 100021
-	UserNameAlreadyBeUsed        = 100022
-	EmailAlreadyBeUsed           = 100023
-	ActivateCodeWrong            = 100024
-	ActivateCodeExpired          = 100025
-	ActivateCodeNotExpired       = 100026
-	EmailNotFound                = 100027
-	ResetCodeExpiredTimeNotReach = 100028
-	RestCodeWrong                = 100029
-	FileCanNotBeFound            = 100030
+const (
+	GetUserSessionError               = 100000
+	SetUserSessionError               = 100001
+	UserNoLogin                       = 100002
+	UserNotFound                      = 100003
+	UserNotActivate                   = 100004
+	UserIsInBlack                     = 100005
+	UserAuthPermit                    = 100006
+	ParasError                        = 100010
+	ParseJsonError                    = 100011
+	LoginWrong                        = 100020
+	CloseRegisterError                = 100021
+	UserNameAlreadyBeUsed             = 100022
+	EmailAlreadyBeUsed                = 100023
+	ActivateCodeWrong                 = 100024
+	ActivateCodeExpired               = 100025
+	ActivateCodeNotExpired            = 100026
+	EmailNotFound                     = 100027
+	ResetCodeExpiredTimeNotReach      = 100028
+	RestCodeWrong                     = 100029
+	FileCanNotBeFound                 = 100030
+	GroupNameAlreadyBeUsed            = 100040
+	GroupNotFound                     = 100041
+	GroupHasResourceHookIn            = 100042
+	GroupHasUserHookIn                = 100043
+	ResourceCountNumNotRight          = 100050
+	UploadFileError                   = 100100
+	UploadFileTypeNotPermit           = 100101
+	UploadFileTooMaxLimit             = 100102
+	ContentNodeSeoAlreadyBeUsed       = 101000
+	ContentNodeNotFound               = 101001
+	ContentParentNodeNotFound         = 101002
+	ContentNodeSortConflict           = 101003
+	ContentNodeHasChildren            = 101004
+	ContentNodeHasContentCanNotDelete = 101005
 
-	GroupNameAlreadyBeUsed   = 100040
-	GroupNotFound            = 100041
-	GroupHasResourceHookIn   = 100042
-	GroupHasUserHookIn       = 100043
-	ResourceCountNumNotRight = 100050
-	UploadFileError          = 100100
-	UploadFileTypeNotPermit  = 100101
-	UploadFileTooMaxLimit    = 100102
-	DBError                  = 200001
-	EmailSendError           = 300000
+	DBError        = 200001
+	EmailSendError = 300000
 
 	LazyError = 11111
 
@@ -52,40 +58,47 @@ var (
 
 // error code message map
 var ErrorMap = map[int]string{
-	GetUserSessionError:          "get user session err",
-	SetUserSessionError:          "set user session err",
-	UserNoLogin:                  "user no login",
-	UserNotFound:                 "user not found",
-	UserIsInBlack:                "user is in black",
-	UserAuthPermit:               "user auth permit",
-	ParasError:                   "paras input not right",
-	DBError:                      "db operation err",
-	LoginWrong:                   "username or password wrong",
-	CloseRegisterError:           "register close",
-	ParseJsonError:               "json parse err",
-	UserNameAlreadyBeUsed:        "user name already be used",
-	EmailAlreadyBeUsed:           "email already be used",
-	ActivateCodeWrong:            "activate code wrong",
-	ActivateCodeExpired:          "activate code expired",
-	ActivateCodeNotExpired:       "activate code not expired",
-	FileCanNotBeFound:            "file can not be found",
-	EmailSendError:               "email send error",
-	EmailNotFound:                "email not found",
-	ResetCodeExpiredTimeNotReach: "reset code expired time not reach",
-	RestCodeWrong:                "reset code wrong",
-	GroupNameAlreadyBeUsed:       "group name already be used",
-	GroupNotFound:                "group not found",
-	GroupHasResourceHookIn:       "group has resource hook in",
-	GroupHasUserHookIn:           "group has user hook in",
-	ResourceCountNumNotRight:     "resource count not right",
-	UploadFileError:              "upload file err",
-	UploadFileTypeNotPermit:      "upload file type not permit",
-	UploadFileTooMaxLimit:        "upload file too max limit",
-	DbNotFound:                   "db not found",
-	DbRepeat:                     "db repeat data",
-	DbHookIn:                     "db hook in",
-	I500:                         "500 error",
-	LazyError:                    "db not found or err",
+	GetUserSessionError:               "get user session err",
+	SetUserSessionError:               "set user session err",
+	UserNoLogin:                       "user no login",
+	UserNotFound:                      "user not found",
+	UserIsInBlack:                     "user is in black",
+	UserAuthPermit:                    "user auth permit",
+	ParasError:                        "paras input not right",
+	DBError:                           "db operation err",
+	LoginWrong:                        "username or password wrong",
+	CloseRegisterError:                "register close",
+	ParseJsonError:                    "json parse err",
+	UserNameAlreadyBeUsed:             "user name already be used",
+	EmailAlreadyBeUsed:                "email already be used",
+	ActivateCodeWrong:                 "activate code wrong",
+	ActivateCodeExpired:               "activate code expired",
+	ActivateCodeNotExpired:            "activate code not expired",
+	FileCanNotBeFound:                 "file can not be found",
+	EmailSendError:                    "email send error",
+	EmailNotFound:                     "email not found",
+	ResetCodeExpiredTimeNotReach:      "reset code expired time not reach",
+	RestCodeWrong:                     "reset code wrong",
+	GroupNameAlreadyBeUsed:            "group name already be used",
+	GroupNotFound:                     "group not found",
+	GroupHasResourceHookIn:            "group has resource hook in",
+	GroupHasUserHookIn:                "group has user hook in",
+	ResourceCountNumNotRight:          "resource count not right",
+	UploadFileError:                   "upload file err",
+	UploadFileTypeNotPermit:           "upload file type not permit",
+	UploadFileTooMaxLimit:             "upload file too max limit",
+	ContentNodeSeoAlreadyBeUsed:       "content node seo already be used",
+	ContentNodeNotFound:               "content node not found",
+	ContentParentNodeNotFound:         "parent content node not found",
+	ContentNodeSortConflict:           "content node sort conflict",
+	ContentNodeHasChildren:            "content node has children",
+	ContentNodeHasContentCanNotDelete: "content node has content can not delete",
+
+	DbNotFound: "db not found",
+	DbRepeat:   "db repeat data",
+	DbHookIn:   "db hook in",
+	I500:       "500 error",
+	LazyError:  "db not found or err",
 }
 
 // common response

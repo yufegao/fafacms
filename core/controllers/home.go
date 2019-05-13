@@ -122,33 +122,157 @@ func Peoples(c *gin.Context) {
 	resp.Flag = true
 }
 
+// 返回的节点信息
 type Node struct {
-	Id         int    `json:"id"`
-	Seo        string `json:"seo"`
-	Name       string `json:"name"`
-	Describe   string `json:"describe"`
-	ImagePath  string `json:"image_path"`
-	CreateTime string `json:"create_time"`
-	UpdateTime string `json:"update_time,omitempty"`
-	UserId     int    `json:"user_id"`
-	UserName   string `json:"user_name"`
-	SortNum    int    `json:"sort_num"`
-	Son        []Node
+	Id            int    `json:"id"`
+	Seo           string `json:"seo"`
+	Name          string `json:"name"`
+	Describe      string `json:"describe"`
+	ImagePath     string `json:"image_path"`
+	CreateTime    string `json:"create_time"`
+	CreateTimeInt int64  `json:"create_time_int"`
+	UpdateTime    string `json:"update_time"`
+	UpdateTimeInt int64  `json:"update_time_int"`
+	UserId        int    `json:"user_id"`
+	UserName      string `json:"user_name"`
+	SortNum       int    `json:"sort_num"`
+	Level         int    `json:"level"`
+	ParentNodeId  int    `json:"parent_node_id"`
+	Son           []Node
 }
 
-type NodesRequest struct {
-	Id       int      `json:"id"`
+type NodesInfoRequest struct {
 	UserId   int      `json:"user_id"`
 	UserName string   `json:"user_name"`
-	Seo      string   `json:"seo"`
 	Sort     []string `json:"sort" validate:"dive,lt=100"`
+}
+
+type NodeInfoRequest struct {
+	Id       int    `json:"id"`
+	UserId   int    `json:"user_id"`
+	UserName string `json:"user_name"`
+	Seo      string `json:"seo"`
 }
 
 type NodesResponse struct {
 	Nodes []Node `json:"nodes"`
 }
 
-func Nodes(c *gin.Context) {
+func NodeInfo(c *gin.Context) {
+	resp := new(Resp)
+
+	defer func() {
+		JSON(c, 200, resp)
+	}()
+
+	req := new(NodeInfoRequest)
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	if req.UserId == 0 && req.UserName == "" {
+		flog.Log.Errorf("Node err:%s", "")
+		resp.Error = Error(ParasError, "where is empty")
+		return
+	}
+
+	session := config.FafaRdb.Client.NewSession()
+	defer session.Close()
+
+	session.Table(new(model.ContentNode)).Where("1=1").And("status=?", 0)
+
+	if req.UserId != 0 {
+		session.And("user_id=?", req.UserId)
+	}
+
+	if req.UserName != "" {
+		session.And("user_name=?", req.UserName)
+	}
+
+	isOne := false
+	if req.Id != 0 {
+		isOne = true
+		session.And("id=?", req.Id)
+	}
+
+	if req.Seo != "" {
+		isOne = true
+		session.And("seo=?", req.Seo)
+	}
+
+	if !isOne {
+		flog.Log.Errorf("Node err:%s", "id or seo empty")
+		resp.Error = Error(ParasError, "id or seo empty")
+		return
+	}
+	v := new(model.ContentNode)
+	exist, err := session.Get(v)
+	if err != nil {
+		flog.Log.Errorf("Node err:%s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	if !exist {
+		flog.Log.Errorf("Node err:%s", "content node not found")
+		resp.Error = Error(ContentNodeNotFound, err.Error())
+		return
+	}
+
+	f := Node{}
+	f.Id = v.Id
+	f.Seo = v.Seo
+	f.Describe = v.Describe
+	f.ImagePath = v.ImagePath
+	f.Name = v.Name
+	if v.UpdateTime > 0 {
+		f.UpdateTime = GetSecond2DateTimes(v.UpdateTime)
+		f.UpdateTimeInt = v.UpdateTime
+	}
+	f.CreateTime = GetSecond2DateTimes(v.CreateTime)
+	f.CreateTimeInt = v.CreateTime
+	f.SortNum = v.SortNum
+	f.UserName = v.UserName
+	f.UserId = v.UserId
+	f.Level = v.Level
+	f.ParentNodeId = v.ParentNodeId
+
+	if f.Level == 0 {
+		ns := make([]model.ContentNode, 0)
+		err = config.FafaRdb.Client.Where("parent_node_id=?", f.Id).Find(ns)
+		if err != nil {
+			flog.Log.Errorf("Node err:%s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+
+		for _, vv := range ns {
+			ff := Node{}
+			ff.Id = vv.Id
+			ff.Seo = vv.Seo
+			ff.Describe = vv.Describe
+			ff.ImagePath = vv.ImagePath
+			ff.Name = vv.Name
+			if vv.UpdateTime > 0 {
+				ff.UpdateTime = GetSecond2DateTimes(vv.UpdateTime)
+				ff.UpdateTimeInt = vv.UpdateTime
+			}
+			ff.CreateTime = GetSecond2DateTimes(vv.CreateTime)
+			ff.CreateTimeInt = vv.CreateTime
+			ff.SortNum = vv.SortNum
+			ff.UserName = vv.UserName
+			ff.UserId = vv.UserId
+			ff.Level = vv.Level
+			ff.ParentNodeId = vv.ParentNodeId
+			f.Son = append(f.Son, ff)
+		}
+	}
+	resp.Flag = true
+	resp.Data = f
+}
+
+func NodesInfo(c *gin.Context) {
 	resp := new(Resp)
 
 	defer func() {
@@ -156,7 +280,7 @@ func Nodes(c *gin.Context) {
 	}()
 
 	respResult := new(NodesResponse)
-	req := new(NodesRequest)
+	req := new(NodesInfoRequest)
 	if errResp := ParseJSON(c, req); errResp != nil {
 		resp.Error = errResp
 		return
@@ -179,14 +303,6 @@ func Nodes(c *gin.Context) {
 
 	if req.UserName != "" {
 		session.And("user_name=?", req.UserName)
-	}
-
-	if req.Id != 0 {
-		session.And("id=?", req.Id)
-	}
-
-	if req.Seo != "" {
-		session.And("seo=?", req.Seo)
 	}
 
 	nodes := make([]model.ContentNode, 0)
@@ -218,11 +334,15 @@ func Nodes(c *gin.Context) {
 		f.Name = v.Name
 		if v.UpdateTime > 0 {
 			f.UpdateTime = GetSecond2DateTimes(v.UpdateTime)
+			f.UpdateTimeInt = v.UpdateTime
 		}
 		f.CreateTime = GetSecond2DateTimes(v.CreateTime)
+		f.CreateTimeInt = v.CreateTime
 		f.SortNum = v.SortNum
 		f.UserName = v.UserName
 		f.UserId = v.UserId
+		f.Level = v.Level
+		f.ParentNodeId = v.ParentNodeId
 		for _, vv := range son {
 			if vv.ParentNodeId == f.Id {
 				s := Node{}
@@ -232,18 +352,21 @@ func Nodes(c *gin.Context) {
 				s.ImagePath = vv.ImagePath
 				s.Name = vv.Name
 				if vv.UpdateTime > 0 {
+					s.UpdateTimeInt = vv.UpdateTime
 					s.UpdateTime = GetSecond2DateTimes(vv.UpdateTime)
 				}
 				s.CreateTime = GetSecond2DateTimes(vv.CreateTime)
+				s.CreateTimeInt = vv.CreateTime
 				s.SortNum = vv.SortNum
 				s.UserId = vv.UserId
-				s.UserName = v.UserName
+				s.UserName = vv.UserName
+				s.Level = vv.Level
+				s.ParentNodeId = vv.ParentNodeId
 				f.Son = append(f.Son, s)
 			}
 		}
 
 		n = append(n, f)
-
 	}
 
 	respResult.Nodes = n
@@ -286,7 +409,7 @@ func UserInfo(c *gin.Context) {
 
 	if !exist {
 		flog.Log.Errorf("UserInfo err:%s", "Not exist")
-		resp.Error = Error(DbNotFound, "not exist")
+		resp.Error = Error(UserNotFound, "")
 		return
 	}
 

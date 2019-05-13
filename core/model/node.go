@@ -21,10 +21,6 @@ type ContentNode struct {
 	ParentNodeId int    `json:"parent_node_id" xorm:"bigint"`
 	Level        int    `json:"level"`
 	SortNum      int    `json:"sort_num"` //  排序，数字越大排越后
-	Aa           string `json:"aa,omitempty"`
-	Ab           string `json:"ab,omitempty"`
-	Ac           string `json:"ac,omitempty"`
-	Ad           string `json:"ad,omitempty"`
 }
 
 // 内容节点排序专用，内容节点按更新时间降序，接着创建时间
@@ -118,28 +114,28 @@ func (n *ContentNode) Exist() (bool, error) {
 	return num >= 1, nil
 }
 
-// 更新节点
-func (n *ContentNode) Update(seoChange bool) error {
+// 更新节点SEO
+func (n *ContentNode) UpdateSeo() error {
 	if n.UserId == 0 || n.Id == 0 {
 		return errors.New("where is empty")
 	}
 
 	session := config.FafaRdb.Client.NewSession()
+	defer session.Close()
 	err := session.Begin()
 	if err != nil {
 		return err
 	}
 
-	if seoChange {
-		_, err = session.Exec("update fafacms_content SET node_seo=? where user_id=? and node_id=?", n.Seo, n.UserId, n.Id)
-		if err != nil {
-			session.Rollback()
-			return err
-		}
+	// 文章内容的节点SEO也要更改
+	_, err = session.Exec("update fafacms_content SET node_seo=? where user_id=? and node_id=?", n.Seo, n.UserId, n.Id)
+	if err != nil {
+		session.Rollback()
+		return err
 	}
 
 	n.UpdateTime = time.Now().Unix()
-	_, err = session.Where("id=?", n.Id).And("user_id=?", n.UserId).Omit("id", "user_id").MustCols("level", "parent_node_id", "status").Update(n)
+	_, err = session.Where("id=?", n.Id).And("user_id=?", n.UserId).Cols("seo", "update_time").Update(n)
 	if err != nil {
 		session.Rollback()
 		return err
@@ -151,4 +147,43 @@ func (n *ContentNode) Update(seoChange bool) error {
 		return err
 	}
 	return nil
+}
+
+// 更新节点详情
+func (n *ContentNode) UpdateInfo() error {
+	if n.UserId == 0 || n.Id == 0 {
+		return errors.New("where is empty")
+	}
+
+	session := config.FafaRdb.Client.NewSession()
+	defer session.Close()
+	n.UpdateTime = time.Now().Unix()
+	_, err := session.Where("id=?", n.Id).And("user_id=?", n.UserId).MustCols("describe").Omit("id", "user_id").Update(n)
+	return err
+}
+
+// 更新节点状态，1表示隐藏
+func (n *ContentNode) UpdateStatus() error {
+	if n.UserId == 0 || n.Id == 0 {
+		return errors.New("where is empty")
+	}
+
+	session := config.FafaRdb.Client.NewSession()
+	defer session.Close()
+	n.UpdateTime = time.Now().Unix()
+	_, err := session.Where("id=?", n.Id).And("user_id=?", n.UserId).Cols("status", "update_time").Update(n)
+	return err
+}
+
+// 更新节点的父亲
+func (n *ContentNode) UpdateParent() error {
+	if n.UserId == 0 || n.Id == 0 {
+		return errors.New("where is empty")
+	}
+
+	session := config.FafaRdb.Client.NewSession()
+	defer session.Close()
+	n.UpdateTime = time.Now().Unix()
+	_, err := session.Where("id=?", n.Id).And("user_id=?", n.UserId).Cols("level", "update_time", "parent_node_id").Update(n)
+	return err
 }

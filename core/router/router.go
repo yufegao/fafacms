@@ -23,9 +23,14 @@ var (
 	HomeRouter = map[string]HttpHandle{
 		// 前端路由
 		// 需要考虑更友好的展示，反盗链，反爬虫等
-		"/":          {"Home", controllers.Home, GP, false},
-		"/p":         {"List Peoples", controllers.Peoples, GP, false},         // 列出用户
-		"/u/node":    {"List User Nodes", controllers.Nodes, GP, false},        // 列出某用户下的节点
+		"/":  {"Home", controllers.Home, GP, false},
+		"/p": {"List Peoples", controllers.Peoples, GP, false}, // 列出用户
+
+		// review
+		"/u/nodes": {"List User Nodes", controllers.NodesInfo, GP, false},    // 列出某用户下的节点
+		"/u/node":  {"List User Nodes One", controllers.NodeInfo, GP, false}, // 查找某用户下的某一个节点
+
+		// todo
 		"/u/info":    {"List User Info", controllers.UserInfo, GP, false},      // 获取某用户信息
 		"/u/count":   {"Count User Content", controllers.UserCount, GP, false}, // 统计某用户文章情况（某用户可留空）
 		"/u/content": {"List User Content", controllers.Contents, GP, false},   // 列出某用户下文章
@@ -80,10 +85,17 @@ var (
 		// 比较重要的, 节点和文章都应该支持拖曳，文章首页排序还是按照创建时间，但是后台使用排序字段
 		// 需要参考简书
 		// 内容节点操作
-		"/node/create":     {"Create Node Self", controllers.CreateNode, POST, false},
-		"/node/update":     {"Update Node Self", controllers.UpdateNode, POST, false},
-		"/node/sort":       {"Sort Node Self", controllers.SortNode, POST, false},
-		"/node/delete":     {"Delete Node Self", controllers.DeleteNode, POST, false},
+		// 已经Review 2019/5/13 chen
+		"/node/create":        {"Create Node Self", controllers.CreateNode, POST, false},
+		"/node/update/seo":    {"Update Node Self Seo", controllers.UpdateSeoOfNode, POST, false},
+		"/node/update/info":   {"Update Node Self Info", controllers.UpdateInfoOfNode, POST, false},
+		"/node/update/status": {"Update Node Self Status", controllers.UpdateStatusOfNode, POST, false},
+		"/node/update/parent": {"Update Node Self Parent", controllers.UpdateParentOfNode, POST, false}, // 这个接口不如下面这个全功能的接口
+		"/node/sort":          {"Sort Node Self", controllers.SortNode, POST, false},
+		"/node/delete":        {"Delete Node Self", controllers.DeleteNode, POST, false},
+
+
+		// 儿子也要拿出来 todo
 		"/node/take":       {"Take Node Self", controllers.TakeNode, GP, false},
 		"/node/list":       {"List Node Self", controllers.ListNode, GP, false},
 		"/node/admin/list": {"List Node All", controllers.ListNodeAdmin, GP, true}, // 管理员查看其他用户节点

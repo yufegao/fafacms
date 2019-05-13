@@ -52,12 +52,14 @@ func CreateNode(c *gin.Context) {
 		n.Seo = req.Seo
 		exist, err := n.CheckSeoValid()
 		if err != nil {
+			flog.Log.Errorf("CreateNode err: %s", err.Error())
 			resp.Error = Error(DBError, "")
 			return
 		}
 		if exist {
 			// 存在报错
-			resp.Error = Error(DbRepeat, "field seo")
+			flog.Log.Errorf("CreateNode err: %s", "node seo already be use")
+			resp.Error = Error(ContentNodeSeoAlreadyBeUsed, "")
 			return
 		}
 	}
@@ -67,12 +69,14 @@ func CreateNode(c *gin.Context) {
 		n.ParentNodeId = req.ParentNodeId
 		exist, err := n.CheckParentValid()
 		if err != nil {
+			flog.Log.Errorf("CreateNode err: %s", err.Error())
 			resp.Error = Error(DBError, "")
 			return
 		}
 		if !exist {
 			// 父亲节点不存在，报错
-			resp.Error = Error(DbNotFound, "field parent node")
+			flog.Log.Errorf("CreateNode err: %s", "parent content node not found")
+			resp.Error = Error(ContentParentNodeNotFound, "")
 			return
 		}
 
@@ -81,6 +85,7 @@ func CreateNode(c *gin.Context) {
 
 	// if image not empty
 	if req.ImagePath != "" {
+		n.ImagePath = req.ImagePath
 		p := new(model.File)
 		p.Url = req.ImagePath
 		ok, err := p.Exist()
@@ -91,13 +96,10 @@ func CreateNode(c *gin.Context) {
 		}
 
 		if !ok {
-			// not found
 			flog.Log.Errorf("CreateNode err: image not exist")
-			resp.Error = Error(ParasError, "image url not exist")
+			resp.Error = Error(FileCanNotBeFound, "image url not exist")
 			return
 		}
-
-		n.ImagePath = req.ImagePath
 	}
 	n.Name = req.Name
 	n.Describe = req.Describe
@@ -112,22 +114,34 @@ func CreateNode(c *gin.Context) {
 	}
 	resp.Flag = true
 	resp.Data = n
-
 }
 
-type UpdateNodeRequest struct {
-	Id           int    `json:"id" validate:"required"`
-	Seo          string `json:"seo" validate:"omitempty,alphanumunicode,gt=3,lt=30"`
-	Name         string `json:"name" validate:"omitempty,lt=100"`
-	Describe     string `json:"describe" validate:"omitempty,lt=200"`
-	ImagePath    string `json:"image_path" validate:"omitempty,lt=100"`
-	ParentNodeId int    `json:"parent_node_id"`
-	Status       int    `json:"status" validate:"oneof=-1 0 1"`
+type UpdateInfoOfNodeRequest struct {
+	Id        int    `json:"id" validate:"required"`
+	Name      string `json:"name" validate:"omitempty,lt=100"`
+	Describe  string `json:"describe" validate:"omitempty,lt=200"`
+	ImagePath string `json:"image_path" validate:"omitempty,lt=100"`
 }
 
-func UpdateNode(c *gin.Context) {
+type UpdateStatusOfNodeRequest struct {
+	Id     int `json:"id" validate:"required"`
+	Status int `json:"status" validate:"oneof=0 1"`
+}
+
+type UpdateSeoOfNodeRequest struct {
+	Id  int    `json:"id" validate:"required"`
+	Seo string `json:"seo" validate:"omitempty,alphanumunicode,gt=3,lt=30"`
+}
+
+type UpdateParentOfNodeRequest struct {
+	Id           int  `json:"id" validate:"required"`
+	ToBeRoot     bool `json:"to_be_root"` // 升级为最上层节点
+	ParentNodeId int  `json:"parent_node_id"`
+}
+
+func UpdateSeoOfNode(c *gin.Context) {
 	resp := new(Resp)
-	req := new(UpdateNodeRequest)
+	req := new(UpdateSeoOfNodeRequest)
 	defer func() {
 		JSONL(c, 200, req, resp)
 	}()
@@ -140,21 +154,15 @@ func UpdateNode(c *gin.Context) {
 	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
-		flog.Log.Errorf("UpdateNode err: %s", err.Error())
+		flog.Log.Errorf("UpdateSeoOfNode err: %s", err.Error())
 		resp.Error = Error(ParasError, err.Error())
-		return
-	}
-
-	if req.ParentNodeId == req.Id {
-		flog.Log.Errorf("UpdateNode err: %s", "self can not be parent")
-		resp.Error = Error(ParasError, "self can not be parent")
 		return
 	}
 
 	uu, err := GetUserSession(c)
 	if err != nil {
-		flog.Log.Errorf("UpdateNode err: %s", err.Error())
-		resp.Error = Error(I500, "")
+		flog.Log.Errorf("UpdateSeoOfNode err: %s", err.Error())
+		resp.Error = Error(GetUserSessionError, err.Error())
 		return
 	}
 	n := new(model.ContentNode)
@@ -164,21 +172,14 @@ func UpdateNode(c *gin.Context) {
 	// 获取节点，节点会携带所有内容
 	exist, err := n.Get()
 	if err != nil {
-		flog.Log.Errorf("UpdateNode err: %s", err.Error())
+		flog.Log.Errorf("UpdateSeoOfNode err: %s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
 	}
 	if !exist {
 		// 不存在节点，报错
-		flog.Log.Errorf("UpdateNode err: %s", "field id not found")
-		resp.Error = Error(DbNotFound, "field id not found")
-		return
-	}
-
-	// 不能将自己作为自己的父亲
-	if n.Id == req.ParentNodeId {
-		flog.Log.Errorf("UpdateNode err: %s", "loop err")
-		resp.Error = Error(DbNotFound, "loop err")
+		flog.Log.Errorf("UpdateSeoOfNode err: %s", "content node not found")
+		resp.Error = Error(ContentNodeNotFound, "")
 		return
 	}
 
@@ -196,64 +197,96 @@ func UpdateNode(c *gin.Context) {
 			// 检查是否存在SEO
 			exist, err := after.CheckSeoValid()
 			if err != nil {
-				resp.Error = Error(DBError, "")
+				flog.Log.Errorf("UpdateSeoOfNode err: %s", err.Error())
+				resp.Error = Error(DBError, err.Error())
 				return
 			}
 			if exist {
 				// SEO存在了，报错
-				resp.Error = Error(DbRepeat, "field seo")
+				flog.Log.Errorf("UpdateSeoOfNode err: %s", err.Error())
+				resp.Error = Error(ContentNodeSeoAlreadyBeUsed, "")
 				return
 			}
 		}
 	}
 
-	// 指定了父亲节点
-	after.ParentNodeId = n.ParentNodeId
-	if req.ParentNodeId > 0 {
-		// 和之前的父亲节点不一样
-		if req.ParentNodeId != n.ParentNodeId {
-			after.ParentNodeId = req.ParentNodeId
-			// 检查该父亲节点是否存在
-			exist, err := after.CheckParentValid()
-			if err != nil {
-				resp.Error = Error(DBError, "")
-				return
-			}
-			if !exist {
-				// 不存在父亲节点，报错
-				resp.Error = Error(DbNotFound, "field parent node")
-				return
-			}
-			// 有了父亲节点，级别为1
-			after.Level = 1
+	if seoChange {
+		// 更新
+		err = after.UpdateSeo()
+		if err != nil {
+			flog.Log.Errorf("UpdateSeoOfNode err:%s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
 		}
-	} else if req.ParentNodeId == -1 {
-		after.Level = n.Level
-	} else {
-		// 没有指定父亲节点，归零
-		after.Level = 0
-		after.ParentNodeId = 0
 	}
+	resp.Flag = true
+}
+func UpdateInfoOfNode(c *gin.Context) {
+	resp := new(Resp)
+	req := new(UpdateInfoOfNodeRequest)
+	defer func() {
+		JSONL(c, 200, req, resp)
+	}()
+
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	var validate = validator.New()
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("UpdateInfoOfNode err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
+		return
+	}
+
+	uu, err := GetUserSession(c)
+	if err != nil {
+		flog.Log.Errorf("UpdateInfoOfNode err: %s", err.Error())
+		resp.Error = Error(GetUserSessionError, "")
+		return
+	}
+	n := new(model.ContentNode)
+	n.Id = req.Id
+	n.UserId = uu.Id
+
+	// 获取节点，节点会携带所有内容
+	exist, err := n.Get()
+	if err != nil {
+		flog.Log.Errorf("UpdateInfoOfNode err: %s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+	if !exist {
+		// 不存在节点，报错
+		flog.Log.Errorf("UpdateInfoOfNode err: %s", "content node not found")
+		resp.Error = Error(ContentNodeNotFound, "")
+		return
+	}
+
+	after := new(model.ContentNode)
+	after.UserId = n.UserId
+	after.Id = n.Id
 
 	// if image not empty
 	if req.ImagePath != "" {
 		if req.ImagePath != n.ImagePath {
+			after.ImagePath = req.ImagePath
 			p := new(model.File)
 			p.Url = req.ImagePath
 			ok, err := p.Exist()
 			if err != nil {
-				flog.Log.Errorf("UpdateNode err:%s", err.Error())
+				flog.Log.Errorf("UpdateInfoOfNode err:%s", err.Error())
 				resp.Error = Error(DBError, err.Error())
 				return
 			}
 
 			if !ok {
-				flog.Log.Errorf("UpdateNode err: image not exist")
-				resp.Error = Error(ParasError, "image url not exist")
+				flog.Log.Errorf("UpdateInfoOfNode err: image not exist")
+				resp.Error = Error(FileCanNotBeFound, "")
 				return
 			}
-
-			after.ImagePath = req.ImagePath
 		}
 	}
 
@@ -264,21 +297,168 @@ func UpdateNode(c *gin.Context) {
 		}
 	}
 
-	if req.Describe != "" {
-		if req.Describe != n.Describe {
-			after.Describe = req.Describe
-		}
+	after.Describe = req.Describe
+
+	// 更新
+	err = after.UpdateInfo()
+	if err != nil {
+		flog.Log.Errorf("UpdateNode err:%s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+	resp.Flag = true
+}
+
+func UpdateStatusOfNode(c *gin.Context) {
+	resp := new(Resp)
+	req := new(UpdateStatusOfNodeRequest)
+	defer func() {
+		JSONL(c, 200, req, resp)
+	}()
+
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
 	}
 
-	after.Status = n.Status
-	if n.Status != -1 {
-		after.Status = req.Status
+	var validate = validator.New()
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("UpdateStatusOfNode err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
+		return
+	}
+
+	uu, err := GetUserSession(c)
+	if err != nil {
+		flog.Log.Errorf("UpdateStatusOfNode err: %s", err.Error())
+		resp.Error = Error(GetUserSessionError, err.Error())
+		return
+	}
+	n := new(model.ContentNode)
+	n.Id = req.Id
+	n.UserId = uu.Id
+
+	// 获取节点，节点会携带所有内容
+	exist, err := n.Get()
+	if err != nil {
+		flog.Log.Errorf("UpdateStatusOfNode err: %s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+	if !exist {
+		// 不存在节点，报错
+		flog.Log.Errorf("UpdateStatusOfNode err: %s", "content node not found")
+		resp.Error = Error(ContentNodeNotFound, "")
+		return
+	}
+
+	after := new(model.ContentNode)
+	after.UserId = n.UserId
+	after.Id = n.Id
+	after.Status = req.Status
+
+	// 更新
+	err = after.UpdateStatus()
+	if err != nil {
+		flog.Log.Errorf("UpdateStatusOfNode err:%s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+	resp.Flag = true
+}
+
+func UpdateParentOfNode(c *gin.Context) {
+	resp := new(Resp)
+	req := new(UpdateParentOfNodeRequest)
+	defer func() {
+		JSONL(c, 200, req, resp)
+	}()
+
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	var validate = validator.New()
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("UpdateParentOfNode err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
+		return
+	}
+
+	if req.ParentNodeId == req.Id {
+		flog.Log.Errorf("UpdateParentOfNode err: %s", "self can not be parent")
+		resp.Error = Error(ParasError, "self can not be parent")
+		return
+	}
+
+	uu, err := GetUserSession(c)
+	if err != nil {
+		flog.Log.Errorf("UpdateParentOfNode err: %s", err.Error())
+		resp.Error = Error(GetUserSessionError, err.Error())
+		return
+	}
+	n := new(model.ContentNode)
+	n.Id = req.Id
+	n.UserId = uu.Id
+
+	// 获取节点，节点会携带所有内容
+	exist, err := n.Get()
+	if err != nil {
+		flog.Log.Errorf("UpdateParentOfNode err: %s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+	if !exist {
+		// 不存在节点，报错
+		flog.Log.Errorf("UpdateParentOfNode err: %s", "content node not found")
+		resp.Error = Error(ContentNodeNotFound, "")
+		return
+	}
+
+	after := new(model.ContentNode)
+	after.UserId = n.UserId
+	after.Id = n.Id
+
+	if req.ToBeRoot {
+		if n.ParentNodeId == 0 {
+			resp.Flag = true
+			return
+		}
+		// 没有指定父亲节点，归零
+		after.Level = 0
+		after.ParentNodeId = 0
+	} else {
+		if n.ParentNodeId == req.ParentNodeId {
+			resp.Flag = true
+			return
+		}
+
+		after.ParentNodeId = req.ParentNodeId
+
+		// 检查该父亲节点是否存在
+		exist, err := after.CheckParentValid()
+		if err != nil {
+			flog.Log.Errorf("UpdateParentOfNode err: %s", err.Error())
+			resp.Error = Error(DBError, "")
+			return
+		}
+		if !exist {
+			// 不存在父亲节点，报错
+			flog.Log.Errorf("UpdateParentOfNode err: %s", "parent content node not found")
+			resp.Error = Error(ContentParentNodeNotFound, "")
+			return
+		}
+		after.Level = 1
+
 	}
 
 	// 更新
-	err = after.Update(seoChange)
+	err = after.UpdateParent()
 	if err != nil {
-		flog.Log.Errorf("UpdateNode err:%s", err.Error())
+		flog.Log.Errorf("UpdateParentOfNode err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
 	}
@@ -312,7 +492,7 @@ func DeleteNode(c *gin.Context) {
 	uu, err := GetUserSession(c)
 	if err != nil {
 		flog.Log.Errorf("DeleteNode err: %s", err.Error())
-		resp.Error = Error(I500, "")
+		resp.Error = Error(GetUserSessionError, err.Error())
 		return
 	}
 	n := new(model.ContentNode)
@@ -328,8 +508,8 @@ func DeleteNode(c *gin.Context) {
 	}
 	if !exist {
 		// 不存在节点，报错
-		flog.Log.Errorf("DeleteNode err: %s", "field id not found")
-		resp.Error = Error(DbNotFound, "field id not found")
+		flog.Log.Errorf("DeleteNode err: %s", "content node not found")
+		resp.Error = Error(ContentNodeNotFound, "")
 		return
 	}
 
@@ -344,7 +524,7 @@ func DeleteNode(c *gin.Context) {
 	if childNum >= 1 {
 		// 不能删除
 		flog.Log.Errorf("DeleteNode err:%s", "has node child")
-		resp.Error = Error(DbHookIn, "has node child")
+		resp.Error = Error(ContentNodeHasChildren, "")
 		return
 	}
 
@@ -363,7 +543,7 @@ func DeleteNode(c *gin.Context) {
 	if normalContentNum >= 1 {
 		// 有内容，不能删除
 		flog.Log.Errorf("DeleteNode err:%s", "has content child")
-		resp.Error = Error(DbHookIn, "has content child")
+		resp.Error = Error(ContentNodeHasContentCanNotDelete, "")
 		return
 	}
 
@@ -431,7 +611,7 @@ func TakeNode(c *gin.Context) {
 	uu, err := GetUserSession(c)
 	if err != nil {
 		flog.Log.Errorf("TakeNode err: %s", err.Error())
-		resp.Error = Error(I500, "")
+		resp.Error = Error(GetUserSessionError, err.Error())
 		return
 	}
 	n := new(model.ContentNode)
@@ -447,7 +627,7 @@ func TakeNode(c *gin.Context) {
 
 	if !exist {
 		flog.Log.Errorf("TakeNode err: %s", "node not found")
-		resp.Error = Error(DbNotFound, "node not found")
+		resp.Error = Error(ContentNodeNotFound, "")
 		return
 	}
 
@@ -459,16 +639,28 @@ type ListNodeRequest struct {
 	Id              int      `json:"id"`
 	Seo             string   `json:"seo" validate:"omitempty,alphanumunicode,gt=3,lt=30"`
 	ParentNodeId    int      `json:"parent_node_id"`
-	Status          int      `json:"status" validate:"oneof=-1 0 1 2"`
+
 	Level           int      `json:"level" validate:"oneof=-1 0 1"`
 	UserId          int      `json:"user_id"`
-	CreateTimeBegin int64    `json:"create_time_begin"`
-	CreateTimeEnd   int64    `json:"create_time_end"`
-	UpdateTimeBegin int64    `json:"update_time_begin"`
-	UpdateTimeEnd   int64    `json:"update_time_end"`
+
 	Sort            []string `json:"sort" validate:"dive,lt=100"`
 	PageHelp
 }
+
+//
+//type NodesRequest struct {
+//	Id       int      `json:"id"`
+//	UserId   int      `json:"user_id"`
+//	UserName string   `json:"user_name"`
+//	Seo      string   `json:"seo"`
+//	Status          int      `json:"status" validate:"oneof=-1 0 1"`
+//	CreateTimeBegin int64    `json:"create_time_begin"`
+//	CreateTimeEnd   int64    `json:"create_time_end"`
+//	UpdateTimeBegin int64    `json:"update_time_begin"`
+//	UpdateTimeEnd   int64    `json:"update_time_end"`
+//	Sort     []string `json:"sort" validate:"dive,lt=100"`
+//}
+
 
 type ListNodeResponse struct {
 	Nodes []model.ContentNode `json:"nodes"`
@@ -480,7 +672,7 @@ func ListNode(c *gin.Context) {
 	uu, err := GetUserSession(c)
 	if err != nil {
 		flog.Log.Errorf("ListNode err: %s", err.Error())
-		resp.Error = Error(I500, "")
+		resp.Error = Error(GetUserSessionError, err.Error())
 		JSONL(c, 200, nil, resp)
 		return
 	}
@@ -529,10 +721,6 @@ func ListNodeHelper(c *gin.Context, userId int) {
 
 	if userId != 0 {
 		session.And("user_id=?", userId)
-		if req.Status > 1 {
-			// 用户不能让他查找到逻辑删除的节点
-			req.Status = 0
-		}
 	} else {
 		if req.UserId != 0 {
 			session.And("user_id=?", req.UserId)
@@ -606,13 +794,16 @@ func ListNodeHelper(c *gin.Context, userId int) {
 }
 
 // x->y
-// x>y (x+1,y)-> -1
-// x<y (y,x-1)-> +1
+// x<y (x+1,y)-> -1
+// x>y (y,x-1)-> +1
 type SortNodeRequest struct {
-	X int `json:"x"`
-	Y int `json:"y"`
+	XID int `json:"xid"`
+	YID int `json:"yid"`
+	x   int `json:"x"`
+	y   int `json:"y"`
 }
 
+//  拖曳排序超级函数
 func SortNode(c *gin.Context) {
 	resp := new(Resp)
 	req := new(SortNodeRequest)
@@ -636,18 +827,12 @@ func SortNode(c *gin.Context) {
 	uu, err := GetUserSession(c)
 	if err != nil {
 		flog.Log.Errorf("SortNode err: %s", err.Error())
-		resp.Error = Error(I500, "")
+		resp.Error = Error(GetUserSessionError, err.Error())
 		return
 	}
 
-	if req.X == req.Y || req.X < 0 || req.Y < 0 {
-		flog.Log.Errorf("SortNode err: %s", "x and y wrong")
-
-		resp.Error = Error(ParasError, "x and y wrong")
-		return
-	}
 	x := new(model.ContentNode)
-	x.SortNum = req.X
+	x.Id = req.XID
 	x.UserId = uu.Id
 	exist, err := x.GetSortOneNode()
 	if err != nil {
@@ -658,12 +843,12 @@ func SortNode(c *gin.Context) {
 
 	if !exist {
 		flog.Log.Errorf("SortNode err: %s", "x node not found")
-		resp.Error = Error(DbNotFound, "x node not found")
+		resp.Error = Error(ContentNodeNotFound, "x node not found")
 		return
 	}
 
 	y := new(model.ContentNode)
-	y.SortNum = req.Y
+	y.Id = req.YID
 	y.UserId = uu.Id
 	exist, err = y.GetSortOneNode()
 	if err != nil {
@@ -674,9 +859,17 @@ func SortNode(c *gin.Context) {
 
 	if !exist {
 		flog.Log.Errorf("SortNode err: %s", "y node not found")
-		resp.Error = Error(DbNotFound, "y node not found")
+		resp.Error = Error(ContentNodeNotFound, "y node not found")
 		return
 	}
+	if y.ParentNodeId == x.Id {
+		flog.Log.Errorf("SortNode err: %s", "can not move node to be his child's brother")
+		resp.Error = Error(ContentNodeSortConflict, "can not move node to be his child's brother")
+		return
+	}
+
+	req.x = x.SortNum
+	req.y = y.SortNum
 
 	children, err := x.CheckChildrenNum()
 	if err != nil {
@@ -686,12 +879,15 @@ func SortNode(c *gin.Context) {
 	}
 
 	if y.Level == 1 && children > 0 {
-		flog.Log.Errorf("SortNode err: %s", "level 1 has child can not move to level 2")
-		resp.Error = Error(ParasError, "level 1 has child can not move to level 2")
+		flog.Log.Errorf("SortNode err: %s", "x has child can not move to be other's child's brother")
+		resp.Error = Error(ContentNodeSortConflict, "x has child can not move to be other's child's brother")
 		return
 	}
 
-	if req.X < req.Y {
+	// x->y
+	// x<y (x+1,y)-> -1
+	// x>y (y,x-1)-> +1
+	if req.x < req.y {
 		session := config.FafaRdb.Client.NewSession()
 		defer session.Close()
 
@@ -702,7 +898,7 @@ func SortNode(c *gin.Context) {
 			return
 		}
 
-		_, err = session.Exec("update fafacms_content_node SET sort_num=sort_num-1 where sort_num > ? and sort_num <= ? and user_id = ?", req.X, req.Y, uu.Id)
+		_, err = session.Exec("update fafacms_content_node SET sort_num=sort_num-1 where sort_num > ? and sort_num <= ? and user_id = ?", req.x, req.y, uu.Id)
 		if err != nil {
 			session.Rollback()
 			flog.Log.Errorf("SortNode err: %s", err.Error())
@@ -710,7 +906,7 @@ func SortNode(c *gin.Context) {
 			return
 		}
 
-		_, err = session.Exec("update fafacms_content_node SET sort_num=?,level=?,parent_node_id=? where id = ?", req.Y, y.Level, y.ParentNodeId, x.Id)
+		_, err = session.Exec("update fafacms_content_node SET sort_num=?,level=?,parent_node_id=? where id = ?", req.y, y.Level, y.ParentNodeId, x.Id)
 		if err != nil {
 			session.Rollback()
 			flog.Log.Errorf("SortNode err: %s", err.Error())
@@ -727,7 +923,10 @@ func SortNode(c *gin.Context) {
 		}
 	}
 
-	if req.X > req.Y {
+	// x->y
+	// x<y (x+1,y)-> -1
+	// x>y (y,x-1)-> +1
+	if req.x > req.y {
 		session := config.FafaRdb.Client.NewSession()
 		defer session.Close()
 
@@ -738,7 +937,7 @@ func SortNode(c *gin.Context) {
 			return
 		}
 
-		_, err = session.Exec("update fafacms_content_node SET sort_num=sort_num+1 where sort_num < ? and sort_num >= ? and user_id = ?", req.X, req.Y, uu.Id)
+		_, err = session.Exec("update fafacms_content_node SET sort_num=sort_num+1 where sort_num < ? and sort_num >= ? and user_id = ?", req.x, req.y, uu.Id)
 		if err != nil {
 			session.Rollback()
 			flog.Log.Errorf("SortNode err: %s", err.Error())
@@ -746,7 +945,7 @@ func SortNode(c *gin.Context) {
 			return
 		}
 
-		_, err = session.Exec("update fafacms_content_node SET sort_num=?,level=?,parent_node_id=? where id = ?", req.Y, y.Level, y.ParentNodeId, x.Id)
+		_, err = session.Exec("update fafacms_content_node SET sort_num=?,level=?,parent_node_id=? where id = ?", req.x, y.Level, y.ParentNodeId, x.Id)
 		if err != nil {
 			session.Rollback()
 			flog.Log.Errorf("SortNode err: %s", err.Error())
