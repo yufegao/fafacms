@@ -18,22 +18,19 @@ type Content struct {
 	Status       int    `json:"status" xorm:"not null comment('0 normal, 1 hide，2 ban, 3 rubbish') TINYINT(1) index"` // 0-1-2-3为正常
 	Top          int    `json:"top" xorm:"not null comment('0 normal, 1 top') TINYINT(1) index"`                      // 置顶
 	Describe     string `json:"describe" xorm:"TEXT"`
-	PreDescribe  string `json:"pre_describe" xorm:"TEXT"`                                                           // 预览内容，临时保存，当修改后调用发布接口，会刷新到Describe，并且记录进历史表
+	PreDescribe  string `json:"pre_describe" xorm:"TEXT"`                                                           // 预览内容，临时保存，当修改后调用发布接口，会刷新到Describe，每次这个字段刷新都会记录进历史表
 	PreFlush     int    `json:"pre_flush" xorm:"not null comment('1 flush') TINYINT(1)"`                            // 是否预览内容已经被刷新
 	CloseComment int    `json:"close_comment" xorm:"not null comment('0 close, 1 open, 2 direct open') TINYINT(1)"` // 关闭评论开关，默认关闭
-	Version      int    `json:"version"`                                                                            // 0表示什么都没发布                                                      // 发布了多少次版本
+	Version      int    `json:"version"`                                                                            // 0表示什么都没发布  发布了多少次版本
 	CreateTime   int64  `json:"create_time"`
 	UpdateTime   int64  `json:"update_time,omitempty"`
 	ImagePath    string `json:"image_path" xorm:"varchar(700)"`
 	Views        int    `json:"views"` // 被点击多少次，弱化
 	Password     string `json:"password,omitempty"`
-	Aa           string `json:"aa,omitempty"`
-	Ab           string `json:"ab,omitempty"`
-	Ac           string `json:"ac,omitempty"`
-	Ad           string `json:"ad,omitempty"`
+	SortNum      int    `json:"sort_num"`
 }
 
-var ContentSortName = []string{"=id", "-top", "-create_time", "-update_time", "-views", "=version", "+status", "=seo"}
+var ContentSortName = []string{"=id", "-user_id", "-top", `-sort_num`, "-create_time", "-update_time", "-views", "=version", "+status", "=seo"}
 
 // 内容历史表
 type ContentHistory struct {
@@ -44,6 +41,7 @@ type ContentHistory struct {
 	UserId     int    `json:"user_id" xorm:"bigint index"` // 内容所属的用户ID
 	NodeId     int    `json:"node_id" xorm:"bigint index"` // 内容所属的节点
 	Describe   string `json:"describe" xorm:"TEXT"`
+	Types      int    `json:"types" xorm:"not null comment('0 auto save, 1 publish, 3 cancel') TINYINT(1)"` // 0表示是自动刷新的，1表示发布，2表示是从历史版本恢复的
 	CreateTime int64  `json:"create_time"`
 }
 

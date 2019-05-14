@@ -69,6 +69,7 @@ func Peoples(c *gin.Context) {
 	session := config.FafaRdb.Client.NewSession()
 	defer session.Close()
 
+	// 找出激活的用户
 	session.Table(new(model.User)).Where("1=1").And("status=?", 1)
 
 	countSession := session.Clone()
@@ -137,6 +138,7 @@ type Node struct {
 	UserName      string `json:"user_name"`
 	SortNum       int    `json:"sort_num"`
 	Level         int    `json:"level"`
+	Status        int    `json:"status"`
 	ParentNodeId  int    `json:"parent_node_id"`
 	Son           []Node
 }
@@ -437,10 +439,8 @@ func UserInfo(c *gin.Context) {
 	p.WeChat = v.WeChat
 	p.WeiBo = v.WeiBo
 	p.Gender = v.Gender
-
 	resp.Flag = true
 	resp.Data = p
-
 }
 
 type UserCountRequest struct {
@@ -492,12 +492,6 @@ func UserCount(c *gin.Context) {
 	if !exist {
 		flog.Log.Errorf("UserCount err:%s", "user not found")
 		resp.Error = Error(UserNotFound, "")
-		return
-	}
-
-	if user.Status != 1 {
-		flog.Log.Errorf("UserCount err:%s", "not activate")
-		resp.Error = Error(DBError, "not activate")
 		return
 	}
 
@@ -711,13 +705,13 @@ func Content(c *gin.Context) {
 	exist, err := content.GetByRaw()
 	if err != nil {
 		flog.Log.Errorf("TakeContent err: %s", err.Error())
-		resp.Error = Error(DBError, "")
+		resp.Error = Error(DBError, err.Error())
 		return
 	}
 
 	if !exist {
 		flog.Log.Errorf("TakeContent err: %s", "content not found")
-		resp.Error = Error(DbNotFound, "content not found")
+		resp.Error = Error(ContentNotFound, "")
 		return
 	}
 
@@ -725,17 +719,17 @@ func Content(c *gin.Context) {
 
 	} else if content.Status == 2 {
 		flog.Log.Errorf("TakeContent err: %s", "content ban")
-		resp.Error = Error(DbNotFound, "content ban")
+		resp.Error = Error(ContentBanPermit, "")
 		return
 	} else {
 		flog.Log.Errorf("TakeContent err: %s", "content not found")
-		resp.Error = Error(DbNotFound, "content not found")
+		resp.Error = Error(ContentNotFound, "")
 		return
 	}
 
 	if content.Password != "" && content.Password != req.Password {
 		flog.Log.Errorf("TakeContent err: %s", "content password")
-		resp.Error = Error(DbNotFound, "content password")
+		resp.Error = Error(ContentPasswordWrong, "")
 		return
 	}
 
@@ -753,7 +747,6 @@ func Content(c *gin.Context) {
 	temp.CreateTime = GetSecond2DateTimes(cx.CreateTime)
 	temp.UpdateTime = GetSecond2DateTimes(cx.UpdateTime)
 	temp.ImagePath = cx.ImagePath
-
 	if cx.Password != "" {
 		temp.IsLock = true
 	}
@@ -764,5 +757,4 @@ func Content(c *gin.Context) {
 
 	resp.Flag = true
 	resp.Data = temp
-
 }

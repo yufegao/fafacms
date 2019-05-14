@@ -12,13 +12,13 @@ import (
 type CreateContentRequest struct {
 	Seo          string `json:"seo" validate:"omitempty,alphanumunicode,gt=3,lt=30"` // 内容应该有个好听的标志
 	Title        string `json:"title" validate:"required,lt=100"`                    // 必须有标题吧
-	Status       int    `json:"status" validate:"oneof=0 1"`                         // 隐藏内容
-	Top          int    `json:"top" validate:"oneof=0 1"`                            // 置顶
+	Status       int    `json:"status" validate:"oneof=0 1"`                         // 隐藏内容，1就是隐藏
+	Top          int    `json:"top" validate:"oneof=0 1"`                            // 置顶，1就是置顶
 	Describe     string `json:"describe" validate:"omitempty"`                       // 正文
 	ImagePath    string `json:"image_path" validate:"omitempty,lt=100"`              // 内容背景图
 	NodeId       int    `json:"node_id"`                                             // 内容所属节点，可以没有节点
 	Password     string `json:"password"`                                            // 如果非空表示需要密码
-	CloseComment int    `json:"close_comment" validate:"oneof=0 1 2"`                // 评论设置
+	CloseComment int    `json:"close_comment" validate:"oneof=0 1 2"`                // 评论设置，0关闭评论，1打开评论需要审核，2打开评论不需要审核
 }
 
 func CreateContent(c *gin.Context) {
@@ -44,7 +44,7 @@ func CreateContent(c *gin.Context) {
 	uu, err := GetUserSession(c)
 	if err != nil {
 		flog.Log.Errorf("CreateContent err: %s", err.Error())
-		resp.Error = Error(I500, "")
+		resp.Error = Error(GetUserSessionError, err.Error())
 		return
 	}
 

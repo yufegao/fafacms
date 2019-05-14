@@ -6,7 +6,6 @@ import (
 	"github.com/hunterhug/fafacms/core/config"
 	"github.com/hunterhug/fafacms/core/flog"
 	"github.com/hunterhug/fafacms/core/model"
-	"math"
 )
 
 type CreateNodeRequest struct {
@@ -53,7 +52,7 @@ func CreateNode(c *gin.Context) {
 		exist, err := n.CheckSeoValid()
 		if err != nil {
 			flog.Log.Errorf("CreateNode err: %s", err.Error())
-			resp.Error = Error(DBError, "")
+			resp.Error = Error(DBError, err.Error())
 			return
 		}
 		if exist {
@@ -70,7 +69,7 @@ func CreateNode(c *gin.Context) {
 		exist, err := n.CheckParentValid()
 		if err != nil {
 			flog.Log.Errorf("CreateNode err: %s", err.Error())
-			resp.Error = Error(DBError, "")
+			resp.Error = Error(DBError, err.Error())
 			return
 		}
 		if !exist {
@@ -462,7 +461,7 @@ func UpdateParentOfNode(c *gin.Context) {
 		exist, err := after.CheckParentValid()
 		if err != nil {
 			flog.Log.Errorf("UpdateParentOfNode err: %s", err.Error())
-			resp.Error = Error(DBError, "")
+			resp.Error = Error(DBError, err.Error())
 			return
 		}
 		if !exist {
@@ -606,15 +605,9 @@ func DeleteNode(c *gin.Context) {
 	resp.Flag = true
 }
 
-type TakeNodeRequest struct {
-	Id      int    `json:"id"`
-	Seo     string `json:"seo" validate:"omitempty,alphanumunicode,gt=3,lt=30"`
-	ListSon bool   `json:"list_son"`
-}
-
 func TakeNode(c *gin.Context) {
 	resp := new(Resp)
-	req := new(TakeNodeRequest)
+	req := new(NodeInfoRequest)
 	defer func() {
 		JSONL(c, 200, req, resp)
 	}()
@@ -624,70 +617,103 @@ func TakeNode(c *gin.Context) {
 		return
 	}
 
-	var validate = validator.New()
-	err := validate.Struct(req)
-	if err != nil {
-		flog.Log.Errorf("TakeNode err: %s", err.Error())
-		resp.Error = Error(ParasError, err.Error())
-		return
-	}
-
 	uu, err := GetUserSession(c)
 	if err != nil {
 		flog.Log.Errorf("TakeNode err: %s", err.Error())
 		resp.Error = Error(GetUserSessionError, err.Error())
 		return
 	}
-	n := new(model.ContentNode)
-	n.Id = req.Id
-	n.UserId = uu.Id
-	n.Seo = req.Seo
-	exist, err := n.Get()
+
+	session := config.FafaRdb.Client.NewSession()
+	defer session.Close()
+
+	session.Table(new(model.ContentNode)).Where("1=1").And("user_id=?", uu.Id)
+
+	isOne := false
+	if req.Id != 0 {
+		isOne = true
+		session.And("id=?", req.Id)
+	}
+
+	if req.Seo != "" {
+		isOne = true
+		session.And("seo=?", req.Seo)
+	}
+
+	if !isOne {
+		flog.Log.Errorf("Node err:%s", "id or seo empty")
+		resp.Error = Error(ParasError, "id or seo empty")
+		return
+	}
+
+	v := new(model.ContentNode)
+	exist, err := session.Get(v)
 	if err != nil {
-		flog.Log.Errorf("TakeNode err: %s", err.Error())
+		flog.Log.Errorf("Node err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
 	}
 
 	if !exist {
-		flog.Log.Errorf("TakeNode err: %s", "node not found")
-		resp.Error = Error(ContentNodeNotFound, "")
+		flog.Log.Errorf("Node err:%s", "content node not found")
+		resp.Error = Error(ContentNodeNotFound, err.Error())
 		return
 	}
 
-	resp.Data = n
+	f := Node{}
+	f.Id = v.Id
+	f.Seo = v.Seo
+	f.Describe = v.Describe
+	f.ImagePath = v.ImagePath
+	f.Name = v.Name
+	if v.UpdateTime > 0 {
+		f.UpdateTime = GetSecond2DateTimes(v.UpdateTime)
+		f.UpdateTimeInt = v.UpdateTime
+	}
+	f.CreateTime = GetSecond2DateTimes(v.CreateTime)
+	f.CreateTimeInt = v.CreateTime
+	f.SortNum = v.SortNum
+	f.UserName = v.UserName
+	f.UserId = v.UserId
+	f.Level = v.Level
+	f.ParentNodeId = v.ParentNodeId
+	f.Status = v.Status
+
+	// 是顶层且需要列出儿子
+	if f.Level == 0 && req.ListSon {
+		ns := make([]model.ContentNode, 0)
+		err = config.FafaRdb.Client.Where("parent_node_id=?", f.Id).Find(ns)
+		if err != nil {
+			flog.Log.Errorf("Node err:%s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+
+		for _, vv := range ns {
+			ff := Node{}
+			ff.Id = vv.Id
+			ff.Seo = vv.Seo
+			ff.Describe = vv.Describe
+			ff.ImagePath = vv.ImagePath
+			ff.Name = vv.Name
+			if vv.UpdateTime > 0 {
+				ff.UpdateTime = GetSecond2DateTimes(vv.UpdateTime)
+				ff.UpdateTimeInt = vv.UpdateTime
+			}
+			ff.CreateTime = GetSecond2DateTimes(vv.CreateTime)
+			ff.CreateTimeInt = vv.CreateTime
+			ff.SortNum = vv.SortNum
+			ff.UserName = vv.UserName
+			ff.UserId = vv.UserId
+			ff.Level = vv.Level
+			ff.ParentNodeId = vv.ParentNodeId
+			ff.Status = vv.Status
+			f.Son = append(f.Son, ff)
+		}
+	}
 	resp.Flag = true
-}
+	resp.Data = f
 
-type ListNodeRequest struct {
-	Id           int    `json:"id"`
-	Seo          string `json:"seo" validate:"omitempty,alphanumunicode,gt=3,lt=30"`
-	ParentNodeId int    `json:"parent_node_id"`
-
-	Level  int `json:"level" validate:"oneof=-1 0 1"`
-	UserId int `json:"user_id"`
-
-	Sort []string `json:"sort" validate:"dive,lt=100"`
-	PageHelp
-}
-
-//
-//type NodesRequest struct {
-//	Id       int      `json:"id"`
-//	UserId   int      `json:"user_id"`
-//	UserName string   `json:"user_name"`
-//	Seo      string   `json:"seo"`
-//	Status          int      `json:"status" validate:"oneof=-1 0 1"`
-//	CreateTimeBegin int64    `json:"create_time_begin"`
-//	CreateTimeEnd   int64    `json:"create_time_end"`
-//	UpdateTimeBegin int64    `json:"update_time_begin"`
-//	UpdateTimeEnd   int64    `json:"update_time_end"`
-//	Sort     []string `json:"sort" validate:"dive,lt=100"`
-//}
-
-type ListNodeResponse struct {
-	Nodes []model.ContentNode `json:"nodes"`
-	PageHelp
 }
 
 func ListNode(c *gin.Context) {
@@ -708,11 +734,12 @@ func ListNodeAdmin(c *gin.Context) {
 	ListNodeHelper(c, 0)
 }
 
+// 可以查别人的节点
 func ListNodeHelper(c *gin.Context, userId int) {
 	resp := new(Resp)
 
-	respResult := new(ListNodeResponse)
-	req := new(ListNodeRequest)
+	respResult := new(NodesResponse)
+	req := new(NodesInfoRequest)
 	defer func() {
 		JSONL(c, 200, req, resp)
 	}()
@@ -722,98 +749,99 @@ func ListNodeHelper(c *gin.Context, userId int) {
 		return
 	}
 
-	var validate = validator.New()
-	err := validate.Struct(req)
-	if err != nil {
-		flog.Log.Errorf("ListNode err: %s", err.Error())
-		resp.Error = Error(ParasError, err.Error())
+	if userId != 0 {
+		req.UserId = userId
+		req.UserName = ""
+	}
+
+	if req.UserId == 0 && req.UserName == "" {
+		flog.Log.Errorf("ListNode err:%s", "")
+		resp.Error = Error(ParasError, "where is empty")
 		return
 	}
 
-	// new query list session
 	session := config.FafaRdb.Client.NewSession()
 	defer session.Close()
 
-	// group list where prepare
 	session.Table(new(model.ContentNode)).Where("1=1")
 
-	// query prepare
-	if req.Id != 0 {
-		session.And("id=?", req.Id)
+	if req.UserId != 0 {
+		session.And("user_id=?", req.UserId)
 	}
 
-	if userId != 0 {
-		session.And("user_id=?", userId)
-	} else {
-		if req.UserId != 0 {
-			session.And("user_id=?", req.UserId)
-		}
+	if req.UserName != "" {
+		session.And("user_name=?", req.UserName)
 	}
 
-	if req.Status != -1 {
-		session.And("status=?", req.Status)
-	}
-
-	if req.Seo != "" {
-		session.And("seo=?", req.Seo)
-	}
-
-	if req.Level != -1 {
-		session.And("level=?", req.Level)
-	}
-
-	if req.ParentNodeId != -1 {
-		session.And("parent_node_id=?", req.ParentNodeId)
-	}
-	if req.CreateTimeBegin > 0 {
-		session.And("create_time>=?", req.CreateTimeBegin)
-	}
-
-	if req.CreateTimeEnd > 0 {
-		session.And("create_time<?", req.CreateTimeBegin)
-	}
-
-	if req.UpdateTimeBegin > 0 {
-		session.And("update_time>=?", req.UpdateTimeBegin)
-	}
-
-	if req.UpdateTimeEnd > 0 {
-		session.And("update_time<?", req.UpdateTimeEnd)
-	}
-
-	// count num
-	countSession := session.Clone()
-	defer countSession.Close()
-	total, err := countSession.Count()
+	nodes := make([]model.ContentNode, 0)
+	Build(session, req.Sort, model.ContentNodeSortName)
+	err := session.Find(&nodes)
 	if err != nil {
-
 		flog.Log.Errorf("ListNode err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
 	}
 
-	// if count>0 start list
-	nodes := make([]model.ContentNode, 0)
-	p := &req.PageHelp
-	if total == 0 {
-	} else {
-		// sql build
-		p.build(session, req.Sort, model.ContentNodeSortName)
-		// do query
-		err = session.Find(&nodes)
-		if err != nil {
-			flog.Log.Errorf("ListNode err:%s", err.Error())
-			resp.Error = Error(DBError, err.Error())
-			return
+	father := make([]model.ContentNode, 0)
+	son := make([]model.ContentNode, 0)
+	for _, v := range nodes {
+		if v.Level == 0 {
+			father = append(father, v)
+		} else {
+			son = append(son, v)
 		}
 	}
 
-	// result
-	respResult.Nodes = nodes
-	p.Pages = int(math.Ceil(float64(total) / float64(p.Limit)))
-	respResult.PageHelp = *p
-	resp.Data = respResult
+	n := make([]Node, 0)
+	for _, v := range father {
+		f := Node{}
+		f.Id = v.Id
+		f.Seo = v.Seo
+		f.Describe = v.Describe
+		f.ImagePath = v.ImagePath
+		f.Name = v.Name
+		if v.UpdateTime > 0 {
+			f.UpdateTime = GetSecond2DateTimes(v.UpdateTime)
+			f.UpdateTimeInt = v.UpdateTime
+		}
+		f.CreateTime = GetSecond2DateTimes(v.CreateTime)
+		f.CreateTimeInt = v.CreateTime
+		f.SortNum = v.SortNum
+		f.UserName = v.UserName
+		f.UserId = v.UserId
+		f.Level = v.Level
+		f.ParentNodeId = v.ParentNodeId
+		f.Status = v.Status
+		for _, vv := range son {
+			if vv.ParentNodeId == f.Id {
+				s := Node{}
+				s.Id = vv.Id
+				s.Seo = vv.Seo
+				s.Describe = vv.Describe
+				s.ImagePath = vv.ImagePath
+				s.Name = vv.Name
+				if vv.UpdateTime > 0 {
+					s.UpdateTimeInt = vv.UpdateTime
+					s.UpdateTime = GetSecond2DateTimes(vv.UpdateTime)
+				}
+				s.CreateTime = GetSecond2DateTimes(vv.CreateTime)
+				s.CreateTimeInt = vv.CreateTime
+				s.SortNum = vv.SortNum
+				s.UserId = vv.UserId
+				s.UserName = vv.UserName
+				s.Level = vv.Level
+				s.ParentNodeId = vv.ParentNodeId
+				s.Status = vv.Status
+				f.Son = append(f.Son, s)
+			}
+		}
+
+		n = append(n, f)
+	}
+
+	respResult.Nodes = n
 	resp.Flag = true
+	resp.Data = respResult
 }
 
 // 将Y放在X节点的上面

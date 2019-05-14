@@ -29,7 +29,7 @@ var (
 		"/u/nodes": {"List User Nodes", controllers.NodesInfo, GP, false},    // 列出某用户下的节点
 		"/u/node":  {"List User Nodes One", controllers.NodeInfo, GP, false}, // 查找某用户下的某一个节点
 
-		// todo
+		// review  2019/05/14
 		"/p":         {"List Peoples", controllers.Peoples, GP, false},         // 列出用户
 		"/u/info":    {"List User Info", controllers.UserInfo, GP, false},      // 获取某用户信息
 		"/u/count":   {"Count User Content", controllers.UserCount, GP, false}, // 统计某用户文章情况（某用户可留空）
@@ -94,13 +94,13 @@ var (
 		"/node/sort":          {"Sort Node Self", controllers.SortNode, POST, false},                    // 拖曳超级函数
 		"/node/delete":        {"Delete Node Self", controllers.DeleteNode, POST, false},
 
-
-		// 儿子也要拿出来 todo
-		"/node/take":       {"Take Node Self", controllers.TakeNode, GP, false},
+		// 已经Review 2019/5/14 chen
+		"/node/take":       {"Take Node Self", controllers.TakeNode, GP, false}, //  和前端的那部分一毛一样
 		"/node/list":       {"List Node Self", controllers.ListNode, GP, false},
 		"/node/admin/list": {"List Node All", controllers.ListNodeAdmin, GP, true}, // 管理员查看其他用户节点
 
 		// 内容操作
+		// todo a lot of thing
 		"/content/create":             {"Create Content Self", controllers.CreateContent, POST, false},                     // 创建文章内容
 		"/content/update":             {"Update Content Self", controllers.UpdateContent, POST, false},                     // 更新内容，更新会写入预览
 		"/content/publish":            {"Publish Content Self", controllers.PublishContent, POST, false},                   // 将预览刷进另外一个字段

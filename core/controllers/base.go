@@ -42,18 +42,19 @@ const (
 	ContentNodeSortConflict           = 101003
 	ContentNodeHasChildren            = 101004
 	ContentNodeHasContentCanNotDelete = 101005
-
-	DBError        = 200001
-	EmailSendError = 300000
+	ContentNotFound                   = 110000
+	ContentPasswordWrong              = 110001
+	ContentBanPermit                  = 110002
+	DBError                           = 200001
+	EmailSendError                    = 300000
 
 	LazyError = 11111
 
 	DbNotFound = 10007
 	DbRepeat   = 10008
 	DbHookIn   = 10009
-
-	I500    = 99998
-	Unknown = 99999
+	I500       = 99998
+	Unknown    = 99999
 )
 
 // error code message map
@@ -93,12 +94,14 @@ var ErrorMap = map[int]string{
 	ContentNodeSortConflict:           "content node sort conflict",
 	ContentNodeHasChildren:            "content node has children",
 	ContentNodeHasContentCanNotDelete: "content node has content can not delete",
-
-	DbNotFound: "db not found",
-	DbRepeat:   "db repeat data",
-	DbHookIn:   "db hook in",
-	I500:       "500 error",
-	LazyError:  "db not found or err",
+	ContentNotFound:                   "content not found",
+	ContentBanPermit:                  "content ban permit",
+	ContentPasswordWrong:              "content password wrong",
+	DbNotFound:                        "db not found",
+	DbRepeat:                          "db repeat data",
+	DbHookIn:                          "db hook in",
+	I500:                              "500 error",
+	LazyError:                         "db not found or err",
 }
 
 // common response

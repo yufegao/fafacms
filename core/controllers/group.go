@@ -140,7 +140,7 @@ func UpdateGroup(c *gin.Context) {
 		ok, err := p.Exist()
 		if err != nil {
 			flog.Log.Errorf("UpdateGroup err:%s", err.Error())
-			resp.Error = Error(DBError, "")
+			resp.Error = Error(DBError, err.Error())
 			return
 		}
 
