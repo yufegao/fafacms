@@ -23,14 +23,14 @@ var (
 	HomeRouter = map[string]HttpHandle{
 		// 前端路由
 		// 需要考虑更友好的展示，反盗链，反爬虫等
-		"/":  {"Home", controllers.Home, GP, false},
-		"/p": {"List Peoples", controllers.Peoples, GP, false}, // 列出用户
+		"/": {"Home", controllers.Home, GP, false},
 
 		// review  2019/05/13
 		"/u/nodes": {"List User Nodes", controllers.NodesInfo, GP, false},    // 列出某用户下的节点
 		"/u/node":  {"List User Nodes One", controllers.NodeInfo, GP, false}, // 查找某用户下的某一个节点
 
 		// todo
+		"/p":         {"List Peoples", controllers.Peoples, GP, false},         // 列出用户
 		"/u/info":    {"List User Info", controllers.UserInfo, GP, false},      // 获取某用户信息
 		"/u/count":   {"Count User Content", controllers.UserCount, GP, false}, // 统计某用户文章情况（某用户可留空）
 		"/u/content": {"List User Content", controllers.Contents, GP, false},   // 列出某用户下文章
@@ -91,7 +91,7 @@ var (
 		"/node/update/info":   {"Update Node Self Info", controllers.UpdateInfoOfNode, POST, false},
 		"/node/update/status": {"Update Node Self Status", controllers.UpdateStatusOfNode, POST, false},
 		"/node/update/parent": {"Update Node Self Parent", controllers.UpdateParentOfNode, POST, false}, // 这个接口不如下面这个全功能的接口
-		"/node/sort":          {"Sort Node Self", controllers.SortNode, POST, false},
+		"/node/sort":          {"Sort Node Self", controllers.SortNode, POST, false},                    // 拖曳超级函数
 		"/node/delete":        {"Delete Node Self", controllers.DeleteNode, POST, false},
 
 

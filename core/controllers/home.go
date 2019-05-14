@@ -147,132 +147,11 @@ type NodesInfoRequest struct {
 	Sort     []string `json:"sort" validate:"dive,lt=100"`
 }
 
-type NodeInfoRequest struct {
-	Id       int    `json:"id"`
-	UserId   int    `json:"user_id"`
-	UserName string `json:"user_name"`
-	Seo      string `json:"seo"`
-}
-
 type NodesResponse struct {
 	Nodes []Node `json:"nodes"`
 }
 
-func NodeInfo(c *gin.Context) {
-	resp := new(Resp)
-
-	defer func() {
-		JSON(c, 200, resp)
-	}()
-
-	req := new(NodeInfoRequest)
-	if errResp := ParseJSON(c, req); errResp != nil {
-		resp.Error = errResp
-		return
-	}
-
-	if req.UserId == 0 && req.UserName == "" {
-		flog.Log.Errorf("Node err:%s", "")
-		resp.Error = Error(ParasError, "where is empty")
-		return
-	}
-
-	session := config.FafaRdb.Client.NewSession()
-	defer session.Close()
-
-	session.Table(new(model.ContentNode)).Where("1=1").And("status=?", 0)
-
-	if req.UserId != 0 {
-		session.And("user_id=?", req.UserId)
-	}
-
-	if req.UserName != "" {
-		session.And("user_name=?", req.UserName)
-	}
-
-	isOne := false
-	if req.Id != 0 {
-		isOne = true
-		session.And("id=?", req.Id)
-	}
-
-	if req.Seo != "" {
-		isOne = true
-		session.And("seo=?", req.Seo)
-	}
-
-	if !isOne {
-		flog.Log.Errorf("Node err:%s", "id or seo empty")
-		resp.Error = Error(ParasError, "id or seo empty")
-		return
-	}
-
-	v := new(model.ContentNode)
-	exist, err := session.Get(v)
-	if err != nil {
-		flog.Log.Errorf("Node err:%s", err.Error())
-		resp.Error = Error(DBError, err.Error())
-		return
-	}
-
-	if !exist {
-		flog.Log.Errorf("Node err:%s", "content node not found")
-		resp.Error = Error(ContentNodeNotFound, err.Error())
-		return
-	}
-
-	f := Node{}
-	f.Id = v.Id
-	f.Seo = v.Seo
-	f.Describe = v.Describe
-	f.ImagePath = v.ImagePath
-	f.Name = v.Name
-	if v.UpdateTime > 0 {
-		f.UpdateTime = GetSecond2DateTimes(v.UpdateTime)
-		f.UpdateTimeInt = v.UpdateTime
-	}
-	f.CreateTime = GetSecond2DateTimes(v.CreateTime)
-	f.CreateTimeInt = v.CreateTime
-	f.SortNum = v.SortNum
-	f.UserName = v.UserName
-	f.UserId = v.UserId
-	f.Level = v.Level
-	f.ParentNodeId = v.ParentNodeId
-
-	if f.Level == 0 {
-		ns := make([]model.ContentNode, 0)
-		err = config.FafaRdb.Client.Where("parent_node_id=?", f.Id).Find(ns)
-		if err != nil {
-			flog.Log.Errorf("Node err:%s", err.Error())
-			resp.Error = Error(DBError, err.Error())
-			return
-		}
-
-		for _, vv := range ns {
-			ff := Node{}
-			ff.Id = vv.Id
-			ff.Seo = vv.Seo
-			ff.Describe = vv.Describe
-			ff.ImagePath = vv.ImagePath
-			ff.Name = vv.Name
-			if vv.UpdateTime > 0 {
-				ff.UpdateTime = GetSecond2DateTimes(vv.UpdateTime)
-				ff.UpdateTimeInt = vv.UpdateTime
-			}
-			ff.CreateTime = GetSecond2DateTimes(vv.CreateTime)
-			ff.CreateTimeInt = vv.CreateTime
-			ff.SortNum = vv.SortNum
-			ff.UserName = vv.UserName
-			ff.UserId = vv.UserId
-			ff.Level = vv.Level
-			ff.ParentNodeId = vv.ParentNodeId
-			f.Son = append(f.Son, ff)
-		}
-	}
-	resp.Flag = true
-	resp.Data = f
-}
-
+// 列出全部节点
 func NodesInfo(c *gin.Context) {
 	resp := new(Resp)
 
@@ -375,6 +254,131 @@ func NodesInfo(c *gin.Context) {
 	resp.Data = respResult
 }
 
+type NodeInfoRequest struct {
+	Id       int    `json:"id"`
+	UserId   int    `json:"user_id"`
+	UserName string `json:"user_name"`
+	Seo      string `json:"seo"`
+	ListSon  bool   `json:"list_son"`
+}
+
+// 列出一个节点以及他的儿子们
+func NodeInfo(c *gin.Context) {
+	resp := new(Resp)
+
+	defer func() {
+		JSON(c, 200, resp)
+	}()
+
+	req := new(NodeInfoRequest)
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	if req.UserId == 0 && req.UserName == "" {
+		flog.Log.Errorf("Node err:%s", "")
+		resp.Error = Error(ParasError, "where is empty")
+		return
+	}
+
+	session := config.FafaRdb.Client.NewSession()
+	defer session.Close()
+
+	session.Table(new(model.ContentNode)).Where("1=1").And("status=?", 0)
+
+	if req.UserId != 0 {
+		session.And("user_id=?", req.UserId)
+	}
+
+	if req.UserName != "" {
+		session.And("user_name=?", req.UserName)
+	}
+
+	isOne := false
+	if req.Id != 0 {
+		isOne = true
+		session.And("id=?", req.Id)
+	}
+
+	if req.Seo != "" {
+		isOne = true
+		session.And("seo=?", req.Seo)
+	}
+
+	if !isOne {
+		flog.Log.Errorf("Node err:%s", "id or seo empty")
+		resp.Error = Error(ParasError, "id or seo empty")
+		return
+	}
+
+	v := new(model.ContentNode)
+	exist, err := session.Get(v)
+	if err != nil {
+		flog.Log.Errorf("Node err:%s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	if !exist {
+		flog.Log.Errorf("Node err:%s", "content node not found")
+		resp.Error = Error(ContentNodeNotFound, err.Error())
+		return
+	}
+
+	f := Node{}
+	f.Id = v.Id
+	f.Seo = v.Seo
+	f.Describe = v.Describe
+	f.ImagePath = v.ImagePath
+	f.Name = v.Name
+	if v.UpdateTime > 0 {
+		f.UpdateTime = GetSecond2DateTimes(v.UpdateTime)
+		f.UpdateTimeInt = v.UpdateTime
+	}
+	f.CreateTime = GetSecond2DateTimes(v.CreateTime)
+	f.CreateTimeInt = v.CreateTime
+	f.SortNum = v.SortNum
+	f.UserName = v.UserName
+	f.UserId = v.UserId
+	f.Level = v.Level
+	f.ParentNodeId = v.ParentNodeId
+
+	// 是顶层且需要列出儿子
+	if f.Level == 0 && req.ListSon {
+		ns := make([]model.ContentNode, 0)
+		err = config.FafaRdb.Client.Where("parent_node_id=?", f.Id).Find(ns)
+		if err != nil {
+			flog.Log.Errorf("Node err:%s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+
+		for _, vv := range ns {
+			ff := Node{}
+			ff.Id = vv.Id
+			ff.Seo = vv.Seo
+			ff.Describe = vv.Describe
+			ff.ImagePath = vv.ImagePath
+			ff.Name = vv.Name
+			if vv.UpdateTime > 0 {
+				ff.UpdateTime = GetSecond2DateTimes(vv.UpdateTime)
+				ff.UpdateTimeInt = vv.UpdateTime
+			}
+			ff.CreateTime = GetSecond2DateTimes(vv.CreateTime)
+			ff.CreateTimeInt = vv.CreateTime
+			ff.SortNum = vv.SortNum
+			ff.UserName = vv.UserName
+			ff.UserId = vv.UserId
+			ff.Level = vv.Level
+			ff.ParentNodeId = vv.ParentNodeId
+			f.Son = append(f.Son, ff)
+		}
+	}
+	resp.Flag = true
+	resp.Data = f
+}
+
 type UserInfoRequest struct {
 	Id   int    `json:"id"`
 	Name string `json:"name"`
@@ -409,7 +413,7 @@ func UserInfo(c *gin.Context) {
 	}
 
 	if !exist {
-		flog.Log.Errorf("UserInfo err:%s", "Not exist")
+		flog.Log.Errorf("UserInfo err:%s", "user  not found")
 		resp.Error = Error(UserNotFound, "")
 		return
 	}

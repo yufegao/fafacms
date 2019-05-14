@@ -32,7 +32,9 @@ func (n *ContentNode) CountNodeNum() (int, error) {
 	if n.UserId == 0 {
 		return 0, errors.New("where is empty")
 	}
-	num, err := config.FafaRdb.Client.Table(n).Where("user_id=?", n.UserId).Count()
+
+	// 创建时，要在同一层排序最大
+	num, err := config.FafaRdb.Client.Table(n).Where("user_id=?", n.UserId).Where("parent_node_id=?", n.ParentNodeId).Count()
 	return int(num), err
 }
 
@@ -176,14 +178,47 @@ func (n *ContentNode) UpdateStatus() error {
 }
 
 // 更新节点的父亲
-func (n *ContentNode) UpdateParent() error {
+func (n *ContentNode) UpdateParent(beforeParentNode int) error {
 	if n.UserId == 0 || n.Id == 0 {
 		return errors.New("where is empty")
 	}
 
 	session := config.FafaRdb.Client.NewSession()
 	defer session.Close()
+	err := session.Begin()
+	if err != nil {
+		return err
+	}
+
+	// 同一层的先减一，假装删除这一个节点
+	_, err = session.Exec("update fafacms_content_node SET sort_num=sort_num-1 where sort_num > ? and user_id = ? and parent_node_id = ?", n.SortNum, n.UserId, beforeParentNode)
+	if err != nil {
+		session.Rollback()
+		return err
+	}
+
+	// 更新节点时，排序在该层最大
+	c, err := session.Table(n).Where("user_id=?", n.UserId).And("parent_node_id", n.ParentNodeId).Count()
+	if err != nil {
+		session.Rollback()
+		return err
+	}
+
+	n.SortNum = int(c)
 	n.UpdateTime = time.Now().Unix()
-	_, err := session.Where("id=?", n.Id).And("user_id=?", n.UserId).Cols("level", "update_time", "parent_node_id").Update(n)
-	return err
+
+	// 更新节点
+	// 事务怕本ORM混淆，所以直接使用原生
+	// 每次更改节点，他都会成为这一层最靓丽排得最前面的仔
+	_, err = session.Exec("update fafacms_content_node SET sort_num=?, update_time=?, level=?, parent_node_id=? where id = ? and user_id = ?", n.SortNum, n.UpdateTime, n.Level, n.ParentNodeId, n.Id, n.UserId)
+	if err != nil {
+		session.Rollback()
+		return err
+	}
+
+	err = session.Commit()
+	if err != nil {
+		session.Rollback()
+		return err
+	}
 }

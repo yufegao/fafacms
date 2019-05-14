@@ -411,6 +411,7 @@ func UpdateParentOfNode(c *gin.Context) {
 		resp.Error = Error(DBError, err.Error())
 		return
 	}
+
 	if !exist {
 		// 不存在节点，报错
 		flog.Log.Errorf("UpdateParentOfNode err: %s", "content node not found")
@@ -418,11 +419,30 @@ func UpdateParentOfNode(c *gin.Context) {
 		return
 	}
 
+	// 有儿子的节点不能成为儿子，毕竟只有两层
+	childNum, err := n.CheckChildrenNum()
+	if err != nil {
+		flog.Log.Errorf("UpdateParentOfNode err: %s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	if childNum > 0 {
+		flog.Log.Errorf("UpdateParentOfNode err: %s", "has child")
+		resp.Error = Error(ContentNodeHasChildren, "has child")
+		return
+	}
+
+	beforeParentNode := n.ParentNodeId
+
 	after := new(model.ContentNode)
 	after.UserId = n.UserId
 	after.Id = n.Id
+	after.SortNum = n.SortNum
 
+	// 成为根节点
 	if req.ToBeRoot {
+		// 已经是了
 		if n.ParentNodeId == 0 {
 			resp.Flag = true
 			return
@@ -452,11 +472,10 @@ func UpdateParentOfNode(c *gin.Context) {
 			return
 		}
 		after.Level = 1
-
 	}
 
 	// 更新
-	err = after.UpdateParent()
+	err = after.UpdateParent(beforeParentNode)
 	if err != nil {
 		flog.Log.Errorf("UpdateParentOfNode err:%s", err.Error())
 		resp.Error = Error(DBError, err.Error())
@@ -469,6 +488,8 @@ type DeleteNodeRequest struct {
 	Id int `json:"id" validate:"required"`
 }
 
+// 删除节点
+// 删除的时候，后面的节点排序值要依次顶上
 func DeleteNode(c *gin.Context) {
 	resp := new(Resp)
 	req := new(DeleteNodeRequest)
@@ -557,7 +578,8 @@ func DeleteNode(c *gin.Context) {
 		return
 	}
 
-	_, err = session.Exec("update fafacms_content_node SET sort_num=sort_num-1 where sort_num > ? and user_id = ?", n.SortNum, n.UserId)
+	// 同一层的大于删除节点排序的节点-1 ,依次顶上
+	_, err = session.Exec("update fafacms_content_node SET sort_num=sort_num-1 where sort_num > ? and user_id = ? and parent_node_id = ?", n.SortNum, n.UserId, n.ParentNodeId)
 	if err != nil {
 		session.Rollback()
 		flog.Log.Errorf("DeleteNode err:%s", err.Error())
@@ -565,6 +587,7 @@ func DeleteNode(c *gin.Context) {
 		return
 	}
 
+	// 可以删除了
 	_, err = session.Where("id=?", n.Id).Delete(new(model.ContentNode))
 	if err != nil {
 		session.Rollback()
@@ -584,8 +607,9 @@ func DeleteNode(c *gin.Context) {
 }
 
 type TakeNodeRequest struct {
-	Id  int    `json:"id"`
-	Seo string `json:"seo" validate:"omitempty,alphanumunicode,gt=3,lt=30"`
+	Id      int    `json:"id"`
+	Seo     string `json:"seo" validate:"omitempty,alphanumunicode,gt=3,lt=30"`
+	ListSon bool   `json:"list_son"`
 }
 
 func TakeNode(c *gin.Context) {
@@ -636,14 +660,14 @@ func TakeNode(c *gin.Context) {
 }
 
 type ListNodeRequest struct {
-	Id              int      `json:"id"`
-	Seo             string   `json:"seo" validate:"omitempty,alphanumunicode,gt=3,lt=30"`
-	ParentNodeId    int      `json:"parent_node_id"`
+	Id           int    `json:"id"`
+	Seo          string `json:"seo" validate:"omitempty,alphanumunicode,gt=3,lt=30"`
+	ParentNodeId int    `json:"parent_node_id"`
 
-	Level           int      `json:"level" validate:"oneof=-1 0 1"`
-	UserId          int      `json:"user_id"`
+	Level  int `json:"level" validate:"oneof=-1 0 1"`
+	UserId int `json:"user_id"`
 
-	Sort            []string `json:"sort" validate:"dive,lt=100"`
+	Sort []string `json:"sort" validate:"dive,lt=100"`
 	PageHelp
 }
 
@@ -660,7 +684,6 @@ type ListNodeRequest struct {
 //	UpdateTimeEnd   int64    `json:"update_time_end"`
 //	Sort     []string `json:"sort" validate:"dive,lt=100"`
 //}
-
 
 type ListNodeResponse struct {
 	Nodes []model.ContentNode `json:"nodes"`
@@ -793,16 +816,14 @@ func ListNodeHelper(c *gin.Context, userId int) {
 	resp.Flag = true
 }
 
-// x->y
-// x<y (x+1,y)-> -1
-// x>y (y,x-1)-> +1
+// 将Y放在X节点的上面
+// 所以想把一个节点拖到父节点的最底层是做不到的，需要拖两次
 type SortNodeRequest struct {
-	XID int `json:"xid"`
-	YID int `json:"yid"`
-	x   int `json:"x"`
-	y   int `json:"y"`
+	XID int `json:"xid" validate:"required"`
+	YID int `json:"yid" validate:"required"`
 }
 
+//  节点
 //  拖曳排序超级函数
 func SortNode(c *gin.Context) {
 	resp := new(Resp)
@@ -821,6 +842,12 @@ func SortNode(c *gin.Context) {
 	if err != nil {
 		flog.Log.Errorf("SortNode err: %s", err.Error())
 		resp.Error = Error(ParasError, err.Error())
+		return
+	}
+
+	if req.XID == req.YID {
+		flog.Log.Errorf("SortNode err: %s", "xid=yid not right")
+		resp.Error = Error(ParasError, "xid=yid not right")
 		return
 	}
 
@@ -862,14 +889,13 @@ func SortNode(c *gin.Context) {
 		resp.Error = Error(ContentNodeNotFound, "y node not found")
 		return
 	}
+
+	// x是y的爸爸了，怎么可以和儿子做兄弟
 	if y.ParentNodeId == x.Id {
 		flog.Log.Errorf("SortNode err: %s", "can not move node to be his child's brother")
 		resp.Error = Error(ContentNodeSortConflict, "can not move node to be his child's brother")
 		return
 	}
-
-	req.x = x.SortNum
-	req.y = y.SortNum
 
 	children, err := x.CheckChildrenNum()
 	if err != nil {
@@ -878,90 +904,62 @@ func SortNode(c *gin.Context) {
 		return
 	}
 
+	// 当y是儿子节点，但x想当y兄弟，然而x已经有一堆儿子了，当不了兄弟
 	if y.Level == 1 && children > 0 {
 		flog.Log.Errorf("SortNode err: %s", "x has child can not move to be other's child's brother")
 		resp.Error = Error(ContentNodeSortConflict, "x has child can not move to be other's child's brother")
 		return
 	}
 
-	// x->y
-	// x<y (x+1,y)-> -1
-	// x>y (y,x-1)-> +1
-	if req.x < req.y {
-		session := config.FafaRdb.Client.NewSession()
-		defer session.Close()
+	session := config.FafaRdb.Client.NewSession()
+	defer session.Close()
 
-		err = session.Begin()
-		if err != nil {
-			flog.Log.Errorf("SortNode err: %s", err.Error())
-			resp.Error = Error(DBError, err.Error())
-			return
-		}
-
-		_, err = session.Exec("update fafacms_content_node SET sort_num=sort_num-1 where sort_num > ? and sort_num <= ? and user_id = ?", req.x, req.y, uu.Id)
-		if err != nil {
-			session.Rollback()
-			flog.Log.Errorf("SortNode err: %s", err.Error())
-			resp.Error = Error(DBError, err.Error())
-			return
-		}
-
-		_, err = session.Exec("update fafacms_content_node SET sort_num=?,level=?,parent_node_id=? where id = ?", req.y, y.Level, y.ParentNodeId, x.Id)
-		if err != nil {
-			session.Rollback()
-			flog.Log.Errorf("SortNode err: %s", err.Error())
-			resp.Error = Error(DBError, err.Error())
-			return
-		}
-
-		err = session.Commit()
-		if err != nil {
-			session.Rollback()
-			flog.Log.Errorf("SortNode err: %s", err.Error())
-			resp.Error = Error(DBError, err.Error())
-			return
-		}
+	err = session.Begin()
+	if err != nil {
+		flog.Log.Errorf("SortNode err: %s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
 	}
 
-	// x->y
-	// x<y (x+1,y)-> -1
-	// x>y (y,x-1)-> +1
-	if req.x > req.y {
-		session := config.FafaRdb.Client.NewSession()
-		defer session.Close()
-
-		err = session.Begin()
-		if err != nil {
-			flog.Log.Errorf("SortNode err: %s", err.Error())
-			resp.Error = Error(DBError, err.Error())
-			return
-		}
-
-		_, err = session.Exec("update fafacms_content_node SET sort_num=sort_num+1 where sort_num < ? and sort_num >= ? and user_id = ?", req.x, req.y, uu.Id)
-		if err != nil {
-			session.Rollback()
-			flog.Log.Errorf("SortNode err: %s", err.Error())
-			resp.Error = Error(DBError, err.Error())
-			return
-		}
-
-		_, err = session.Exec("update fafacms_content_node SET sort_num=?,level=?,parent_node_id=? where id = ?", req.x, y.Level, y.ParentNodeId, x.Id)
-		if err != nil {
-			session.Rollback()
-			flog.Log.Errorf("SortNode err: %s", err.Error())
-			resp.Error = Error(DBError, err.Error())
-			return
-		}
-
-		err = session.Commit()
-		if err != nil {
-			session.Rollback()
-			flog.Log.Errorf("SortNode err: %s", err.Error())
-			resp.Error = Error(DBError, err.Error())
-			return
-		}
+	// 先把x假装删掉，比x大的都-1，依次顶上x的位置
+	_, err = session.Exec("update fafacms_content_node SET sort_num=sort_num-1 where sort_num > ? and user_id = ? and parent_node_id = ?", x.SortNum, uu.Id, x.ParentNodeId)
+	if err != nil {
+		session.Rollback()
+		flog.Log.Errorf("SortNode err: %s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
 	}
 
+	// 把大于y排序的节点都+1，腾出位置给x
+	_, err = session.Exec("update fafacms_content_node SET sort_num=sort_num+1 where sort_num > ? and user_id = ? and parent_node_id = ?", y.SortNum, uu.Id, y.ParentNodeId)
+	if err != nil {
+		session.Rollback()
+		flog.Log.Errorf("SortNode err: %s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	// x顶上, 如果同一级的，且y>x
+	if x.ParentNodeId == y.ParentNodeId && y.SortNum > x.SortNum {
+		_, err = session.Exec("update fafacms_content_node SET sort_num=?,level=?,parent_node_id=? where user_id = ? and id = ?", y.SortNum, y.Level, y.ParentNodeId, uu.Id, x.Id)
+	} else {
+		// 否则
+		_, err = session.Exec("update fafacms_content_node SET sort_num=?,level=?,parent_node_id=? where user_id = ? and id = ?", y.SortNum+1, y.Level, y.ParentNodeId, uu.Id, x.Id)
+	}
+	if err != nil {
+		session.Rollback()
+		flog.Log.Errorf("SortNode err: %s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	err = session.Commit()
+	if err != nil {
+		session.Rollback()
+		flog.Log.Errorf("SortNode err: %s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
 	resp.Flag = true
 	return
 }
