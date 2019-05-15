@@ -33,7 +33,7 @@ var (
 		"/p":         {"List Peoples", controllers.Peoples, GP, false},         // 列出用户
 		"/u/info":    {"List User Info", controllers.UserInfo, GP, false},      // 获取某用户信息
 		"/u/count":   {"Count User Content", controllers.UserCount, GP, false}, // 统计某用户文章情况（某用户可留空）
-		"/u/content": {"List User Content", controllers.Contents, GP, false},   // 列出某用户下文章
+		"/u/content": {"List User Content", controllers.Contents, GP, false},   // 列出某用户下文章（某用户可留空）
 		"/c":         {"Get Content", controllers.Content, GP, false},          // 获取文章
 
 		// 前端的用户授权路由，不需要登录即可操作
@@ -100,6 +100,7 @@ var (
 		"/node/admin/list": {"List Node All", controllers.ListNodeAdmin, GP, true}, // 管理员查看其他用户节点
 
 		// 内容操作
+		// start review in 2019/5/15
 		// todo a lot of thing
 		"/content/create":             {"Create Content Self", controllers.CreateContent, POST, false},                     // 创建文章内容
 		"/content/update":             {"Update Content Self", controllers.UpdateContent, POST, false},                     // 更新内容，更新会写入预览
