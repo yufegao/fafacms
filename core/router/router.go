@@ -87,11 +87,12 @@ var (
 		// 内容节点操作
 		// 已经Review 2019/5/13 chen
 		"/node/create":        {"Create Node Self", controllers.CreateNode, POST, false},
-		"/node/update/seo":    {"Update Node Self Seo", controllers.UpdateSeoOfNode, POST, false},
-		"/node/update/info":   {"Update Node Self Info", controllers.UpdateInfoOfNode, POST, false},
-		"/node/update/status": {"Update Node Self Status", controllers.UpdateStatusOfNode, POST, false},
-		"/node/update/parent": {"Update Node Self Parent", controllers.UpdateParentOfNode, POST, false}, // 这个接口不如下面这个全功能的接口
-		"/node/sort":          {"Sort Node Self", controllers.SortNode, POST, false},                    // 拖曳超级函数
+		"/node/update/seo":    {"Update Node Self Seo", controllers.UpdateSeoOfNode, POST, false},          // 更新节点SEO
+		"/node/update/info":   {"Update Node Self Info", controllers.UpdateInfoOfNode, POST, false},        // 更新节点名字和描述
+		"/node/update/image":  {"Update Node Self Info Image", controllers.UpdateImageOfNode, POST, false}, // 更新图片地址
+		"/node/update/status": {"Update Node Self Status", controllers.UpdateStatusOfNode, POST, false},    // 更新状态，可以设置隐藏
+		"/node/update/parent": {"Update Node Self Parent", controllers.UpdateParentOfNode, POST, false},    // 这个接口不如下面这个全功能的接口
+		"/node/sort":          {"Sort Node Self", controllers.SortNode, POST, false},                       // 拖曳超级函数
 		"/node/delete":        {"Delete Node Self", controllers.DeleteNode, POST, false},
 
 		// 已经Review 2019/5/14 chen
@@ -101,11 +102,20 @@ var (
 
 		// 内容操作
 		// start review in 2019/5/15
-		// todo a lot of thing
-		"/content/create":             {"Create Content Self", controllers.CreateContent, POST, false},                     // 创建文章内容
-		"/content/update":             {"Update Content Self", controllers.UpdateContent, POST, false},                     // 更新内容，更新会写入预览
-		"/content/publish":            {"Publish Content Self", controllers.PublishContent, POST, false},                   // 将预览刷进另外一个字段
-		"/content/cancel":             {"Cancel Content Self", controllers.CancelContent, POST, false},                     // 取消预览的内容，刷回来
+		"/content/create":          {"Create Content Self", controllers.CreateContent, POST, false},                    // 创建文章内容(必须归属一个节点)
+		"/content/update/seo":      {"Update Content Self Seo", controllers.UpdateSeoOfContent, POST, false},           // 更新内容SEO
+		"/content/update/image":    {"Update Content Self Image", controllers.UpdateImageOfContent, POST, false},       // 更新内容图片
+		"/content/update/status":   {"Update Content Self Status", controllers.UpdateStatusOfContent, POST, false},     // 更新内容的状态，如设置隐藏
+		"/content/update/node":     {"Update Content Self Node", controllers.UpdateNodeOfContent, POST, false},         // 更改内容的节点，顺便需要重新排序
+		"/content/update/top":      {"Update Content Self Top", controllers.UpdateTopOfContent, POST, false},           // 设置内容的置顶与否
+		"/content/update/password": {"Update Content Self Password", controllers.UpdatePasswordOfContent, POST, false}, // 更改内容的密码保护
+		"/content/update/info":     {"Update Content Self Info", controllers.UpdateInfoOfContent, POST, false},         // 更新内容标题和内容
+
+		"/content/sort": {"Sort Content Self", controllers.UpdateContent, POST, false}, // 对内容进行拖曳排序
+
+		"/content/publish": {"Publish Content Self", controllers.PublishContent, POST, false}, // 将预览刷进另外一个字段
+		"/content/cancel":  {"Cancel Content Self", controllers.CancelContent, POST, false},   // 取消预览的内容，刷回来
+
 		"/content/list":               {"List Content Self", controllers.ListContent, GP, false},                           // 列出文章
 		"/content/admin/list":         {"List Content All", controllers.ListContentAdmin, GP, true},                        // 管理员列出文章，什么类型都可以
 		"/content/history/list":       {"List Content History Self", controllers.ListContentHistory, GP, false},            // 列出文章的历史记录

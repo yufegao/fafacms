@@ -27,7 +27,7 @@ type Content struct {
 	ImagePath    string `json:"image_path" xorm:"varchar(700)"`
 	Views        int    `json:"views"` // 被点击多少次，弱化
 	Password     string `json:"password,omitempty"`
-	SortNum      int    `json:"sort_num"`
+	SortNum      int64  `json:"sort_num"`
 }
 
 var ContentSortName = []string{"=id", "-user_id", "-top", `-sort_num`, "-create_time", "-update_time", "-views", "=version", "+status", "=seo"}
@@ -115,7 +115,94 @@ func (c *Content) Update() (int64, error) {
 	return config.FafaRdb.Client.MustCols("status", "close_comment", "pre_flush", "password", "top", "node_id", "node_seo").Omit("user_id").Where("id=?", c.Id).And("user_id=?", c.UserId).Update(c)
 }
 
-// 更新前都会调用 Get 接口
+// 更新SEO，不需要更新时间，在内容变化才需要
+func (c *Content) UpdateSeo() (int64, error) {
+	if c.UserId == 0 || c.Id == 0 {
+		return 0, errors.New("where is empty")
+	}
+	return config.FafaRdb.Client.Cols("seo").Where("id=?", c.Id).And("user_id=?", c.UserId).Update(c)
+}
+
+// 更新图片
+func (c *Content) UpdateImage() (int64, error) {
+	if c.UserId == 0 || c.Id == 0 {
+		return 0, errors.New("where is empty")
+	}
+	return config.FafaRdb.Client.Cols("image_path").Where("id=?", c.Id).And("user_id=?", c.UserId).Update(c)
+}
+
+// 更新状态
+func (c *Content) UpdateStatus() (int64, error) {
+	if c.UserId == 0 || c.Id == 0 {
+		return 0, errors.New("where is empty")
+	}
+	return config.FafaRdb.Client.Cols("status").Where("id=?", c.Id).And("user_id=?", c.UserId).Update(c)
+}
+
+// 更新Top
+func (c *Content) UpdateTop() (int64, error) {
+	if c.UserId == 0 || c.Id == 0 {
+		return 0, errors.New("where is empty")
+	}
+	return config.FafaRdb.Client.Cols("top").Where("id=?", c.Id).And("user_id=?", c.UserId).Update(c)
+}
+
+// 更新密码
+func (c *Content) UpdatePassword() (int64, error) {
+	if c.UserId == 0 || c.Id == 0 {
+		return 0, errors.New("where is empty")
+	}
+	return config.FafaRdb.Client.Cols("password").Where("id=?", c.Id).And("user_id=?", c.UserId).Update(c)
+}
+
+// 更新内容的节点
+func (n *Content) UpdateNode(beforeNodeId int) error {
+	if n.UserId == 0 || n.Id == 0 {
+		return errors.New("where is empty")
+	}
+
+	session := config.FafaRdb.Client.NewSession()
+	defer session.Close()
+	err := session.Begin()
+	if err != nil {
+		return err
+	}
+
+	// 先把这个内容顶出去
+	_, err = session.Exec("update fafacms_content SET sort_num=sort_num-1 where sort_num > ? and user_id = ? and node_id = ?", n.SortNum, n.UserId, beforeNodeId)
+	if err != nil {
+		session.Rollback()
+		return err
+	}
+
+	// 统计目前节点的数量
+	c, err := session.Table(n).Where("user_id=?", n.UserId).And("node_id", n.NodeId).Count()
+	if err != nil {
+		session.Rollback()
+		return err
+	}
+
+	// 好，这个内容顶上
+	n.SortNum = c
+	n.UpdateTime = time.Now().Unix()
+
+	// 每次更改节点，他都会成为这一层最靓丽排得最前面的仔
+	_, err = session.Exec("update fafacms_content SET sort_num=?, update_time=?, node_id=?, node_seo=? where id = ? and user_id = ?", n.SortNum, n.UpdateTime, n.NodeId, n.NodeSeo, n.Id, n.UserId)
+	if err != nil {
+		session.Rollback()
+		return err
+	}
+
+	err = session.Commit()
+	if err != nil {
+		session.Rollback()
+		return err
+	}
+
+	return nil
+}
+
+// 更新前都会调用， 不需要处理错误，不考虑互斥
 func (c *Content) UpdateView() {
 	config.FafaRdb.Client.Where("id=?", c.Id).Incr("views").Cols("views").Update(c)
 }
@@ -223,14 +310,6 @@ func (c *Content) UpdateStatusTo4() error {
 	}
 
 	return nil
-}
-
-func (c *Content) UpdateStatus() (int64, error) {
-	if c.Id == 0 {
-		return 0, errors.New("where is empty")
-	}
-	c.UpdateTime = time.Now().Unix()
-	return config.FafaRdb.Client.Cols("status", "update_time").Where("id=?", c.Id).Update(c)
 }
 
 func (c *ContentHistory) GetByAdmin() (bool, error) {

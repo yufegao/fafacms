@@ -152,6 +152,7 @@ func (n *ContentNode) UpdateSeo() error {
 }
 
 // 更新节点详情
+// 这种 update 要自己控制好，不要有多余字段被更新了
 func (n *ContentNode) UpdateInfo() error {
 	if n.UserId == 0 || n.Id == 0 {
 		return errors.New("where is empty")
@@ -161,6 +162,19 @@ func (n *ContentNode) UpdateInfo() error {
 	defer session.Close()
 	n.UpdateTime = time.Now().Unix()
 	_, err := session.Where("id=?", n.Id).And("user_id=?", n.UserId).MustCols("describe").Omit("id", "user_id").Update(n)
+	return err
+}
+
+// 更新节点图片
+func (n *ContentNode) UpdateImage() error {
+	if n.UserId == 0 || n.Id == 0 {
+		return errors.New("where is empty")
+	}
+
+	session := config.FafaRdb.Client.NewSession()
+	defer session.Close()
+	n.UpdateTime = time.Now().Unix()
+	_, err := session.Where("id=?", n.Id).And("user_id=?", n.UserId).MustCols("image_path").Omit("id", "user_id").Update(n)
 	return err
 }
 
@@ -221,4 +235,6 @@ func (n *ContentNode) UpdateParent(beforeParentNode int) error {
 		session.Rollback()
 		return err
 	}
+
+	return nil
 }

@@ -45,8 +45,11 @@ const (
 	ContentNotFound                   = 110000
 	ContentPasswordWrong              = 110001
 	ContentBanPermit                  = 110002
-	DBError                           = 200001
-	EmailSendError                    = 300000
+	ContentSeoAlreadyBeUsed           = 110003
+	ContentInRubbish                  = 110004
+
+	DBError        = 200001
+	EmailSendError = 300000
 
 	LazyError = 11111
 
@@ -97,11 +100,14 @@ var ErrorMap = map[int]string{
 	ContentNotFound:                   "content not found",
 	ContentBanPermit:                  "content ban permit",
 	ContentPasswordWrong:              "content password wrong",
-	DbNotFound:                        "db not found",
-	DbRepeat:                          "db repeat data",
-	DbHookIn:                          "db hook in",
-	I500:                              "500 error",
-	LazyError:                         "db not found or err",
+	ContentSeoAlreadyBeUsed:           "content seo already be used",
+	ContentInRubbish:                  "content in rubbish",
+
+	DbNotFound: "db not found",
+	DbRepeat:   "db repeat data",
+	DbHookIn:   "db hook in",
+	I500:       "500 error",
+	LazyError:  "db not found or err",
 }
 
 // common response

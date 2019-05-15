@@ -116,10 +116,14 @@ func CreateNode(c *gin.Context) {
 }
 
 type UpdateInfoOfNodeRequest struct {
+	Id       int    `json:"id" validate:"required"`
+	Name     string `json:"name" validate:"omitempty,lt=100"`
+	Describe string `json:"describe" validate:"omitempty,lt=200"`
+}
+
+type UpdateImageOfNodeRequest struct {
 	Id        int    `json:"id" validate:"required"`
-	Name      string `json:"name" validate:"omitempty,lt=100"`
-	Describe  string `json:"describe" validate:"omitempty,lt=200"`
-	ImagePath string `json:"image_path" validate:"omitempty,lt=100"`
+	ImagePath string `json:"image_path" validate:"required,lt=100"`
 }
 
 type UpdateStatusOfNodeRequest struct {
@@ -129,7 +133,7 @@ type UpdateStatusOfNodeRequest struct {
 
 type UpdateSeoOfNodeRequest struct {
 	Id  int    `json:"id" validate:"required"`
-	Seo string `json:"seo" validate:"omitempty,alphanumunicode,gt=3,lt=30"`
+	Seo string `json:"seo" validate:"required,alphanumunicode,gt=3,lt=30"`
 }
 
 type UpdateParentOfNodeRequest struct {
@@ -187,25 +191,23 @@ func UpdateSeoOfNode(c *gin.Context) {
 	after.Id = n.Id
 
 	seoChange := false
-	// SEO不为空
-	if req.Seo != "" {
-		// 和之前的SEO不一样
-		if req.Seo != n.Seo {
-			after.Seo = req.Seo
-			seoChange = true
-			// 检查是否存在SEO
-			exist, err := after.CheckSeoValid()
-			if err != nil {
-				flog.Log.Errorf("UpdateSeoOfNode err: %s", err.Error())
-				resp.Error = Error(DBError, err.Error())
-				return
-			}
-			if exist {
-				// SEO存在了，报错
-				flog.Log.Errorf("UpdateSeoOfNode err: %s", err.Error())
-				resp.Error = Error(ContentNodeSeoAlreadyBeUsed, "")
-				return
-			}
+
+	// 和之前的SEO不一样
+	if req.Seo != n.Seo {
+		after.Seo = req.Seo
+		seoChange = true
+		// 检查是否存在SEO
+		exist, err := after.CheckSeoValid()
+		if err != nil {
+			flog.Log.Errorf("UpdateSeoOfNode err: %s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+		if exist {
+			// SEO存在了，报错
+			flog.Log.Errorf("UpdateSeoOfNode err: %s", err.Error())
+			resp.Error = Error(ContentNodeSeoAlreadyBeUsed, "")
+			return
 		}
 	}
 
@@ -220,6 +222,7 @@ func UpdateSeoOfNode(c *gin.Context) {
 	}
 	resp.Flag = true
 }
+
 func UpdateInfoOfNode(c *gin.Context) {
 	resp := new(Resp)
 	req := new(UpdateInfoOfNodeRequest)
@@ -268,27 +271,6 @@ func UpdateInfoOfNode(c *gin.Context) {
 	after.UserId = n.UserId
 	after.Id = n.Id
 
-	// if image not empty
-	if req.ImagePath != "" {
-		if req.ImagePath != n.ImagePath {
-			after.ImagePath = req.ImagePath
-			p := new(model.File)
-			p.Url = req.ImagePath
-			ok, err := p.Exist()
-			if err != nil {
-				flog.Log.Errorf("UpdateInfoOfNode err:%s", err.Error())
-				resp.Error = Error(DBError, err.Error())
-				return
-			}
-
-			if !ok {
-				flog.Log.Errorf("UpdateInfoOfNode err: image not exist")
-				resp.Error = Error(FileCanNotBeFound, "")
-				return
-			}
-		}
-	}
-
 	// 以下只要存在不一致性才替换
 	if req.Name != "" {
 		if req.Name != n.Name {
@@ -305,6 +287,83 @@ func UpdateInfoOfNode(c *gin.Context) {
 		resp.Error = Error(DBError, err.Error())
 		return
 	}
+	resp.Flag = true
+}
+
+func UpdateImageOfNode(c *gin.Context) {
+	resp := new(Resp)
+	req := new(UpdateImageOfNodeRequest)
+	defer func() {
+		JSONL(c, 200, req, resp)
+	}()
+
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	var validate = validator.New()
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("UpdateInfoOfNode err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
+		return
+	}
+
+	uu, err := GetUserSession(c)
+	if err != nil {
+		flog.Log.Errorf("UpdateInfoOfNode err: %s", err.Error())
+		resp.Error = Error(GetUserSessionError, "")
+		return
+	}
+	n := new(model.ContentNode)
+	n.Id = req.Id
+	n.UserId = uu.Id
+
+	// 获取节点，节点会携带所有内容
+	exist, err := n.Get()
+	if err != nil {
+		flog.Log.Errorf("UpdateInfoOfNode err: %s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+	if !exist {
+		// 不存在节点，报错
+		flog.Log.Errorf("UpdateInfoOfNode err: %s", "content node not found")
+		resp.Error = Error(ContentNodeNotFound, "")
+		return
+	}
+
+	after := new(model.ContentNode)
+	after.UserId = n.UserId
+	after.Id = n.Id
+
+	if req.ImagePath != n.ImagePath {
+		after.ImagePath = req.ImagePath
+		p := new(model.File)
+		p.Url = req.ImagePath
+		ok, err := p.Exist()
+		if err != nil {
+			flog.Log.Errorf("UpdateInfoOfNode err:%s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+
+		if !ok {
+			flog.Log.Errorf("UpdateInfoOfNode err: image not exist")
+			resp.Error = Error(FileCanNotBeFound, "")
+			return
+		}
+
+		// 更新
+		err = after.UpdateImage()
+		if err != nil {
+			flog.Log.Errorf("UpdateNode err:%s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+	}
+
 	resp.Flag = true
 }
 
