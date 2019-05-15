@@ -643,7 +643,7 @@ func UpdateInfoOfContent(c *gin.Context) {
 // 内容相对节点简单点，没有层次
 type SortContentRequest struct {
 	XID int `json:"xid" validate:"required"`
-	YID int `json:"yid" validate:"required"`
+	YID int `json:"yid"`
 }
 
 //  拖曳排序超级函数
@@ -693,6 +693,39 @@ func SortContent(c *gin.Context) {
 	if !exist {
 		flog.Log.Errorf("SortContent err: %s", "x node not found")
 		resp.Error = Error(ContentNotFound, "x node not found")
+		return
+	}
+
+	// x节点要拉到最下面
+	if req.YID == 0 {
+		session := config.FafaRdb.Client.NewSession()
+		defer session.Close()
+
+		err = session.Begin()
+		if err != nil {
+			flog.Log.Errorf("SortContent err: %s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+
+		// 比x小的都往上走，因为x要做垫底小弟
+		_, err = session.Exec("update fafacms_content SET sort_num=sort_num+1 where sort_num < ? and user_id = ? and node_id = ?", x.SortNum, uu.Id, x.NodeId)
+		if err != nil {
+			session.Rollback()
+			flog.Log.Errorf("SortContent err: %s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+
+		// x做小弟
+		_, err = session.Exec("update fafacms_content SET sort_num=0 where user_id = ? and node_id = ? and id = ?", uu.Id, x.NodeId, x.Id)
+		if err != nil {
+			session.Rollback()
+			flog.Log.Errorf("SortContent err: %s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+		resp.Flag = true
 		return
 	}
 

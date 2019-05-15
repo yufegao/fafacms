@@ -905,9 +905,10 @@ func ListNodeHelper(c *gin.Context, userId int) {
 
 // 将Y放在X节点的上面
 // 所以想把一个节点拖到父节点的最底层是做不到的，需要拖两次
+// 上面拖两次的问题可以解决了，就是YID为空时，直接把他拖到最后
 type SortNodeRequest struct {
 	XID int `json:"xid" validate:"required"`
-	YID int `json:"yid" validate:"required"`
+	YID int `json:"yid"`
 }
 
 //  节点
@@ -958,6 +959,39 @@ func SortNode(c *gin.Context) {
 	if !exist {
 		flog.Log.Errorf("SortNode err: %s", "x node not found")
 		resp.Error = Error(ContentNodeNotFound, "x node not found")
+		return
+	}
+
+	// x节点要拉到最下面
+	if req.YID == 0 {
+		session := config.FafaRdb.Client.NewSession()
+		defer session.Close()
+
+		err = session.Begin()
+		if err != nil {
+			flog.Log.Errorf("SortNode err: %s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+
+		// 比x小的都往上走，因为x要做垫底小弟
+		_, err = session.Exec("update fafacms_content_node SET sort_num=sort_num+1 where sort_num < ? and user_id = ? and parent_node_id = ?", x.SortNum, uu.Id, x.ParentNodeId)
+		if err != nil {
+			session.Rollback()
+			flog.Log.Errorf("SortNode err: %s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+
+		// x做小弟
+		_, err = session.Exec("update fafacms_content_node SET sort_num=0 where user_id = ? and parent_node_id = ? and id = ?", uu.Id, x.ParentNodeId, x.Id)
+		if err != nil {
+			session.Rollback()
+			flog.Log.Errorf("SortNode err: %s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+		resp.Flag = true
 		return
 	}
 
