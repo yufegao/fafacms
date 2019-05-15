@@ -11,6 +11,7 @@ type Content struct {
 	Id           int    `json:"id" xorm:"bigint pk autoincr"`
 	Seo          string `json:"seo" xorm:"index"`
 	Title        string `json:"title" xorm:"varchar(200) notnull"`
+	PreTitle     string `json:"pre_title" xorm:"varchar(200) notnull"`
 	UserId       int    `json:"user_id" xorm:"bigint index"` // 内容所属用户
 	UserName     string `json:"user_name" xorm:"index"`
 	NodeId       int    `json:"node_id" xorm:"bigint index"`                                                          // 节点ID
@@ -36,7 +37,6 @@ var ContentSortName = []string{"=id", "-user_id", "-top", `-sort_num`, "-create_
 type ContentHistory struct {
 	Id         int    `json:"id" xorm:"bigint pk autoincr"`
 	ContentId  int    `json:"content_id" xorm:"bigint index"` // 内容ID
-	Seo        string `json:"seo" xorm:"index"`
 	Title      string `json:"title" xorm:"varchar(200) notnull"`
 	UserId     int    `json:"user_id" xorm:"bigint index"` // 内容所属的用户ID
 	NodeId     int    `json:"node_id" xorm:"bigint index"` // 内容所属的节点
@@ -76,18 +76,10 @@ func (c *Content) CheckSeoValid() (bool, error) {
 	return false, err
 }
 
+// 硬核插入
 func (c *Content) Insert() (int64, error) {
 	c.CreateTime = time.Now().Unix()
 	return config.FafaRdb.InsertOne(c)
-}
-
-func (c *Content) Get() (bool, error) {
-	if c.UserId == 0 || c.Id == 0 {
-		return false, errors.New("where is empty")
-	}
-
-	// 逻辑删除的内容不能获取到
-	return config.FafaRdb.Client.Where("status!=?", 4).Get(c)
 }
 
 func (c *Content) GetByAdmin() (bool, error) {
@@ -102,17 +94,65 @@ func (c *Content) GetByAdmin() (bool, error) {
 	return config.FafaRdb.Client.Get(c)
 }
 
+// 一般的获取，需要用户ID和内容ID
+func (c *Content) Get() (bool, error) {
+	if c.UserId == 0 || c.Id == 0 {
+		return false, errors.New("where is empty")
+	}
+
+	return config.FafaRdb.Client.Get(c)
+}
+
+// 硬一点
 func (c *Content) GetByRaw() (bool, error) {
 	return config.FafaRdb.Client.Get(c)
 }
 
-// 更新前都会调用 Get 接口
-func (c *Content) Update() (int64, error) {
+// 更新内容，会写历史表
+func (c *Content) UpdateDescribeAndHistory() error {
 	if c.UserId == 0 || c.Id == 0 {
-		return 0, errors.New("where is empty")
+		return errors.New("where is empty")
 	}
+
+	session := config.FafaRdb.Client.NewSession()
+	defer session.Close()
+
+	history := new(ContentHistory)
+	history.NodeId = c.NodeId
+	history.CreateTime = time.Now().Unix()
+	// 之前的内容要刷进历史表
+	history.Title = c.PreTitle
+	history.Describe = c.PreDescribe
+	history.ContentId = c.Id
+
+	// 一般类型
+	history.Types = 0
+	_, err := session.InsertOne(history)
+	if err != nil {
+		session.Rollback()
+		return err
+	}
+
+	// 版本要+1
+	c.Version = c.Version + 1
 	c.UpdateTime = time.Now().Unix()
-	return config.FafaRdb.Client.MustCols("status", "close_comment", "pre_flush", "password", "top", "node_id", "node_seo").Omit("user_id").Where("id=?", c.Id).And("user_id=?", c.UserId).Update(c)
+
+	// 把目前的内容写进去
+	c.PreDescribe = c.Describe
+	c.PreTitle = c.Title
+	c.PreFlush = 0
+	_, err = session.Cols("update_time", "version", "pre_title", "pre_describe", "pre_flush").Where("id=?", c.Id).And("user_id=?", c.UserId).Update(c)
+	if err != nil {
+		session.Rollback()
+		return err
+	}
+
+	err = session.Commit()
+	if err != nil {
+		session.Rollback()
+	}
+
+	return err
 }
 
 // 更新SEO，不需要更新时间，在内容变化才需要
@@ -207,43 +247,48 @@ func (c *Content) UpdateView() {
 	config.FafaRdb.Client.Where("id=?", c.Id).Incr("views").Cols("views").Update(c)
 }
 
-func (c *Content) UpdateDescribe() error {
+// 发布更新内容
+func (c *Content) PublishDescribe() error {
 	if c.UserId == 0 || c.Id == 0 {
 		return errors.New("where is empty")
 	}
 
-	s := config.FafaRdb.Client.NewSession()
-	if err := s.Begin(); err != nil {
+	session := config.FafaRdb.Client.NewSession()
+	defer session.Close()
+	if err := session.Begin(); err != nil {
 		return err
 	}
 
-	defer s.Close()
+	history := new(ContentHistory)
+	history.NodeId = c.NodeId
+	history.CreateTime = time.Now().Unix()
+	// 之前的内容要刷进历史表
+	history.Title = c.PreTitle
+	history.Describe = c.PreDescribe
+	history.ContentId = c.Id
 
-	c.UpdateTime = time.Now().Unix()
+	// 发布类型
+	history.Types = 1
+	_, err := session.InsertOne(history)
+	if err != nil {
+		session.Rollback()
+		return err
+	}
+
+	// 版本要+1
 	c.Version = c.Version + 1
+	c.UpdateTime = time.Now().Unix()
 	c.PreFlush = 1
-	_, err := s.Cols("describe", "pre_flush", "update_time", "version").Where("id=?", c.Id).And("user_id=?", c.UserId).Update(c)
+	c.Title = c.PreTitle
+	c.Describe = c.PreDescribe
+	_, err = session.Cols("title", "describe", "pre_flush", "update_time", "version").Where("id=?", c.Id).And("user_id=?", c.UserId).Update(c)
 	if err != nil {
-		s.Rollback()
+		session.Rollback()
 		return err
 	}
 
-	ch := new(ContentHistory)
-	ch.Seo = c.Seo
-	ch.Describe = c.Describe
-	ch.UserId = c.UserId
-	ch.Title = c.Title
-	ch.NodeId = c.NodeId
-	ch.ContentId = c.Id
-	ch.CreateTime = time.Now().Unix()
-	_, err = s.InsertOne(ch)
-	if err != nil {
-		s.Rollback()
-		return err
-	}
-
-	if err := s.Commit(); err != nil {
-		s.Rollback()
+	if err := session.Commit(); err != nil {
+		session.Rollback()
 		return err
 	}
 	return nil

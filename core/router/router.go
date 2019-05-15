@@ -110,12 +110,12 @@ var (
 		"/content/update/top":      {"Update Content Self Top", controllers.UpdateTopOfContent, POST, false},           // 设置内容的置顶与否
 		"/content/update/password": {"Update Content Self Password", controllers.UpdatePasswordOfContent, POST, false}, // 更改内容的密码保护
 		"/content/update/info":     {"Update Content Self Info", controllers.UpdateInfoOfContent, POST, false},         // 更新内容标题和内容
-
-		"/content/sort": {"Sort Content Self", controllers.UpdateContent, POST, false}, // 对内容进行拖曳排序
+		"/content/sort":            {"Sort Content Self", controllers.SortContent, POST, false},                        // 对内容进行拖曳排序
 
 		"/content/publish": {"Publish Content Self", controllers.PublishContent, POST, false}, // 将预览刷进另外一个字段
-		"/content/cancel":  {"Cancel Content Self", controllers.CancelContent, POST, false},   // 取消预览的内容，刷回来
+		"/content/restore": {"Restore Content Self", controllers.RestoreContent, POST, false}, // 恢复历史，刷回来
 
+		// start review in 2019/5/16
 		"/content/list":               {"List Content Self", controllers.ListContent, GP, false},                           // 列出文章
 		"/content/admin/list":         {"List Content All", controllers.ListContentAdmin, GP, true},                        // 管理员列出文章，什么类型都可以
 		"/content/history/list":       {"List Content History Self", controllers.ListContentHistory, GP, false},            // 列出文章的历史记录

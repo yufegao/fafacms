@@ -111,7 +111,7 @@ func CreateContent(c *gin.Context) {
 
 	content.Status = req.Status
 	content.PreDescribe = req.Describe
-	content.Title = req.Title
+	content.PreTitle = req.Title
 	content.Password = req.Password
 	content.CloseComment = req.CloseComment
 	content.Top = req.Top
@@ -592,14 +592,14 @@ func UpdateInfoOfContent(c *gin.Context) {
 	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
-		flog.Log.Errorf("UpdateContent err: %s", err.Error())
+		flog.Log.Errorf("UpdateInfoOfContent err: %s", err.Error())
 		resp.Error = Error(ParasError, err.Error())
 		return
 	}
 
 	uu, err := GetUserSession(c)
 	if err != nil {
-		flog.Log.Errorf("UpdateContent err: %s", err.Error())
+		flog.Log.Errorf("UpdateInfoOfContent err: %s", err.Error())
 		resp.Error = Error(I500, "")
 		return
 	}
@@ -609,13 +609,13 @@ func UpdateInfoOfContent(c *gin.Context) {
 	contentBefore.UserId = uu.Id
 	exist, err := contentBefore.Get()
 	if err != nil {
-		flog.Log.Errorf("UpdateContent err: %s", err.Error())
+		flog.Log.Errorf("UpdateInfoOfContent err: %s", err.Error())
 		resp.Error = Error(DBError, "")
 		return
 	}
 
 	if !exist {
-		flog.Log.Errorf("UpdateContent err: %s", "content not found")
+		flog.Log.Errorf("UpdateInfoOfContent err: %s", "content not found")
 		resp.Error = Error(DbNotFound, "content not found")
 		return
 	}
@@ -625,14 +625,13 @@ func UpdateInfoOfContent(c *gin.Context) {
 	content.UserId = uu.Id
 
 	//  如果内容更新
-	if contentBefore.PreDescribe != req.Describe || contentBefore.Title != req.Title {
+	if contentBefore.PreDescribe != req.Describe || contentBefore.PreTitle != req.Title {
 		// 一旦更新就这样
-		content.PreFlush = 0
-		content.PreDescribe = req.Describe
+		content.Describe = req.Describe
 		content.Title = req.Title
-		_, err = content.Update()
+		err = content.UpdateDescribeAndHistory()
 		if err != nil {
-			flog.Log.Errorf("UpdateContent err:%s", err.Error())
+			flog.Log.Errorf("UpdateInfoOfContent err:%s", err.Error())
 			resp.Error = Error(DBError, err.Error())
 			return
 		}
@@ -640,6 +639,139 @@ func UpdateInfoOfContent(c *gin.Context) {
 	resp.Flag = true
 }
 
+// 将Y放在X的上面
+// 内容相对节点简单点，没有层次
+type SortContentRequest struct {
+	XID int `json:"xid" validate:"required"`
+	YID int `json:"yid" validate:"required"`
+}
+
+//  拖曳排序超级函数
+func SortContent(c *gin.Context) {
+	resp := new(Resp)
+	req := new(SortContentRequest)
+	defer func() {
+		JSONL(c, 200, req, resp)
+	}()
+
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	var validate = validator.New()
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("SortContent err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
+		return
+	}
+
+	if req.XID == req.YID {
+		flog.Log.Errorf("SortContent err: %s", "xid=yid not right")
+		resp.Error = Error(ParasError, "xid=yid not right")
+		return
+	}
+
+	uu, err := GetUserSession(c)
+	if err != nil {
+		flog.Log.Errorf("SortContent err: %s", err.Error())
+		resp.Error = Error(GetUserSessionError, err.Error())
+		return
+	}
+
+	x := new(model.Content)
+	x.Id = req.XID
+	x.UserId = uu.Id
+	exist, err := x.Get()
+	if err != nil {
+		flog.Log.Errorf("SortContent err: %s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	if !exist {
+		flog.Log.Errorf("SortContent err: %s", "x node not found")
+		resp.Error = Error(ContentNotFound, "x node not found")
+		return
+	}
+
+	y := new(model.Content)
+	y.Id = req.YID
+	y.UserId = uu.Id
+	exist, err = y.Get()
+	if err != nil {
+		flog.Log.Errorf("SortContent err: %s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	if !exist {
+		flog.Log.Errorf("SortContent err: %s", "y node not found")
+		resp.Error = Error(ContentNotFound, "y node not found")
+		return
+	}
+
+	if x.NodeId != y.NodeId {
+		flog.Log.Errorf("SortContent err: %s", "x y node are different")
+		resp.Error = Error(ContentsAreInDifferentNode, "")
+		return
+	}
+
+	session := config.FafaRdb.Client.NewSession()
+	defer session.Close()
+
+	err = session.Begin()
+	if err != nil {
+		flog.Log.Errorf("SortContent err: %s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	// 先把x假装删掉，比x大的都-1，依次顶上x的位置
+	_, err = session.Exec("update fafacms_content SET sort_num=sort_num-1 where sort_num > ? and user_id = ? and node_id = ?", x.SortNum, uu.Id, x.NodeId)
+	if err != nil {
+		session.Rollback()
+		flog.Log.Errorf("SortContent err: %s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	// 把大于y排序的节点都+1，腾出位置给x
+	_, err = session.Exec("update fafacms_content SET sort_num=sort_num+1 where sort_num > ? and user_id = ? and node_id = ?", y.SortNum, uu.Id, y.NodeId)
+	if err != nil {
+		session.Rollback()
+		flog.Log.Errorf("SortContent err: %s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	// x顶上, 且y>x
+	if y.SortNum > x.SortNum {
+		_, err = session.Exec("update fafacms_content SET sort_num=? where user_id = ? and id = ?", y.SortNum, uu.Id, x.Id)
+	} else {
+		// 否则
+		_, err = session.Exec("update fafacms_content SET sort_num=? where user_id = ? and id = ?", y.SortNum+1, uu.Id, x.Id)
+	}
+	if err != nil {
+		session.Rollback()
+		flog.Log.Errorf("SortContent err: %s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	err = session.Commit()
+	if err != nil {
+		session.Rollback()
+		flog.Log.Errorf("SortContent err: %s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+	resp.Flag = true
+	return
+}
+
+// 发布内容
 type PublishContentRequest struct {
 	Id int `json:"id" validate:"required"`
 }
@@ -667,7 +799,7 @@ func PublishContent(c *gin.Context) {
 	uu, err := GetUserSession(c)
 	if err != nil {
 		flog.Log.Errorf("PublishContent err: %s", err.Error())
-		resp.Error = Error(I500, "")
+		resp.Error = Error(GetUserSessionError, err.Error())
 		return
 	}
 
@@ -677,13 +809,13 @@ func PublishContent(c *gin.Context) {
 	exist, err := content.Get()
 	if err != nil {
 		flog.Log.Errorf("PublishContent err: %s", err.Error())
-		resp.Error = Error(DBError, "")
+		resp.Error = Error(DBError, err.Error())
 		return
 	}
 
 	if !exist {
 		flog.Log.Errorf("PublishContent err: %s", "content not found")
-		resp.Error = Error(DbNotFound, "content not found")
+		resp.Error = Error(ContentNotFound, "")
 		return
 	}
 
@@ -692,21 +824,22 @@ func PublishContent(c *gin.Context) {
 		return
 	}
 
-	content.Describe = content.PreDescribe
-	err = content.UpdateDescribe()
+	err = content.PublishDescribe()
 	if err != nil {
 		flog.Log.Errorf("PublishContent err: %s", err.Error())
-		resp.Error = Error(DBError, "")
+		resp.Error = Error(DBError, err.Error())
 		return
 	}
 	resp.Flag = true
 }
 
-type CancelContentRequest struct {
-	Id int `json:"id" validate:"required"`
+// 从历史版本恢复
+type RestoreContentRequest struct {
+	Id        int `json:"id" validate:"required"`
+	HistoryId int `json:"history_id" validate:"required"`
 }
 
-func CancelContent(c *gin.Context) {
+func RestoreContent(c *gin.Context) {
 	resp := new(Resp)
 	req := new(PublishContentRequest)
 	defer func() {
@@ -729,7 +862,7 @@ func CancelContent(c *gin.Context) {
 	uu, err := GetUserSession(c)
 	if err != nil {
 		flog.Log.Errorf("CancelContent err: %s", err.Error())
-		resp.Error = Error(I500, "")
+		resp.Error = Error(GetUserSessionError, err.Error())
 		return
 	}
 
@@ -739,21 +872,17 @@ func CancelContent(c *gin.Context) {
 	exist, err := content.Get()
 	if err != nil {
 		flog.Log.Errorf("CancelContent err: %s", err.Error())
-		resp.Error = Error(DBError, "")
+		resp.Error = Error(DBError, err.Error())
 		return
 	}
 
 	if !exist {
 		flog.Log.Errorf("CancelContent err: %s", "content not found")
-		resp.Error = Error(DbNotFound, "content not found")
+		resp.Error = Error(ContentNotFound, "")
 		return
 	}
 
-	if content.PreFlush == 1 {
-		resp.Flag = true
-		return
-	}
-
+	// todo
 	content.PreDescribe = content.Describe
 	err = content.ResetDescribe()
 	if err != nil {

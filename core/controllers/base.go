@@ -47,9 +47,9 @@ const (
 	ContentBanPermit                  = 110002
 	ContentSeoAlreadyBeUsed           = 110003
 	ContentInRubbish                  = 110004
-
-	DBError        = 200001
-	EmailSendError = 300000
+	ContentsAreInDifferentNode        = 110005
+	DBError                           = 200001
+	EmailSendError                    = 300000
 
 	LazyError = 11111
 
@@ -102,12 +102,12 @@ var ErrorMap = map[int]string{
 	ContentPasswordWrong:              "content password wrong",
 	ContentSeoAlreadyBeUsed:           "content seo already be used",
 	ContentInRubbish:                  "content in rubbish",
-
-	DbNotFound: "db not found",
-	DbRepeat:   "db repeat data",
-	DbHookIn:   "db hook in",
-	I500:       "500 error",
-	LazyError:  "db not found or err",
+	ContentsAreInDifferentNode:        "contents are in different node",
+	DbNotFound:                        "db not found",
+	DbRepeat:                          "db repeat data",
+	DbHookIn:                          "db hook in",
+	I500:                              "500 error",
+	LazyError:                         "db not found or err",
 }
 
 // common response

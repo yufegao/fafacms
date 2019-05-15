@@ -725,7 +725,13 @@ func Content(c *gin.Context) {
 		resp.Error = Error(ContentBanPermit, "")
 		return
 	} else {
-		flog.Log.Errorf("TakeContent err: %s", "content not found")
+		flog.Log.Errorf("TakeContent err: %s", "content not found 1")
+		resp.Error = Error(ContentNotFound, "")
+		return
+	}
+
+	if content.Version == 0 {
+		flog.Log.Errorf("TakeContent err: %s", "content not found 2")
 		resp.Error = Error(ContentNotFound, "")
 		return
 	}
