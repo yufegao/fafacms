@@ -874,7 +874,7 @@ type RestoreContentRequest struct {
 
 func RestoreContent(c *gin.Context) {
 	resp := new(Resp)
-	req := new(PublishContentRequest)
+	req := new(RestoreContentRequest)
 	defer func() {
 		JSONL(c, 200, req, resp)
 	}()
@@ -887,14 +887,14 @@ func RestoreContent(c *gin.Context) {
 	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
-		flog.Log.Errorf("CancelContent err: %s", err.Error())
+		flog.Log.Errorf("RestoreContent err: %s", err.Error())
 		resp.Error = Error(ParasError, err.Error())
 		return
 	}
 
 	uu, err := GetUserSession(c)
 	if err != nil {
-		flog.Log.Errorf("CancelContent err: %s", err.Error())
+		flog.Log.Errorf("RestoreContent err: %s", err.Error())
 		resp.Error = Error(GetUserSessionError, err.Error())
 		return
 	}
@@ -904,14 +904,31 @@ func RestoreContent(c *gin.Context) {
 	content.UserId = uu.Id
 	exist, err := content.Get()
 	if err != nil {
-		flog.Log.Errorf("CancelContent err: %s", err.Error())
+		flog.Log.Errorf("RestoreContent err: %s", err.Error())
 		resp.Error = Error(DBError, err.Error())
 		return
 	}
 
 	if !exist {
-		flog.Log.Errorf("CancelContent err: %s", "content not found")
+		flog.Log.Errorf("RestoreContent err: %s", "content not found")
 		resp.Error = Error(ContentNotFound, "")
+		return
+	}
+
+	contentH := new(model.ContentHistory)
+	contentH.ContentId = req.Id
+	contentH.Id = req.HistoryId
+	contentH.UserId = uu.Id
+	exist, err = contentH.GetRaw()
+	if err != nil {
+		flog.Log.Errorf("RestoreContent err: %s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	if !exist {
+		flog.Log.Errorf("RestoreContent err: %s", "content history not found")
+		resp.Error = Error(ContentHistoryNotFound, "")
 		return
 	}
 
@@ -919,7 +936,7 @@ func RestoreContent(c *gin.Context) {
 	content.PreDescribe = content.Describe
 	err = content.ResetDescribe()
 	if err != nil {
-		flog.Log.Errorf("CancelContent err: %s", err.Error())
+		flog.Log.Errorf("RestoreContent err: %s", err.Error())
 		resp.Error = Error(DBError, "")
 		return
 	}
@@ -1283,10 +1300,10 @@ func TakeContentHistoryHelper(c *gin.Context, userId int) {
 	content := new(model.ContentHistory)
 	content.Id = req.Id
 	content.UserId = userId
-	exist, err := content.GetByAdmin()
+	exist, err := content.GetRaw()
 	if err != nil {
 		flog.Log.Errorf("TakeContentHistory err: %s", err.Error())
-		resp.Error = Error(DBError, "")
+		resp.Error = Error(DBError, err.Error())
 		return
 	}
 

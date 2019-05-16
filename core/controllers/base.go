@@ -48,6 +48,7 @@ const (
 	ContentSeoAlreadyBeUsed           = 110003
 	ContentInRubbish                  = 110004
 	ContentsAreInDifferentNode        = 110005
+	ContentHistoryNotFound            = 110006
 	DBError                           = 200001
 	EmailSendError                    = 300000
 

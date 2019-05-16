@@ -357,11 +357,10 @@ func (c *Content) UpdateStatusTo4() error {
 	return nil
 }
 
-func (c *ContentHistory) GetByAdmin() (bool, error) {
+func (c *ContentHistory) GetRaw() (bool, error) {
 	if c.Id == 0 {
 		return false, errors.New("where is empty")
 	}
 
-	// 逻辑删除的内容不能获取到
 	return config.FafaRdb.Client.Get(c)
 }
