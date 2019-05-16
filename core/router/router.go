@@ -102,32 +102,31 @@ var (
 
 		// 内容操作
 		// start review in 2019/5/15
-		"/content/create":          {"Create Content Self", controllers.CreateContent, POST, false},                    // 创建文章内容(必须归属一个节点)
-		"/content/update/seo":      {"Update Content Self Seo", controllers.UpdateSeoOfContent, POST, false},           // 更新内容SEO
-		"/content/update/image":    {"Update Content Self Image", controllers.UpdateImageOfContent, POST, false},       // 更新内容图片
-		"/content/update/status":   {"Update Content Self Status", controllers.UpdateStatusOfContent, POST, false},     // 更新内容的状态，如设置隐藏
-		"/content/update/node":     {"Update Content Self Node", controllers.UpdateNodeOfContent, POST, false},         // 更改内容的节点，顺便需要重新排序
-		"/content/update/top":      {"Update Content Self Top", controllers.UpdateTopOfContent, POST, false},           // 设置内容的置顶与否
-		"/content/update/password": {"Update Content Self Password", controllers.UpdatePasswordOfContent, POST, false}, // 更改内容的密码保护
-		"/content/update/info":     {"Update Content Self Info", controllers.UpdateInfoOfContent, POST, false},         // 更新内容标题和内容
-		"/content/sort":            {"Sort Content Self", controllers.SortContent, POST, false},                        // 对内容进行拖曳排序
-
-		"/content/publish": {"Publish Content Self", controllers.PublishContent, POST, false}, // 将预览刷进另外一个字段
-		"/content/restore": {"Restore Content Self", controllers.RestoreContent, POST, false}, // 恢复历史，刷回来
+		"/content/create":              {"Create Content Self", controllers.CreateContent, POST, false},                             // 创建文章内容(必须归属一个节点)
+		"/content/update/seo":          {"Update Content Self Seo", controllers.UpdateSeoOfContent, POST, false},                    // 更新内容SEO
+		"/content/update/image":        {"Update Content Self Image", controllers.UpdateImageOfContent, POST, false},                // 更新内容图片
+		"/content/update/status":       {"Update Content Self Status", controllers.UpdateStatusOfContent, POST, false},              // 更新内容的状态，如设置隐藏
+		"/content/admin/update/status": {"Update Content All Status", controllers.UpdateStatusOfContentAdmin, POST, true},           // 超级管理员修改文章，比如禁用或者逻辑删除/恢复文章
+		"/content/update/node":         {"Update Content Self Node", controllers.UpdateNodeOfContent, POST, false},                  // 更改内容的节点，顺便需要重新排序
+		"/content/update/top":          {"Update Content Self Top", controllers.UpdateTopOfContent, POST, false},                    // 设置内容的置顶与否
+		"/content/update/password":     {"Update Content Self Password", controllers.UpdatePasswordOfContent, POST, false},          // 更改内容的密码保护
+		"/content/update/info":         {"Update Content Self Info", controllers.UpdateInfoOfContent, POST, false},                  // 更新内容标题和内容
+		"/content/sort":                {"Sort Content Self", controllers.SortContent, POST, false},                                 // 对内容进行拖曳排序
+		"/content/publish":             {"Publish Content Self", controllers.PublishContent, POST, false},                           // 将预览刷进另外一个字段
+		"/content/restore":             {"Restore Content Self", controllers.RestoreContent, POST, false},                           // 恢复历史，刷回来
+		"/content/rubbish":             {"Sent Content Self To Rubbish", controllers.SentContentToRubbish, POST, false},             // 一般回收站
+		"/content/recycle":             {"Sent Rubbish Content Self To Origin", controllers.ReCycleOfContentInRubbish, POST, false}, // 一般回收站恢复
+		"/content/delete":              {"Delete Content Self Real", controllers.ReallyDeleteContent, POST, false},                  // 逻辑删除文章 已经修正为真删除
 
 		// start review in 2019/5/16
-		"/content/list":               {"List Content Self", controllers.ListContent, GP, false},                           // 列出文章
-		"/content/admin/list":         {"List Content All", controllers.ListContentAdmin, GP, true},                        // 管理员列出文章，什么类型都可以
-		"/content/history/list":       {"List Content History Self", controllers.ListContentHistory, GP, false},            // 列出文章的历史记录
-		"/content/history/admin/list": {"List Content History All", controllers.ListContentHistoryAdmin, GP, true},         // 管理员列出文章的历史纪录
-		"/content/take":               {"Take Content Self", controllers.TakeContent, GP, false},                           // 获取文章内容
-		"/content/admin/take":         {"Take Content Self", controllers.TakeContentAdmin, GP, true},                       // 管理员获取文章内容
-		"/content/history/take":       {"Take Content History Self", controllers.TakeContentHistory, GP, false},            // 获取文章历史内容
-		"/content/history/admin/take": {"Take Content History Self", controllers.TakeContentHistoryAdmin, GP, true},        // 管理员获取文章历史内容
-		"/content/admin/update":       {"Update Content All", controllers.DeleteContentAdmin, POST, true},                  // 超级管理员修改文章，比如禁用或者逻辑删除/恢复文章
-		"/content/rubbish":            {"Sent Content Self To Rubbish", controllers.DeleteContent, POST, false},            // 一般回收站
-		"/content/redo":               {"Sent Rubbish Content Self To Origin", controllers.DeleteContentRedo, POST, false}, // 一般回收站恢复
-		"/content/delete":             {"Delete Content Self Logic", controllers.ReallyDeleteContent, POST, false},         // 逻辑删除文章 已经修正为真删除
+		"/content/take":               {"Take Content Self", controllers.TakeContent, GP, false},                     // 获取文章内容
+		"/content/admin/take":         {"Take Content Admin", controllers.TakeContentAdmin, GP, true},                // 管理员获取文章内容
+		"/content/history/take":       {"Take Content History Self", controllers.TakeContentHistory, GP, false},      // 获取文章历史内容
+		"/content/history/admin/take": {"Take Content History Admin", controllers.TakeContentHistoryAdmin, GP, true}, // 管理员获取文章历史内容
+		"/content/list":               {"List Content Self", controllers.ListContent, GP, false},                     // 列出文章
+		"/content/admin/list":         {"List Content All", controllers.ListContentAdmin, GP, true},                  // 管理员列出文章，什么类型都可以
+		"/content/history/list":       {"List Content History Self", controllers.ListContentHistory, GP, false},      // 列出文章的历史记录
+		"/content/history/admin/list": {"List Content History All", controllers.ListContentHistoryAdmin, GP, true},   // 管理员列出文章的历史纪录
 
 		//
 		//"/comment/create": {controllers.CreateComment, POST},

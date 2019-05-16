@@ -537,22 +537,22 @@ type ContentsRequest struct {
 }
 
 type ContentsX struct {
-	Id            int    `json:"id" xorm:"bigint pk autoincr"`
-	Seo           string `json:"seo" xorm:"index"`
-	Title         string `json:"title" xorm:"varchar(200) notnull"`
-	UserId        int    `json:"user_id" xorm:"bigint index"` // 内容所属用户
-	UserName      string `json:"user_name" xorm:"index"`
-	NodeId        int    `json:"node_id" xorm:"bigint index"`                                     // 节点ID
-	NodeSeo       string `json:"node_seo" xorm:"index"`                                           // 节点ID SEO
-	Top           int    `json:"top" xorm:"not null comment('0 normal, 1 top') TINYINT(1) index"` // 置顶
-	CreateTime    string `json:"create_time"`
-	UpdateTime    string `json:"update_time,omitempty"`
-	CreateTimeInt int64  `json:"create_time_int"`
-	UpdateTimeInt int64  `json:"update_time_int"`
-	ImagePath     string `json:"image_path" xorm:"varchar(700)"`
-	Views         int    `json:"views"` // 被点击多少次，弱化
-	IsLock        bool   `json:"is_lock"`
-	Describe      string `json:"describe"`
+	Id             int    `json:"id" xorm:"bigint pk autoincr"`
+	Seo            string `json:"seo" xorm:"index"`
+	Title          string `json:"title" xorm:"varchar(200) notnull"`
+	UserId         int    `json:"user_id" xorm:"bigint index"` // 内容所属用户
+	UserName       string `json:"user_name" xorm:"index"`
+	NodeId         int    `json:"node_id" xorm:"bigint index"`                                     // 节点ID
+	NodeSeo        string `json:"node_seo" xorm:"index"`                                           // 节点ID SEO
+	Top            int    `json:"top" xorm:"not null comment('0 normal, 1 top') TINYINT(1) index"` // 置顶
+	CreateTime     string `json:"create_time"`
+	PublishTime    string `json:"publish_time,omitempty"`
+	CreateTimeInt  int64  `json:"create_time_int"`
+	PublishTimeInt int64  `json:"publish_time_int"`
+	ImagePath      string `json:"image_path" xorm:"varchar(700)"`
+	Views          int    `json:"views"` // 被点击多少次，弱化
+	IsLock         bool   `json:"is_lock"`
+	Describe       string `json:"describe"`
 }
 
 type ContentsResponse struct {
@@ -655,10 +655,10 @@ func Contents(c *gin.Context) {
 		temp.NodeId = c.NodeId
 		temp.Views = c.Views
 		temp.CreateTime = GetSecond2DateTimes(c.CreateTime)
-		temp.UpdateTime = GetSecond2DateTimes(c.UpdateTime)
+		temp.PublishTime = GetSecond2DateTimes(c.PublishTime)
 		temp.ImagePath = c.ImagePath
 		temp.CreateTimeInt = c.CreateTime
-		temp.UpdateTimeInt = c.UpdateTime
+		temp.PublishTimeInt = c.PublishTime
 		if c.Password != "" {
 			temp.IsLock = true
 		}
@@ -754,9 +754,9 @@ func Content(c *gin.Context) {
 	temp.NodeId = cx.NodeId
 	temp.Views = cx.Views
 	temp.CreateTime = GetSecond2DateTimes(cx.CreateTime)
-	temp.UpdateTime = GetSecond2DateTimes(cx.UpdateTime)
+	temp.PublishTime = GetSecond2DateTimes(cx.PublishTime)
 	temp.CreateTimeInt = cx.CreateTime
-	temp.UpdateTimeInt = cx.UpdateTime
+	temp.PublishTimeInt = cx.UpdateTime
 	temp.ImagePath = cx.ImagePath
 	if cx.Password != "" {
 		temp.IsLock = true

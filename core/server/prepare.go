@@ -94,6 +94,9 @@ func CreateTable(tables []interface{}) {
 
 func InitResource() {
 	for url, handler := range router.V1Router {
+		if !handler.Admin {
+			continue
+		}
 		r := new(model.Resource)
 		r.Url = fmt.Sprintf("/v1%s", url)
 		r.UrlHash, _ = util.Sha256([]byte(url))

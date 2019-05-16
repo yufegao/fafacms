@@ -136,7 +136,7 @@ type UpdateSeoOfContentRequest struct {
 
 func UpdateSeoOfContent(c *gin.Context) {
 	resp := new(Resp)
-	req := new(UpdateContentRequest)
+	req := new(UpdateSeoOfContentRequest)
 	defer func() {
 		JSONL(c, 200, req, resp)
 	}()
@@ -276,6 +276,61 @@ func UpdateImageOfContent(c *gin.Context) {
 		_, err = content.UpdateImage()
 		if err != nil {
 			flog.Log.Errorf("UpdateImageOfContent err:%s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+	}
+	resp.Flag = true
+}
+
+// 管理员更新内容状态
+type UpdateStatusOfContentAdminRequest struct {
+	Id     int `json:"id" validate:"required"`
+	Status int `json:"status" validate:"oneof=0 1 2 3"`
+}
+
+func UpdateStatusOfContentAdmin(c *gin.Context) {
+	resp := new(Resp)
+	req := new(UpdateStatusOfContentAdminRequest)
+	defer func() {
+		JSONL(c, 200, req, resp)
+	}()
+
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	var validate = validator.New()
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("UpdateStatusOfContentAdmin err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
+		return
+	}
+
+	contentBefore := new(model.Content)
+	contentBefore.Id = req.Id
+	exist, err := contentBefore.GetByRaw()
+	if err != nil {
+		flog.Log.Errorf("UpdateStatusOfContentAdmin err: %s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	if !exist {
+		flog.Log.Errorf("UpdateStatusOfContentAdmin err: %s", "content not found")
+		resp.Error = Error(ContentNotFound, "")
+		return
+	}
+
+	content := new(model.Content)
+	content.Id = req.Id
+	if req.Status != contentBefore.Status {
+		content.Status = req.Status
+		_, err = content.UpdateStatus()
+		if err != nil {
+			flog.Log.Errorf("UpdateStatusOfContentAdmin err:%s", err.Error())
 			resp.Error = Error(DBError, err.Error())
 			return
 		}
@@ -866,9 +921,8 @@ func PublishContent(c *gin.Context) {
 	resp.Flag = true
 }
 
-// 从历史版本恢复
+// 从历史版本恢复，只需要历史ID
 type RestoreContentRequest struct {
-	Id        int `json:"id" validate:"required"`
 	HistoryId int `json:"history_id" validate:"required"`
 }
 
@@ -899,27 +953,10 @@ func RestoreContent(c *gin.Context) {
 		return
 	}
 
-	content := new(model.Content)
-	content.Id = req.Id
-	content.UserId = uu.Id
-	exist, err := content.Get()
-	if err != nil {
-		flog.Log.Errorf("RestoreContent err: %s", err.Error())
-		resp.Error = Error(DBError, err.Error())
-		return
-	}
-
-	if !exist {
-		flog.Log.Errorf("RestoreContent err: %s", "content not found")
-		resp.Error = Error(ContentNotFound, "")
-		return
-	}
-
 	contentH := new(model.ContentHistory)
-	contentH.ContentId = req.Id
 	contentH.Id = req.HistoryId
 	contentH.UserId = uu.Id
-	exist, err = contentH.GetRaw()
+	exist, err := contentH.GetRaw()
 	if err != nil {
 		flog.Log.Errorf("RestoreContent err: %s", err.Error())
 		resp.Error = Error(DBError, err.Error())
@@ -932,8 +969,24 @@ func RestoreContent(c *gin.Context) {
 		return
 	}
 
-	// todo
-	content.PreDescribe = content.Describe
+	content := new(model.Content)
+	content.Id = contentH.ContentId
+	content.UserId = uu.Id
+	exist, err = content.Get()
+	if err != nil {
+		flog.Log.Errorf("RestoreContent err: %s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	if !exist {
+		flog.Log.Errorf("RestoreContent err: %s", "content not found")
+		resp.Error = Error(ContentNotFound, "")
+		return
+	}
+
+	content.Title = contentH.Title
+	content.Describe = contentH.Describe
 	err = content.ResetDescribe()
 	if err != nil {
 		flog.Log.Errorf("RestoreContent err: %s", err.Error())
@@ -944,20 +997,22 @@ func RestoreContent(c *gin.Context) {
 }
 
 type ListContentRequest struct {
-	Id              int      `json:"id"`
-	Seo             string   `json:"seo" validate:"omitempty,alphanumunicode,gt=3,lt=30"`
-	NodeId          int      `json:"node_id"`
-	NodeSeo         string   `json:"node_seo"`
-	Top             int      `json:"top" validate:"oneof=-1 0 1"`
-	Status          int      `json:"status" validate:"oneof=-1 0 1 2 3 4"`
-	CloseComment    int      `json:"close_comment" validate:"oneof=-1 0 1 2"`
-	UserId          int      `json:"user_id"`
-	UserName        string   `json:"user_name"`
-	CreateTimeBegin int64    `json:"create_time_begin"`
-	CreateTimeEnd   int64    `json:"create_time_end"`
-	UpdateTimeBegin int64    `json:"update_time_begin"`
-	UpdateTimeEnd   int64    `json:"update_time_end"`
-	Sort            []string `json:"sort" validate:"dive,lt=100"`
+	Id               int      `json:"id"`
+	Seo              string   `json:"seo" validate:"omitempty,alphanumunicode,gt=3,lt=30"`
+	NodeId           int      `json:"node_id"`
+	NodeSeo          string   `json:"node_seo"`
+	Top              int      `json:"top" validate:"oneof=-1 0 1"`
+	Status           int      `json:"status" validate:"oneof=-1 0 1 2 3"`
+	CloseComment     int      `json:"close_comment" validate:"oneof=-1 0 1 2"`
+	UserId           int      `json:"user_id"`
+	UserName         string   `json:"user_name"`
+	CreateTimeBegin  int64    `json:"create_time_begin"`
+	CreateTimeEnd    int64    `json:"create_time_end"`
+	UpdateTimeBegin  int64    `json:"update_time_begin"`
+	UpdateTimeEnd    int64    `json:"update_time_end"`
+	PublishTimeBegin int64    `json:"publish_time_begin"`
+	PublishTimeEnd   int64    `json:"publish_time_end"`
+	Sort             []string `json:"sort" validate:"dive,lt=100"`
 	PageHelp
 }
 
@@ -971,7 +1026,7 @@ func ListContent(c *gin.Context) {
 	uu, err := GetUserSession(c)
 	if err != nil {
 		flog.Log.Errorf("ListContent err: %s", err.Error())
-		resp.Error = Error(I500, "")
+		resp.Error = Error(GetUserSessionError, err.Error())
 		JSONL(c, 200, nil, resp)
 		return
 	}
@@ -1020,22 +1075,24 @@ func ListContentHelper(c *gin.Context, userId int) {
 
 	if userId != 0 {
 		session.And("user_id=?", userId)
-		if req.Status > 3 {
-			// 用户不能让他查找到逻辑删除的内容
-			req.Status = 0
+
+		// 不设置条件，只列出非垃圾
+		if req.Status == -1 {
+			session.And("status!=?", 3)
+		} else {
+			session.And("status=?", req.Status)
 		}
-		session.And("status<?", 4)
+
 	} else {
+		if req.Status != -1 {
+			session.And("status=?", req.Status)
+		}
 		if req.UserName != "" {
 			session.And("user_name=?", req.UserName)
 		}
 		if req.UserId != 0 {
 			session.And("user_id=?", req.UserId)
 		}
-	}
-
-	if req.Status != -1 {
-		session.And("status=?", req.Status)
 	}
 
 	if req.Top != -1 {
@@ -1072,6 +1129,14 @@ func ListContentHelper(c *gin.Context, userId int) {
 
 	if req.UpdateTimeEnd > 0 {
 		session.And("update_time<?", req.UpdateTimeEnd)
+	}
+
+	if req.PublishTimeBegin > 0 {
+		session.And("publish_time>=?", req.PublishTimeBegin)
+	}
+
+	if req.PublishTimeEnd > 0 {
+		session.And("publish_time<?", req.PublishTimeEnd)
 	}
 
 	// count num
@@ -1125,7 +1190,7 @@ func ListContentHistory(c *gin.Context) {
 	uu, err := GetUserSession(c)
 	if err != nil {
 		flog.Log.Errorf("ListContentHistory err: %s", err.Error())
-		resp.Error = Error(I500, "")
+		resp.Error = Error(GetUserSessionError, err.Error())
 		JSONL(c, 200, nil, resp)
 		return
 	}
@@ -1215,6 +1280,7 @@ type TakeContentRequest struct {
 	Id int `json:"id" validate:"required"`
 }
 
+// 获取内容
 func TakeContentHelper(c *gin.Context, userId int) {
 	resp := new(Resp)
 	req := new(TakeContentRequest)
@@ -1238,16 +1304,16 @@ func TakeContentHelper(c *gin.Context, userId int) {
 	content := new(model.Content)
 	content.Id = req.Id
 	content.UserId = userId
-	exist, err := content.GetByAdmin()
+	exist, err := content.Get()
 	if err != nil {
 		flog.Log.Errorf("TakeContent err: %s", err.Error())
-		resp.Error = Error(DBError, "")
+		resp.Error = Error(DBError, err.Error())
 		return
 	}
 
 	if !exist {
 		flog.Log.Errorf("TakeContent err: %s", "content not found")
-		resp.Error = Error(DbNotFound, "content not found")
+		resp.Error = Error(ContentNotFound, "")
 		return
 	}
 
@@ -1260,7 +1326,7 @@ func TakeContent(c *gin.Context) {
 	uu, err := GetUserSession(c)
 	if err != nil {
 		flog.Log.Errorf("TakeContent err: %s", err.Error())
-		resp.Error = Error(I500, "")
+		resp.Error = Error(GetUserSessionError, err.Error())
 		JSONL(c, 200, nil, resp)
 		return
 	}
@@ -1308,8 +1374,8 @@ func TakeContentHistoryHelper(c *gin.Context, userId int) {
 	}
 
 	if !exist {
-		flog.Log.Errorf("TakeContentHistory err: %s", "content not found")
-		resp.Error = Error(DbNotFound, "content not found")
+		flog.Log.Errorf("TakeContentHistory err: %s", "content history not found")
+		resp.Error = Error(ContentHistoryNotFound, "")
 		return
 	}
 
@@ -1322,7 +1388,7 @@ func TakeContentHistory(c *gin.Context) {
 	uu, err := GetUserSession(c)
 	if err != nil {
 		flog.Log.Errorf("TakeContentHistory err: %s", err.Error())
-		resp.Error = Error(I500, "")
+		resp.Error = Error(GetUserSessionError, err.Error())
 		JSONL(c, 200, nil, resp)
 		return
 	}
@@ -1335,15 +1401,14 @@ func TakeContentHistoryAdmin(c *gin.Context) {
 	TakeContentHistoryHelper(c, 0)
 }
 
-type DeleteContentRequest struct {
-	Id     int `json:"id" validate:"required"`
-	Status int `json:"status" validate:"oneof=0 1 2 3"`
+type SentContentToRubbishRequest struct {
+	Id int `json:"id" validate:"required"`
 }
 
-// 文章状态操作
-func DeleteContentHelper(c *gin.Context, userId int, typeDelete int) {
+// 垃圾回收，假删除(容忍禁止的内容丢出去.这样是个漏洞，允许他 !!!)
+func SentContentToRubbish(c *gin.Context) {
 	resp := new(Resp)
-	req := new(DeleteContentRequest)
+	req := new(SentContentToRubbishRequest)
 	defer func() {
 		JSONL(c, 200, req, resp)
 	}()
@@ -1356,78 +1421,176 @@ func DeleteContentHelper(c *gin.Context, userId int, typeDelete int) {
 	var validate = validator.New()
 	err := validate.Struct(req)
 	if err != nil {
-		flog.Log.Errorf("DeleteContent err: %s", err.Error())
+		flog.Log.Errorf("SentContentToRubbish err: %s", err.Error())
 		resp.Error = Error(ParasError, err.Error())
+		return
+	}
+
+	uu, err := GetUserSession(c)
+	if err != nil {
+		flog.Log.Errorf("SentContentToRubbish err: %s", err.Error())
+		resp.Error = Error(GetUserSessionError, err.Error())
+		return
+	}
+
+	contentBefore := new(model.Content)
+	contentBefore.Id = req.Id
+	contentBefore.UserId = uu.Id
+	exist, err := contentBefore.Get()
+	if err != nil {
+		flog.Log.Errorf("SentContentToRubbish err: %s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	if !exist {
+		flog.Log.Errorf("SentContentToRubbish err: %s", "content not found")
+		resp.Error = Error(ContentNotFound, "")
+		return
+	}
+
+	if contentBefore.Status == 3 {
+		resp.Flag = true
 		return
 	}
 
 	content := new(model.Content)
 	content.Id = req.Id
-	content.UserId = userId
-	if typeDelete == 0 {
-		// 送去垃圾站
-		_, err = content.UpdateStatusTo3()
-	} else if typeDelete == 1 {
-		// 逻辑删除 已经修改为真正意义上的删除，毕竟空间有限
-		err = content.UpdateStatusTo4()
-	} else if typeDelete == 2 {
-		// 垃圾恢复
-		_, err = content.UpdateStatusTo3Reverse()
-	} else {
-		// 管理员权限
-		content.Status = req.Status
-		_, err = content.UpdateStatus()
+	content.UserId = uu.Id
+	content.Status = 3
+	_, err = content.UpdateStatus()
+	if err != nil {
+		flog.Log.Errorf("SentContentToRubbish err:%s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
 	}
+
 	resp.Flag = true
-	return
 }
 
-// 垃圾回收，假删除
-func DeleteContent(c *gin.Context) {
-	resp := new(Resp)
-	uu, err := GetUserSession(c)
-	if err != nil {
-		flog.Log.Errorf("DeleteContent err: %s", err.Error())
-		resp.Error = Error(I500, "")
-		JSONL(c, 200, nil, resp)
-		return
-	}
-
-	uid := uu.Id
-	DeleteContentHelper(c, uid, 0)
-}
-
-// 逻辑删除
-func ReallyDeleteContent(c *gin.Context) {
-	resp := new(Resp)
-	uu, err := GetUserSession(c)
-	if err != nil {
-		flog.Log.Errorf("DeleteContent err: %s", err.Error())
-		resp.Error = Error(I500, "")
-		JSONL(c, 200, nil, resp)
-		return
-	}
-
-	uid := uu.Id
-	DeleteContentHelper(c, uid, 1)
+type ReCycleOfContentInRubbishRequest struct {
+	Id int `json:"id" validate:"required"`
 }
 
 // 垃圾恢复
-func DeleteContentRedo(c *gin.Context) {
+func ReCycleOfContentInRubbish(c *gin.Context) {
 	resp := new(Resp)
-	uu, err := GetUserSession(c)
-	if err != nil {
-		flog.Log.Errorf("DeleteContent err: %s", err.Error())
-		resp.Error = Error(I500, "")
-		JSONL(c, 200, nil, resp)
+	req := new(SentContentToRubbishRequest)
+	defer func() {
+		JSONL(c, 200, req, resp)
+	}()
+
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
 		return
 	}
 
-	uid := uu.Id
-	DeleteContentHelper(c, uid, 2)
+	var validate = validator.New()
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("ReCycleOfContentInRubbish err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
+		return
+	}
+
+	uu, err := GetUserSession(c)
+	if err != nil {
+		flog.Log.Errorf("ReCycleOfContentInRubbish err: %s", err.Error())
+		resp.Error = Error(GetUserSessionError, err.Error())
+		return
+	}
+
+	contentBefore := new(model.Content)
+	contentBefore.Id = req.Id
+	contentBefore.UserId = uu.Id
+	exist, err := contentBefore.Get()
+	if err != nil {
+		flog.Log.Errorf("ReCycleOfContentInRubbish err: %s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	if !exist {
+		flog.Log.Errorf("ReCycleOfContentInRubbish err: %s", "content not found")
+		resp.Error = Error(ContentNotFound, "")
+		return
+	}
+
+	if contentBefore.Status == 3 {
+		content := new(model.Content)
+		content.Id = req.Id
+		content.UserId = uu.Id
+		content.Status = 0
+		_, err = content.UpdateStatus()
+		if err != nil {
+			flog.Log.Errorf("ReCycleOfContentInRubbish err:%s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+	}
+
+	resp.Flag = true
 }
 
-// 管理员超大权限
-func DeleteContentAdmin(c *gin.Context) {
-	DeleteContentHelper(c, 0, 3)
+type ReallyDeleteContentRequest struct {
+	Id int `json:"id" validate:"required"`
+}
+
+func ReallyDeleteContent(c *gin.Context) {
+	resp := new(Resp)
+	req := new(ReallyDeleteContentRequest)
+	defer func() {
+		JSONL(c, 200, req, resp)
+	}()
+
+	if errResp := ParseJSON(c, req); errResp != nil {
+		resp.Error = errResp
+		return
+	}
+
+	var validate = validator.New()
+	err := validate.Struct(req)
+	if err != nil {
+		flog.Log.Errorf("ReallyDeleteContent err: %s", err.Error())
+		resp.Error = Error(ParasError, err.Error())
+		return
+	}
+
+	uu, err := GetUserSession(c)
+	if err != nil {
+		flog.Log.Errorf("ReallyDeleteContent err: %s", err.Error())
+		resp.Error = Error(GetUserSessionError, err.Error())
+		return
+	}
+
+	contentBefore := new(model.Content)
+	contentBefore.Id = req.Id
+	contentBefore.UserId = uu.Id
+	exist, err := contentBefore.Get()
+	if err != nil {
+		flog.Log.Errorf("ReallyDeleteContent err: %s", err.Error())
+		resp.Error = Error(DBError, err.Error())
+		return
+	}
+
+	if !exist {
+		flog.Log.Errorf("ReallyDeleteContent err: %s", "content not found")
+		resp.Error = Error(ContentNotFound, "")
+		return
+	}
+
+	// 只有回收站的才能删除
+	if contentBefore.Status == 3 {
+		content := new(model.Content)
+		content.Id = req.Id
+		content.UserId = uu.Id
+		err = content.Delete()
+		if err != nil {
+			flog.Log.Errorf("ReallyDeleteContent err:%s", err.Error())
+			resp.Error = Error(DBError, err.Error())
+			return
+		}
+	}
+
+	resp.Flag = true
 }

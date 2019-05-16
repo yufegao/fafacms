@@ -25,6 +25,7 @@ type Content struct {
 	Version      int    `json:"version"`                                                                            // 0表示什么都没发布  发布了多少次版本
 	CreateTime   int64  `json:"create_time"`
 	UpdateTime   int64  `json:"update_time,omitempty"`
+	PublishTime  int64  `json:"publish_time,omitempty"`
 	ImagePath    string `json:"image_path" xorm:"varchar(700)"`
 	Views        int    `json:"views"` // 被点击多少次，弱化
 	Password     string `json:"password,omitempty"`
@@ -45,7 +46,7 @@ type ContentHistory struct {
 	CreateTime int64  `json:"create_time"`
 }
 
-var ContentHistorySortName = []string{"-create_time"}
+var ContentHistorySortName = []string{"=id", "-user_id", "-create_time", "-content_id"}
 
 // 统计节点下的内容数量
 func (c *Content) CountNumUnderNode() (int64, error) {
@@ -82,21 +83,9 @@ func (c *Content) Insert() (int64, error) {
 	return config.FafaRdb.InsertOne(c)
 }
 
-func (c *Content) GetByAdmin() (bool, error) {
-	if c.Id == 0 {
-		return false, errors.New("where is empty")
-	}
-
-	if c.UserId != 0 {
-		return c.Get()
-	}
-
-	return config.FafaRdb.Client.Get(c)
-}
-
-// 一般的获取，需要用户ID和内容ID
+// 一般的获取，放松，需要内容ID
 func (c *Content) Get() (bool, error) {
-	if c.UserId == 0 || c.Id == 0 {
+	if c.Id == 0 {
 		return false, errors.New("where is empty")
 	}
 
@@ -224,10 +213,9 @@ func (n *Content) UpdateNode(beforeNodeId int) error {
 
 	// 好，这个内容顶上
 	n.SortNum = c
-	n.UpdateTime = time.Now().Unix()
 
 	// 每次更改节点，他都会成为这一层最靓丽排得最前面的仔
-	_, err = session.Exec("update fafacms_content SET sort_num=?, update_time=?, node_id=?, node_seo=? where id = ? and user_id = ?", n.SortNum, n.UpdateTime, n.NodeId, n.NodeSeo, n.Id, n.UserId)
+	_, err = session.Exec("update fafacms_content SET sort_num=?, node_id=?, node_seo=? where id = ? and user_id = ?", n.SortNum, n.NodeId, n.NodeSeo, n.Id, n.UserId)
 	if err != nil {
 		session.Rollback()
 		return err
@@ -281,7 +269,8 @@ func (c *Content) PublishDescribe() error {
 	c.PreFlush = 1
 	c.Title = c.PreTitle
 	c.Describe = c.PreDescribe
-	_, err = session.Cols("title", "describe", "pre_flush", "update_time", "version").Where("id=?", c.Id).And("user_id=?", c.UserId).Update(c)
+	c.PublishTime = c.UpdateTime
+	_, err = session.Cols("title", "describe", "pre_flush", "update_time", "publish_time", "version").Where("id=?", c.Id).And("user_id=?", c.UserId).Update(c)
 	if err != nil {
 		session.Rollback()
 		return err
@@ -299,35 +288,49 @@ func (c *Content) ResetDescribe() error {
 		return errors.New("where is empty")
 	}
 
-	c.UpdateTime = time.Now().Unix()
-	_, err := config.FafaRdb.Client.Cols("pre_describe", "update_time").Where("id=?", c.Id).And("user_id=?", c.UserId).Update(c)
-	if err != nil {
+	session := config.FafaRdb.Client.NewSession()
+	defer session.Close()
+	if err := session.Begin(); err != nil {
 		return err
 	}
 
+	history := new(ContentHistory)
+	history.NodeId = c.NodeId
+	history.CreateTime = time.Now().Unix()
+	// 之前的内容要刷进历史表
+	history.Title = c.PreTitle
+	history.Describe = c.PreDescribe
+	history.ContentId = c.Id
+
+	// 恢复类型
+	history.Types = 2
+	_, err := session.InsertOne(history)
+	if err != nil {
+		session.Rollback()
+		return err
+	}
+
+	// 版本要+1
+	c.Version = c.Version + 1
+	c.UpdateTime = time.Now().Unix()
+	c.PreFlush = 0
+	c.PreTitle = c.Title
+	c.PreDescribe = c.Describe
+	_, err = session.Cols("pre_title", "pre_describe", "pre_flush", "update_time", "version").Where("id=?", c.Id).And("user_id=?", c.UserId).Update(c)
+	if err != nil {
+		session.Rollback()
+		return err
+	}
+
+	if err := session.Commit(); err != nil {
+		session.Rollback()
+		return err
+	}
 	return nil
 }
 
-// 0/1 ->3   2/3 -> 4
-func (c *Content) UpdateStatusTo3() (int64, error) {
-	if c.UserId == 0 || c.Id == 0 {
-		return 0, errors.New("where is empty")
-	}
-	c.UpdateTime = time.Now().Unix()
-	c.Status = 3
-	return config.FafaRdb.Client.Cols("status", "update_time").Where("status<=?", 1).Where("id=?", c.Id).And("user_id=?", c.UserId).Update(c)
-}
-
-func (c *Content) UpdateStatusTo3Reverse() (int64, error) {
-	if c.UserId == 0 || c.Id == 0 {
-		return 0, errors.New("where is empty")
-	}
-	c.UpdateTime = time.Now().Unix()
-	c.Status = 0
-	return config.FafaRdb.Client.Cols("status", "update_time").Where("status=?", 3).Where("id=?", c.Id).And("user_id=?", c.UserId).Update(c)
-}
-
-func (c *Content) UpdateStatusTo4() error {
+// 级联删除
+func (c *Content) Delete() error {
 	if c.UserId == 0 || c.Id == 0 {
 		return errors.New("where is empty")
 	}
@@ -358,9 +361,5 @@ func (c *Content) UpdateStatusTo4() error {
 }
 
 func (c *ContentHistory) GetRaw() (bool, error) {
-	if c.Id == 0 {
-		return false, errors.New("where is empty")
-	}
-
 	return config.FafaRdb.Client.Get(c)
 }
