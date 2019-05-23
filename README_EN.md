@@ -12,16 +12,16 @@
 
  `fafa` -- means `flower` in Cantonese.
 
-A content management system in go, frontend and backend is highly splited. Support multi-users, post blogs, view blogs. We want to bring out an example 
+A content management system written in go, which frontend and backend is highly splited. Support multi-users, post blogs, view blogs. We hope to bring a practices that are generally desired across the industry.
 
-Backend returns JSON API. Feel free to use any mainstream frameworks to develop frontend. This project framework is scalable.
+Backend returns JSON API.You can use any mainstream frameworks to develop frontend. This project framework is scalable.
 
 Dependencies:
 
-1. [Gin is a HTTP web framework written in Go (Golang)](https://github.com/gin-gonic/gin)
-2. [The open source embeddable online markdown editor (component).](https://github.com/pandao/editor.md)
+1. [Gin](https://github.com/gin-gonic/gin)
+2. [Markdown Editor](https://github.com/pandao/editor.md)
 3. [Session management for Go 1.7+](https://github.com/alexedwards/scs)
-4. [Go Struct and Field validation, including Cross Field, Cross Struct, Map, Slice and Array diving](https://github.com/go-playground/validator)
+4. [Go Validator](https://github.com/go-playground/validator)
 
 ...
 
@@ -45,6 +45,19 @@ Structure:
 
 How to run and debug backend: [/doc/README.md](/doc/README.md), use [insomnia](https://insomnia.rest/)
 
+## Product description
+
+1. User registration with personal information(qq, weibo, email and other profile data), then receive the email and activate the account. Inactivated users could not use the platform. No close functions so far.
+2. Privilege management. Administrator could set up user group and routing access, like activate user, change other users' password, check all articles. This is invisible function.
+3. User could manage their profile, and they can login without password in one week if necessary. If user forget password, they can use their e-mail to reset password. 
+4. Content management. User could create two layers tags at most. They can create new posts, hide or update posts, recover post from specific version, drag to different tags.
+5. Comment management. User could comment on other's article, they can delete their own comments, or vote for others' comment.
+6. Image storage. All image needs to upload to database via interface. 
+7. Using Markdown as content editor. Users can choose existing images on database or upload local images.
+8. User registration could be disabled. Blocklist of user and content implemented.
+
+More details and restrictions are available in production.
+
 ## Instruction
 
 ### Backend deployment(normal)
@@ -54,6 +67,8 @@ get codes:
 ```
 go get -v github.com/hunterhug/fafacms
 ```
+
+Then the repository will be downloaded and could be found inside `Golang GOPATH`.
 
 run:
 
